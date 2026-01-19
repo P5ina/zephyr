@@ -4,5 +4,10 @@
 			"path": "/api/cron/reset-tokens",
 			"schedule": "0 0 * * *"
 		}
-	]
+	],
+	"functions": {
+		"api/upload.func": {
+			"maxDuration": 60
+		}
+	}
 }

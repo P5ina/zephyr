@@ -1,4 +1,5 @@
 <script lang="ts">
+import { upload } from '@vercel/blob/client';
 import { Trash2, Upload } from 'lucide-svelte';
 import type { Lora } from '$lib/server/db/schema';
 
@@ -15,10 +16,9 @@ let file = $state<File | null>(null);
 let uploading = $state(false);
 let uploadProgress = $state(0);
 let uploadStatus = $state<'uploading' | 'processing' | ''>('');
-let error = $state('');
+let errorMsg = $state('');
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
-const UPLOAD_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
 function formatFileSize(bytes: number): string {
 	if (bytes < 1024) return `${bytes} B`;
@@ -26,76 +26,43 @@ function formatFileSize(bytes: number): string {
 	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function uploadWithProgress(formData: FormData): Promise<{ url: string }> {
-	return new Promise((resolve, reject) => {
-		const xhr = new XMLHttpRequest();
-
-		xhr.timeout = UPLOAD_TIMEOUT;
-
-		xhr.upload.onprogress = (e) => {
-			if (e.lengthComputable) {
-				uploadProgress = Math.round((e.loaded / e.total) * 100);
-			}
-		};
-
-		xhr.onload = () => {
-			if (xhr.status >= 200 && xhr.status < 300) {
-				try {
-					resolve(JSON.parse(xhr.responseText));
-				} catch {
-					reject(new Error('Invalid server response'));
-				}
-			} else {
-				try {
-					const data = JSON.parse(xhr.responseText);
-					reject(new Error(data.message || 'Upload failed'));
-				} catch {
-					reject(new Error(`Upload failed (${xhr.status})`));
-				}
-			}
-		};
-
-		xhr.onerror = () => reject(new Error('Network error - check your connection'));
-		xhr.ontimeout = () => reject(new Error('Upload timed out - file may be too large'));
-		xhr.onabort = () => reject(new Error('Upload cancelled'));
-
-		xhr.open('POST', '/api/upload');
-		xhr.send(formData);
-	});
-}
-
 async function handleUpload() {
 	if (!file || !name.trim()) return;
 
 	// Validate file size
 	if (file.size > MAX_FILE_SIZE) {
-		error = `File too large (${formatFileSize(file.size)}). Maximum size is ${formatFileSize(MAX_FILE_SIZE)}.`;
+		errorMsg = `File too large (${formatFileSize(file.size)}). Maximum size is ${formatFileSize(MAX_FILE_SIZE)}.`;
 		return;
 	}
 
 	// Validate file extension
 	if (!file.name.toLowerCase().endsWith('.safetensors')) {
-		error = 'Only .safetensors files are allowed';
+		errorMsg = 'Only .safetensors files are allowed';
 		return;
 	}
 
 	uploading = true;
 	uploadProgress = 0;
 	uploadStatus = 'uploading';
-	error = '';
+	errorMsg = '';
 
 	try {
-		const formData = new FormData();
-		formData.append('file', file);
-
-		const { url } = await uploadWithProgress(formData);
+		// Upload directly to Vercel Blob (bypasses server body size limit)
+		const blob = await upload(file.name, file, {
+			access: 'public',
+			handleUploadUrl: '/api/upload/token',
+			onUploadProgress: (progress) => {
+				uploadProgress = Math.round((progress.loaded / progress.total) * 100);
+			},
+		});
 
 		uploadStatus = 'processing';
 
+		// Create LoRA entry with the blob URL
 		const loraRes = await fetch('/api/loras', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ name: name.trim(), falUrl: url }),
+			body: JSON.stringify({ name: name.trim(), falUrl: blob.url }),
 		});
 
 		if (!loraRes.ok) {
@@ -109,7 +76,7 @@ async function handleUpload() {
 		name = '';
 		file = null;
 	} catch (e) {
-		error = e instanceof Error ? e.message : 'Upload failed';
+		errorMsg = e instanceof Error ? e.message : 'Upload failed';
 	} finally {
 		uploading = false;
 		uploadProgress = 0;
@@ -170,8 +137,8 @@ function handleFileSelect(e: Event) {
 			/>
 		</label>
 
-		{#if error}
-			<p class="text-sm text-red-400">{error}</p>
+		{#if errorMsg}
+			<p class="text-sm text-red-400">{errorMsg}</p>
 		{/if}
 
 		{#if uploading}

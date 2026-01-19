@@ -35,6 +35,7 @@
 	"dependencies": {
 		"@fal-ai/client": "^1.8.3",
 		"@neondatabase/serverless": "^1.0.2",
+		"@vercel/blob": "^2.0.0",
 		"arctic": "^3.7.0",
 		"lucide-svelte": "^0.562.0",
 		"nanoid": "^5.1.6"
