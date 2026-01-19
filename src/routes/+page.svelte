@@ -14,6 +14,14 @@ import type { PageData } from './$types';
 let activeTab = $state<'features' | 'pricing'>('features');
 
 let { data }: { data: PageData } = $props();
+
+function scrollToPricing() {
+	activeTab = 'pricing';
+	// Wait for DOM update then scroll
+	setTimeout(() => {
+		document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+	}, 0);
+}
 </script>
 
 <div class="min-h-screen bg-zinc-950 overflow-hidden">
@@ -40,7 +48,7 @@ let { data }: { data: PageData } = $props();
 					Features
 				</button>
 				<button
-					onclick={() => activeTab = 'pricing'}
+					onclick={scrollToPricing}
 					class="text-sm transition-colors {activeTab === 'pricing' ? 'text-white' : 'text-zinc-400 hover:text-white'}"
 				>
 					Pricing
@@ -99,7 +107,7 @@ let { data }: { data: PageData } = $props();
 					</a>
 				{/if}
 				<button
-					onclick={() => activeTab = 'pricing'}
+					onclick={scrollToPricing}
 					class="inline-flex items-center gap-2 px-8 py-4 text-zinc-300 hover:text-white font-medium transition-colors"
 				>
 					View pricing
@@ -217,7 +225,7 @@ let { data }: { data: PageData } = $props();
 
 	<!-- Pricing Section -->
 	{#if activeTab === 'pricing'}
-	<section class="relative z-10 border-t border-zinc-800/50">
+	<section id="pricing" class="relative z-10 border-t border-zinc-800/50">
 		<div class="max-w-6xl mx-auto px-4 py-24">
 			<div class="text-center mb-16">
 				<h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Simple, transparent pricing</h2>
