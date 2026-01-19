@@ -13,6 +13,12 @@ declare global {
 		// interface PageState {}
 		// interface Platform {}
 	}
+
+	// Crisp chat widget
+	interface Window {
+		$crisp: unknown[];
+		CRISP_WEBSITE_ID: string;
+	}
 }
 
 export {};

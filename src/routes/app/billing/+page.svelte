@@ -291,12 +291,7 @@ const isPro = currentTier === 'pro' && data.subscription?.status === 'active';
 
 		<!-- Help -->
 		<div class="text-center text-sm text-zinc-500">
-			<p>
-				Need help? Contact us at{' '}
-				<a href="mailto:support@zephyr.p5ina.dev" class="text-yellow-400 hover:text-yellow-300">
-					support@zephyr.p5ina.dev
-				</a>
-			</p>
+			<p>Need help? Use the chat widget in the bottom right corner.</p>
 		</div>
 	</main>
 </div>
