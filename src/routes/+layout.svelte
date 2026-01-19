@@ -2,6 +2,7 @@
 import './layout.css';
 import favicon from '$lib/assets/favicon.svg';
 import { browser } from '$app/environment';
+import { onNavigate } from '$app/navigation';
 
 let { children } = $props();
 
@@ -15,6 +16,18 @@ if (browser) {
 	s.async = true;
 	d.getElementsByTagName('head')[0].appendChild(s);
 }
+
+// Page transitions using View Transitions API
+onNavigate((navigation) => {
+	if (!document.startViewTransition) return;
+
+	return new Promise((resolve) => {
+		document.startViewTransition(async () => {
+			resolve();
+			await navigation.complete;
+		});
+	});
+});
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
