@@ -11,17 +11,7 @@ import {
 } from 'lucide-svelte';
 import type { PageData } from './$types';
 
-let activeTab = $state<'features' | 'pricing'>('features');
-
 let { data }: { data: PageData } = $props();
-
-function scrollToPricing() {
-	activeTab = 'pricing';
-	// Wait for DOM update then scroll
-	setTimeout(() => {
-		document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
-	}, 0);
-}
 </script>
 
 <div class="min-h-screen bg-zinc-950 overflow-hidden">
@@ -41,18 +31,12 @@ function scrollToPricing() {
 				<span class="text-xl font-bold text-white">Zephyr</span>
 			</div>
 			<div class="flex items-center gap-6">
-				<button
-					onclick={() => activeTab = 'features'}
-					class="text-sm transition-colors {activeTab === 'features' ? 'text-white' : 'text-zinc-400 hover:text-white'}"
-				>
+				<a href="#features" class="text-sm text-zinc-400 hover:text-white transition-colors">
 					Features
-				</button>
-				<button
-					onclick={scrollToPricing}
-					class="text-sm transition-colors {activeTab === 'pricing' ? 'text-white' : 'text-zinc-400 hover:text-white'}"
-				>
+				</a>
+				<a href="#pricing" class="text-sm text-zinc-400 hover:text-white transition-colors">
 					Pricing
-				</button>
+				</a>
 				{#if data.user}
 					<a
 						href="/app"
@@ -106,12 +90,12 @@ function scrollToPricing() {
 						<ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" />
 					</a>
 				{/if}
-				<button
-					onclick={scrollToPricing}
+				<a
+					href="#pricing"
 					class="inline-flex items-center gap-2 px-8 py-4 text-zinc-300 hover:text-white font-medium transition-colors"
 				>
 					View pricing
-				</button>
+				</a>
 			</div>
 		</div>
 
@@ -136,8 +120,7 @@ function scrollToPricing() {
 	</section>
 
 	<!-- Features Section -->
-	{#if activeTab === 'features'}
-	<section class="relative z-10 border-t border-zinc-800/50">
+	<section id="features" class="relative z-10 border-t border-zinc-800/50">
 		<div class="max-w-6xl mx-auto px-4 py-24">
 			<div class="text-center mb-16">
 				<h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Everything you need to create</h2>
@@ -221,10 +204,8 @@ function scrollToPricing() {
 			</div>
 		</div>
 	</section>
-	{/if}
 
 	<!-- Pricing Section -->
-	{#if activeTab === 'pricing'}
 	<section id="pricing" class="relative z-10 border-t border-zinc-800/50">
 		<div class="max-w-6xl mx-auto px-4 py-24">
 			<div class="text-center mb-16">
@@ -354,7 +335,6 @@ function scrollToPricing() {
 			</div>
 		</div>
 	</section>
-	{/if}
 
 	<!-- Footer -->
 	<footer class="relative z-10 border-t border-zinc-800/50">
