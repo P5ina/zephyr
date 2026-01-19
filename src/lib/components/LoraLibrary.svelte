@@ -13,29 +13,59 @@ let { loras, onupload, ondelete }: Props = $props();
 let name = $state('');
 let file = $state<File | null>(null);
 let uploading = $state(false);
+let uploadProgress = $state(0);
+let uploadStatus = $state<'uploading' | 'processing' | ''>('');
 let error = $state('');
+
+function uploadWithProgress(formData: FormData): Promise<{ url: string }> {
+	return new Promise((resolve, reject) => {
+		const xhr = new XMLHttpRequest();
+
+		xhr.upload.onprogress = (e) => {
+			if (e.lengthComputable) {
+				uploadProgress = Math.round((e.loaded / e.total) * 100);
+			}
+		};
+
+		xhr.onload = () => {
+			if (xhr.status >= 200 && xhr.status < 300) {
+				try {
+					resolve(JSON.parse(xhr.responseText));
+				} catch {
+					reject(new Error('Invalid response'));
+				}
+			} else {
+				try {
+					const data = JSON.parse(xhr.responseText);
+					reject(new Error(data.message || 'Upload failed'));
+				} catch {
+					reject(new Error('Upload failed'));
+				}
+			}
+		};
+
+		xhr.onerror = () => reject(new Error('Network error'));
+
+		xhr.open('POST', '/api/upload');
+		xhr.send(formData);
+	});
+}
 
 async function handleUpload() {
 	if (!file || !name.trim()) return;
 
 	uploading = true;
+	uploadProgress = 0;
+	uploadStatus = 'uploading';
 	error = '';
 
 	try {
 		const formData = new FormData();
 		formData.append('file', file);
 
-		const uploadRes = await fetch('/api/upload', {
-			method: 'POST',
-			body: formData,
-		});
+		const { url } = await uploadWithProgress(formData);
 
-		if (!uploadRes.ok) {
-			const data = await uploadRes.json();
-			throw new Error(data.message || 'Upload failed');
-		}
-
-		const { url } = await uploadRes.json();
+		uploadStatus = 'processing';
 
 		const loraRes = await fetch('/api/loras', {
 			method: 'POST',
@@ -57,6 +87,8 @@ async function handleUpload() {
 		error = e instanceof Error ? e.message : 'Upload failed';
 	} finally {
 		uploading = false;
+		uploadProgress = 0;
+		uploadStatus = '';
 	}
 }
 
@@ -112,13 +144,33 @@ function handleFileSelect(e: Event) {
 			<p class="text-sm text-red-400">{error}</p>
 		{/if}
 
-		<button
-			onclick={handleUpload}
-			disabled={uploading || !file || !name.trim()}
-			class="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-medium rounded-lg transition-colors"
-		>
-			{uploading ? 'Uploading...' : 'Upload LoRA'}
-		</button>
+		{#if uploading}
+			<div class="space-y-2">
+				<div class="flex items-center justify-between text-sm">
+					<span class="text-zinc-400">
+						{uploadStatus === 'processing' ? 'Processing...' : 'Uploading...'}
+					</span>
+					<span class="text-zinc-300">{uploadProgress}%</span>
+				</div>
+				<div class="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
+					<div
+						class="h-full bg-indigo-500 transition-all duration-200 ease-out"
+						style="width: {uploadStatus === 'processing' ? 100 : uploadProgress}%"
+					></div>
+				</div>
+				{#if uploadStatus === 'processing'}
+					<p class="text-xs text-zinc-500">Saving to library...</p>
+				{/if}
+			</div>
+		{:else}
+			<button
+				onclick={handleUpload}
+				disabled={!file || !name.trim()}
+				class="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-medium rounded-lg transition-colors"
+			>
+				Upload LoRA
+			</button>
+		{/if}
 	</div>
 
 	{#if loras.length > 0}
