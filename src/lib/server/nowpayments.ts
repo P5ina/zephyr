@@ -132,6 +132,8 @@ export async function createInvoice(
 			ipn_callback_url: params.callbackUrl,
 			success_url: params.successUrl,
 			cancel_url: params.cancelUrl,
+			// Only show stablecoins and common cryptos with low minimums
+			selected_currencies: ['usdttrc20', 'usdterc20', 'usdtbsc', 'usdc', 'ltc', 'trx', 'doge', 'xrp', 'sol', 'matic'],
 		}),
 	});
 }
