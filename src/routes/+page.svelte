@@ -271,13 +271,13 @@ let { data }: { data: PageData } = $props();
 						<p class="text-sm text-zinc-400">For creators who need more</p>
 					</div>
 					<div class="mb-6">
-						<span class="text-4xl font-bold text-white">$10</span>
+						<span class="text-4xl font-bold text-white">$25</span>
 						<span class="text-zinc-400">/month</span>
 					</div>
 					<ul class="space-y-3 mb-8 flex-grow">
 						<li class="flex items-center gap-3 text-sm text-zinc-300">
 							<Check class="w-4 h-4 text-yellow-400 shrink-0" />
-							1,000 tokens/month
+							2,500 tokens/month
 						</li>
 						<li class="flex items-center gap-3 text-sm text-zinc-300">
 							<Check class="w-4 h-4 text-yellow-400 shrink-0" />
@@ -307,20 +307,20 @@ let { data }: { data: PageData } = $props();
 						<p class="text-sm text-zinc-400">One-time purchase, never expire</p>
 					</div>
 					<div class="mb-6">
-						<span class="text-4xl font-bold text-white">$10+</span>
+						<span class="text-4xl font-bold text-white">$25+</span>
 					</div>
 					<ul class="space-y-3 mb-8 flex-grow">
-						<li class="flex items-center gap-3 text-sm text-zinc-300">
-							<Check class="w-4 h-4 text-green-400 shrink-0" />
-							100 tokens - $10
-						</li>
 						<li class="flex items-center gap-3 text-sm text-zinc-300">
 							<Check class="w-4 h-4 text-green-400 shrink-0" />
 							500 tokens - $25
 						</li>
 						<li class="flex items-center gap-3 text-sm text-zinc-300">
 							<Check class="w-4 h-4 text-green-400 shrink-0" />
-							1,000 tokens - $40
+							1,500 tokens - $50
+						</li>
+						<li class="flex items-center gap-3 text-sm text-zinc-300">
+							<Check class="w-4 h-4 text-green-400 shrink-0" />
+							5,000 tokens - $100
 						</li>
 						<li class="flex items-center gap-3 text-sm text-zinc-300">
 							<Check class="w-4 h-4 text-green-400 shrink-0" />

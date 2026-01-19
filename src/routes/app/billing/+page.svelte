@@ -36,7 +36,7 @@ async function upgradeToPro() {
 	}
 }
 
-async function buyCredits(pack: 'credits_100' | 'credits_500' | 'credits_1000') {
+async function buyCredits(pack: 'credits_500' | 'credits_1500' | 'credits_5000') {
 	purchasing = pack;
 	error = null;
 	try {
@@ -211,7 +211,7 @@ const isPro = currentTier === 'pro' && data.subscription?.status === 'active';
 			<div class="grid sm:grid-cols-3 gap-4">
 				{#each Object.entries(PRICING.creditPacks) as [key, pack]}
 					<button
-						onclick={() => buyCredits(key as 'credits_100' | 'credits_500' | 'credits_1000')}
+						onclick={() => buyCredits(key as 'credits_500' | 'credits_1500' | 'credits_5000')}
 						disabled={purchasing === key}
 						class="p-4 border border-zinc-700 hover:border-zinc-600 rounded-xl text-left transition-colors disabled:opacity-50 group"
 					>

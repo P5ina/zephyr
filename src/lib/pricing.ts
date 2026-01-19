@@ -1,5 +1,5 @@
 // Shared pricing config (client-safe)
-// Minimum $10 for crypto payment compatibility
+// Minimum $25 for crypto payment compatibility
 export const PRICING = {
 	tiers: {
 		free: {
@@ -9,25 +9,25 @@ export const PRICING = {
 		},
 		pro: {
 			name: 'Pro',
-			monthlyTokens: 1000,
-			price: 10,
+			monthlyTokens: 2500,
+			price: 25,
 		},
 	},
 	creditPacks: {
-		credits_100: {
-			name: '100 Tokens',
-			tokens: 100,
-			price: 10,
-		},
 		credits_500: {
 			name: '500 Tokens',
 			tokens: 500,
 			price: 25,
 		},
-		credits_1000: {
-			name: '1,000 Tokens',
-			tokens: 1000,
-			price: 40,
+		credits_1500: {
+			name: '1,500 Tokens',
+			tokens: 1500,
+			price: 50,
+		},
+		credits_5000: {
+			name: '5,000 Tokens',
+			tokens: 5000,
+			price: 100,
 		},
 	},
 } as const;
