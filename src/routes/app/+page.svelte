@@ -1,11 +1,9 @@
 <script lang="ts">
 import {
 	Coins,
-	CreditCard,
 	Settings,
 	X,
 } from 'lucide-svelte';
-import BillingSettings from '$lib/components/BillingSettings.svelte';
 import GenerationHistory from '$lib/components/GenerationHistory.svelte';
 import ImageGenerator from '$lib/components/ImageGenerator.svelte';
 import LoraLibrary from '$lib/components/LoraLibrary.svelte';
@@ -27,7 +25,6 @@ let nextCursor = $state<string | null>(
 		: null,
 );
 let settingsOpen = $state(false);
-let settingsTab = $state<'general' | 'billing'>('general');
 let savingSettings = $state(false);
 
 async function toggleNsfw() {
@@ -106,7 +103,7 @@ async function loadMoreGenerations() {
 						<Settings class="w-5 h-5" />
 					</button>
 					{#if settingsOpen}
-						<div class="absolute right-0 top-full mt-2 w-80 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl z-50">
+						<div class="absolute right-0 top-full mt-2 w-72 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl z-50">
 							<div class="flex items-center justify-between p-3 border-b border-zinc-800">
 								<span class="text-sm font-medium text-white">Settings</span>
 								<button
@@ -116,47 +113,23 @@ async function loadMoreGenerations() {
 									<X class="w-4 h-4" />
 								</button>
 							</div>
-							<div class="flex border-b border-zinc-800">
-								<button
-									onclick={() => (settingsTab = 'general')}
-									class="flex-1 px-4 py-2 text-sm font-medium transition-colors {settingsTab === 'general'
-										? 'text-white border-b-2 border-yellow-500'
-										: 'text-zinc-400 hover:text-white'}"
-								>
-									<Settings class="w-4 h-4 inline mr-1.5" />
-									General
-								</button>
-								<button
-									onclick={() => (settingsTab = 'billing')}
-									class="flex-1 px-4 py-2 text-sm font-medium transition-colors {settingsTab === 'billing'
-										? 'text-white border-b-2 border-yellow-500'
-										: 'text-zinc-400 hover:text-white'}"
-								>
-									<CreditCard class="w-4 h-4 inline mr-1.5" />
-									Billing
-								</button>
-							</div>
-							<div class="p-3 max-h-96 overflow-y-auto">
-								{#if settingsTab === 'general'}
-									<label class="flex items-center justify-between cursor-pointer">
-										<span class="text-sm text-zinc-300">Allow NSFW content</span>
-										<button
-											onclick={toggleNsfw}
-											disabled={savingSettings}
-											class="relative w-11 h-6 rounded-full transition-colors {nsfwEnabled
-												? 'bg-yellow-500'
-												: 'bg-zinc-700'}"
-										>
-											<span
-												class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform {nsfwEnabled
-													? 'translate-x-5'
-													: 'translate-x-0'}"
-											></span>
-										</button>
-									</label>
-								{:else}
-									<BillingSettings {tokens} {bonusTokens} />
-								{/if}
+							<div class="p-3">
+								<label class="flex items-center justify-between cursor-pointer">
+									<span class="text-sm text-zinc-300">Allow NSFW content</span>
+									<button
+										onclick={toggleNsfw}
+										disabled={savingSettings}
+										class="relative w-11 h-6 rounded-full transition-colors {nsfwEnabled
+											? 'bg-yellow-500'
+											: 'bg-zinc-700'}"
+									>
+										<span
+											class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform {nsfwEnabled
+												? 'translate-x-5'
+												: 'translate-x-0'}"
+										></span>
+									</button>
+								</label>
 							</div>
 						</div>
 					{/if}
