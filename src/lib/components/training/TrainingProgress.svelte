@@ -1,6 +1,6 @@
 <script lang="ts">
 import { onMount, onDestroy } from 'svelte';
-import { CheckCircle, AlertCircle, Loader2, ChevronDown, ChevronUp, Terminal } from 'lucide-svelte';
+import { CheckCircle, AlertCircle, Loader2, Terminal } from 'lucide-svelte';
 import type { TrainingJob, Lora } from '$lib/server/db/schema';
 
 interface Props {
@@ -13,9 +13,6 @@ let { job, onupdate, oncomplete }: Props = $props();
 
 let polling = $state(false);
 let pollInterval: ReturnType<typeof setInterval> | null = null;
-let logs = $state<string[]>([]);
-let showLogs = $state(false);
-let logsContainer: HTMLDivElement | null = $state(null);
 let queueStatus = $state<string>('');
 
 async function pollStatus() {
@@ -34,19 +31,6 @@ async function pollStatus() {
 		// Track queue status
 		if (data.queueStatus) {
 			queueStatus = data.queueStatus;
-		}
-
-		// Update logs if available
-		if (data.logs && Array.isArray(data.logs)) {
-			logs = data.logs;
-			// Auto-scroll to bottom if logs are visible
-			if (showLogs && logsContainer) {
-				setTimeout(() => {
-					if (logsContainer) {
-						logsContainer.scrollTop = logsContainer.scrollHeight;
-					}
-				}, 0);
-			}
 		}
 
 		onupdate({
@@ -194,51 +178,25 @@ let progressPercent = $derived(job.progress || 0);
 			</div>
 		</div>
 
-		<!-- Training Logs -->
-		<div class="border border-zinc-800 rounded-lg overflow-hidden">
-			<button
-				onclick={() => (showLogs = !showLogs)}
-				class="w-full flex items-center justify-between p-3 bg-zinc-900 hover:bg-zinc-800 transition-colors"
-			>
-				<div class="flex items-center gap-2 text-sm text-zinc-400">
-					<Terminal class="w-4 h-4" />
-					<span>Training Logs</span>
-					{#if logs.length > 0}
-						<span class="text-xs text-zinc-500">({logs.length} lines)</span>
-					{/if}
-				</div>
-				{#if showLogs}
-					<ChevronUp class="w-4 h-4 text-zinc-400" />
-				{:else}
-					<ChevronDown class="w-4 h-4 text-zinc-400" />
-				{/if}
-			</button>
-			{#if showLogs}
-				<div
-					bind:this={logsContainer}
-					class="max-h-64 overflow-y-auto bg-zinc-950 p-3 font-mono text-xs"
-				>
-					{#if logs.length > 0}
-						{#each logs as log, i}
-							<div class="text-zinc-400 whitespace-pre-wrap break-all {log.toLowerCase().includes('error') ? 'text-red-400' : ''} {log.toLowerCase().includes('warning') ? 'text-yellow-400' : ''}">
-								<span class="text-zinc-600 select-none mr-2">{String(i + 1).padStart(3, ' ')}</span>{log}
-							</div>
-						{/each}
+		<!-- Training Info -->
+		<div class="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
+			<div class="flex items-center gap-2 text-sm text-zinc-400">
+				<Terminal class="w-4 h-4" />
+				<span>
+					{#if queueStatus === 'PREPARING'}
+						Packaging and uploading training data...
+					{:else if queueStatus === 'IN_QUEUE'}
+						Waiting in queue for GPU resources...
+					{:else if queueStatus === 'IN_PROGRESS'}
+						Training in progress. Estimated time: {Math.ceil(job.steps / 100)} minutes.
 					{:else}
-						<p class="text-zinc-500 italic">
-							{#if queueStatus === 'PREPARING'}
-								Packaging and uploading training data...
-							{:else if queueStatus === 'IN_QUEUE'}
-								Job is queued. Logs will appear once training starts...
-							{:else if queueStatus === 'IN_PROGRESS'}
-								Training started. Waiting for logs...
-							{:else}
-								Connecting to training server...
-							{/if}
-						</p>
+						Connecting to training server...
 					{/if}
-				</div>
-			{/if}
+				</span>
+			</div>
+			<p class="text-xs text-zinc-500 mt-2">
+				Z-Image Trainer does not provide real-time logs. The page will update when training completes.
+			</p>
 		</div>
 	{/if}
 
