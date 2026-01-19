@@ -1,6 +1,6 @@
 <script lang="ts">
+import { Trash2, Upload } from 'lucide-svelte';
 import type { Lora } from '$lib/server/db/schema';
-import { Upload, Trash2 } from 'lucide-svelte';
 
 interface Props {
 	loras: Lora[];

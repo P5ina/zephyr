@@ -29,6 +29,20 @@
       "when": 1768809839492,
       "tag": "0003_amazing_sunfire",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1768813057440,
+      "tag": "0004_magical_piledriver",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1768814586234,
+      "tag": "0005_typical_weapon_omega",
+      "breakpoints": true
     }
   ]
 }

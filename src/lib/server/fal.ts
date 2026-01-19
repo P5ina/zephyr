@@ -1,6 +1,6 @@
 import { fal } from '@fal-ai/client';
-import { env } from '$env/dynamic/private';
 import { building } from '$app/environment';
+import { env } from '$env/dynamic/private';
 
 if (!building && env.FAL_KEY) {
 	fal.config({ credentials: env.FAL_KEY });
@@ -31,7 +31,7 @@ export interface GenerateImageResult {
 }
 
 export async function generateImage(
-	options: GenerateImageOptions
+	options: GenerateImageOptions,
 ): Promise<GenerateImageResult> {
 	const {
 		prompt,
@@ -66,7 +66,9 @@ export async function generateImage(
 	}
 
 	try {
-		const result = await fal.subscribe(endpoint, { input } as Parameters<typeof fal.subscribe>[1]);
+		const result = await fal.subscribe(endpoint, { input } as Parameters<
+			typeof fal.subscribe
+		>[1]);
 
 		const images = result.data.images as GeneratedImage[] | undefined;
 		if (!images || images.length === 0) {
@@ -79,7 +81,8 @@ export async function generateImage(
 			prompt: result.data.prompt as string,
 		};
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Image generation failed';
+		const message =
+			err instanceof Error ? err.message : 'Image generation failed';
 		throw new Error(message);
 	}
 }

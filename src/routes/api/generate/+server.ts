@@ -1,10 +1,10 @@
-import { json, error } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
-import { generateImage } from '$lib/server/fal';
+import { error, json } from '@sveltejs/kit';
+import { eq, inArray, sql } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { nanoid } from 'nanoid';
-import { inArray, eq, sql } from 'drizzle-orm';
+import { generateImage } from '$lib/server/fal';
+import type { RequestHandler } from './$types';
 
 interface GenerateRequest {
 	prompt: string;
@@ -38,8 +38,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const numImages = body.numImages ?? 1;
 	const tokensRequired = numImages;
 
-	if (locals.user.tokens < tokensRequired) {
-		error(402, `Not enough tokens. Required: ${tokensRequired}, available: ${locals.user.tokens}`);
+	const totalTokens = locals.user.tokens + locals.user.bonusTokens;
+	if (totalTokens < tokensRequired) {
+		error(
+			402,
+			`Not enough tokens. Required: ${tokensRequired}, available: ${totalTokens}`,
+		);
 	}
 
 	let lorasForGeneration: Array<{ path: string; scale: number }> | undefined;
@@ -49,7 +53,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const loraRecords = await db.query.lora.findMany({
 			where: inArray(
 				table.lora.id,
-				body.loras.map((l) => l.id)
+				body.loras.map((l) => l.id),
 			),
 		});
 
@@ -101,20 +105,32 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				})
 				.returning();
 			return generation;
-		})
+		}),
 	);
 
 	// Deduct tokens after successful generation
+	// Deduct from bonusTokens first, then regular tokens
 	const tokensUsed = result.images.length;
+	const bonusDeduct = Math.min(locals.user.bonusTokens, tokensUsed);
+	const regularDeduct = tokensUsed - bonusDeduct;
+
 	await db
 		.update(table.user)
-		.set({ tokens: sql`${table.user.tokens} - ${tokensUsed}` })
+		.set({
+			bonusTokens: sql`${table.user.bonusTokens} - ${bonusDeduct}`,
+			tokens: sql`${table.user.tokens} - ${regularDeduct}`,
+		})
 		.where(eq(table.user.id, locals.user.id));
+
+	const tokensRemaining = locals.user.tokens - regularDeduct;
+	const bonusRemaining = locals.user.bonusTokens - bonusDeduct;
 
 	return json({
 		generations,
 		seed: result.seed,
 		tokensUsed,
-		tokensRemaining: locals.user.tokens - tokensUsed,
+		tokensRemaining,
+		bonusTokensRemaining: bonusRemaining,
+		totalTokensRemaining: tokensRemaining + bonusRemaining,
 	});
 };

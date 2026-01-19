@@ -1,8 +1,8 @@
-import { json, error } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
+import { error, json } from '@sveltejs/kit';
+import { count, desc, eq, lt } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { eq, desc, lt, count } from 'drizzle-orm';
+import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url, locals }) => {
 	if (!locals.user) {
@@ -19,12 +19,17 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 			where: eq(table.generation.id, cursor),
 		});
 		if (cursorGeneration) {
-			conditions.push(lt(table.generation.createdAt, cursorGeneration.createdAt));
+			conditions.push(
+				lt(table.generation.createdAt, cursorGeneration.createdAt),
+			);
 		}
 	}
 
 	const generations = await db.query.generation.findMany({
-		where: conditions.length > 1 ? (g, { and }) => and(...conditions.map(c => c)) : conditions[0],
+		where:
+			conditions.length > 1
+				? (g, { and }) => and(...conditions.map((c) => c))
+				: conditions[0],
 		orderBy: desc(table.generation.createdAt),
 		limit: limit + 1,
 	});

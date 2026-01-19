@@ -1,9 +1,9 @@
-import { json, error } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
+import { error, json } from '@sveltejs/kit';
+import { and, desc, eq } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
+import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ locals }) => {
 	if (!locals.user) {
@@ -66,7 +66,7 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 	await db
 		.delete(table.lora)
 		.where(
-			and(eq(table.lora.id, body.id), eq(table.lora.userId, locals.user.id))
+			and(eq(table.lora.id, body.id), eq(table.lora.userId, locals.user.id)),
 		);
 
 	return json({ success: true });

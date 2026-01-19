@@ -1,11 +1,11 @@
 import { error, redirect } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
-import { github } from '$lib/server/oauth';
+import { eq } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
+import * as auth from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
-import * as auth from '$lib/server/auth';
-import { nanoid } from 'nanoid';
+import { github } from '$lib/server/oauth';
+import type { RequestHandler } from './$types';
 
 interface GitHubUser {
 	id: number;
@@ -89,10 +89,10 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	auth.setSessionTokenCookie(
 		{ cookies } as Parameters<typeof auth.setSessionTokenCookie>[0],
 		sessionToken,
-		new Date(Date.now() + 1000 * 60 * 60 * 24 * 30)
+		new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
 	);
 
 	cookies.delete('github_oauth_state', { path: '/' });
 
-	redirect(302, '/');
+	redirect(302, '/app');
 };

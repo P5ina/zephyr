@@ -1,6 +1,6 @@
 <script lang="ts">
+import { Check, Copy, Download, X } from 'lucide-svelte';
 import type { Generation } from '$lib/server/db/schema';
-import { X, Download, Copy, Check } from 'lucide-svelte';
 
 interface Props {
 	generations: Generation[];
@@ -9,7 +9,12 @@ interface Props {
 	onloadmore?: () => void;
 }
 
-let { generations, loading = false, hasMore = false, onloadmore }: Props = $props();
+let {
+	generations,
+	loading = false,
+	hasMore = false,
+	onloadmore,
+}: Props = $props();
 
 let hoveredId = $state<string | null>(null);
 let selectedGeneration = $state<Generation | null>(null);

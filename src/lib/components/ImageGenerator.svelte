@@ -1,7 +1,7 @@
 <script lang="ts">
-import type { Lora, Generation } from '$lib/server/db/schema';
-import LoraSelector from './LoraSelector.svelte';
 import { AlertCircle } from 'lucide-svelte';
+import type { Generation, Lora } from '$lib/server/db/schema';
+import LoraSelector from './LoraSelector.svelte';
 
 interface SelectedLora {
 	id: string;
@@ -11,10 +11,17 @@ interface SelectedLora {
 interface Props {
 	loras: Lora[];
 	tokens: number;
-	ongenerate: (generations: Generation[], tokensRemaining: number) => void;
+	bonusTokens: number;
+	ongenerate: (
+		generations: Generation[],
+		tokensRemaining: number,
+		bonusTokensRemaining?: number
+	) => void;
 }
 
-let { loras, tokens, ongenerate }: Props = $props();
+let { loras, tokens, bonusTokens, ongenerate }: Props = $props();
+
+let totalTokens = $derived(tokens + bonusTokens);
 
 let prompt = $state('');
 let width = $state(1024);
@@ -59,12 +66,16 @@ async function generate() {
 
 		if (!res.ok) {
 			const data = await res.json().catch(() => ({}));
-			throw new Error(data.message || data.error?.message || `Generation failed (${res.status})`);
+			throw new Error(
+				data.message ||
+					data.error?.message ||
+					`Generation failed (${res.status})`,
+			);
 		}
 
 		const data = await res.json();
 		generatedImages = data.generations;
-		ongenerate(data.generations, data.tokensRemaining);
+		ongenerate(data.generations, data.tokensRemaining, data.bonusTokensRemaining);
 	} catch (e) {
 		error = e instanceof Error ? e.message : 'Generation failed';
 	} finally {
@@ -167,12 +178,12 @@ function handleLoraChange(selected: SelectedLora[]) {
 
 	<button
 		onclick={generate}
-		disabled={generating || !prompt.trim() || tokens < numImages}
+		disabled={generating || !prompt.trim() || totalTokens < numImages}
 		class="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white font-medium rounded-lg transition-colors"
 	>
 		{#if generating}
 			Generating...
-		{:else if tokens < numImages}
+		{:else if totalTokens < numImages}
 			Not enough tokens
 		{:else}
 			Generate ({numImages} {numImages === 1 ? 'token' : 'tokens'})

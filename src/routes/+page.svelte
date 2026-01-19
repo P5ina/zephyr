@@ -1,506 +1,370 @@
 <script lang="ts">
+import {
+	ArrowRight,
+	Check,
+	Clock,
+	Github,
+	Image as ImageIcon,
+	Layers,
+	Sparkles,
+	Zap,
+} from 'lucide-svelte';
 import type { PageData } from './$types';
-import type { Lora, Generation } from '$lib/server/db/schema';
-import ImageGenerator from '$lib/components/ImageGenerator.svelte';
-import GenerationHistory from '$lib/components/GenerationHistory.svelte';
-import LoraLibrary from '$lib/components/LoraLibrary.svelte';
-import { Coins, Settings, X, Sparkles, Zap, Layers, Clock, Check, ArrowRight, Github, Image as ImageIcon } from 'lucide-svelte';
 
 let activeTab = $state<'features' | 'pricing'>('features');
 
 let { data }: { data: PageData } = $props();
-
-let loras = $state<Lora[]>(data.loras);
-let generations = $state<Generation[]>(data.generations);
-let tokens = $state(data.user?.tokens ?? 0);
-let nsfwEnabled = $state(data.user?.nsfwEnabled ?? true);
-let loadingMore = $state(false);
-let hasMore = $state(data.generations.length === 20);
-let nextCursor = $state<string | null>(
-	data.generations.length > 0 ? data.generations[data.generations.length - 1].id : null
-);
-let settingsOpen = $state(false);
-let savingSettings = $state(false);
-
-async function toggleNsfw() {
-	savingSettings = true;
-	const newValue = !nsfwEnabled;
-	try {
-		const res = await fetch('/api/settings', {
-			method: 'PATCH',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ nsfwEnabled: newValue }),
-		});
-		if (res.ok) {
-			nsfwEnabled = newValue;
-		}
-	} finally {
-		savingSettings = false;
-	}
-}
-
-function handleGenerate(newGenerations: Generation[], tokensRemaining: number) {
-	generations = [...newGenerations, ...generations];
-	tokens = tokensRemaining;
-}
-
-function handleLoraUpload(lora: Lora) {
-	loras = [lora, ...loras];
-}
-
-function handleLoraDelete(id: string) {
-	loras = loras.filter((l) => l.id !== id);
-}
-
-async function loadMoreGenerations() {
-	if (loadingMore || !nextCursor) return;
-
-	loadingMore = true;
-	try {
-		const res = await fetch(`/api/generations?cursor=${nextCursor}&limit=20`);
-		if (res.ok) {
-			const data = await res.json();
-			generations = [...generations, ...data.generations];
-			nextCursor = data.nextCursor;
-			hasMore = !!data.nextCursor;
-		}
-	} finally {
-		loadingMore = false;
-	}
-}
 </script>
 
-{#if !data.user}
-	<div class="min-h-screen bg-zinc-950 overflow-hidden">
-		<!-- Animated background gradient -->
-		<div class="fixed inset-0 overflow-hidden pointer-events-none">
-			<div class="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-yellow-500/20 via-transparent to-transparent rounded-full blur-3xl animate-pulse"></div>
-			<div class="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-amber-500/20 via-transparent to-transparent rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
-		</div>
+<div class="min-h-screen bg-zinc-950 overflow-hidden">
+	<!-- Animated background gradient -->
+	<div class="fixed inset-0 overflow-hidden pointer-events-none">
+		<div class="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-yellow-500/20 via-transparent to-transparent rounded-full blur-3xl animate-pulse"></div>
+		<div class="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-amber-500/20 via-transparent to-transparent rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
+	</div>
 
-		<!-- Navigation -->
-		<nav class="relative z-10 border-b border-zinc-800/50 backdrop-blur-sm">
-			<div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-				<div class="flex items-center gap-2">
-					<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
-						<Sparkles class="w-4 h-4 text-zinc-900" />
-					</div>
-					<span class="text-xl font-bold text-white">Zephyr</span>
+	<!-- Navigation -->
+	<nav class="relative z-10 border-b border-zinc-800/50 backdrop-blur-sm">
+		<div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+			<div class="flex items-center gap-2">
+				<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
+					<Sparkles class="w-4 h-4 text-zinc-900" />
 				</div>
-				<div class="flex items-center gap-6">
-					<button
-						onclick={() => activeTab = 'features'}
-						class="text-sm transition-colors {activeTab === 'features' ? 'text-white' : 'text-zinc-400 hover:text-white'}"
+				<span class="text-xl font-bold text-white">Zephyr</span>
+			</div>
+			<div class="flex items-center gap-6">
+				<button
+					onclick={() => activeTab = 'features'}
+					class="text-sm transition-colors {activeTab === 'features' ? 'text-white' : 'text-zinc-400 hover:text-white'}"
+				>
+					Features
+				</button>
+				<button
+					onclick={() => activeTab = 'pricing'}
+					class="text-sm transition-colors {activeTab === 'pricing' ? 'text-white' : 'text-zinc-400 hover:text-white'}"
+				>
+					Pricing
+				</button>
+				{#if data.user}
+					<a
+						href="/app"
+						class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 text-sm font-medium rounded-lg transition-colors"
 					>
-						Features
-					</button>
-					<button
-						onclick={() => activeTab = 'pricing'}
-						class="text-sm transition-colors {activeTab === 'pricing' ? 'text-white' : 'text-zinc-400 hover:text-white'}"
-					>
-						Pricing
-					</button>
+						Go to App
+					</a>
+				{:else}
 					<a
 						href="/login"
 						class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg transition-colors backdrop-blur-sm border border-white/10"
 					>
 						Sign in
 					</a>
-				</div>
+				{/if}
 			</div>
-		</nav>
+		</div>
+	</nav>
 
-		<!-- Hero Section -->
-		<section class="relative z-10 max-w-6xl mx-auto px-4 pt-20 pb-32">
-			<div class="text-center">
-				<div class="inline-flex items-center gap-2 px-3 py-1 mb-6 rounded-full bg-yellow-500/10 border border-yellow-500/20">
-					<Zap class="w-3.5 h-3.5 text-yellow-400" />
-					<span class="text-xs font-medium text-yellow-300">Powered by Z-Image Turbo</span>
-				</div>
-				<h1 class="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight">
-					Create stunning images<br />
-					<span class="bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-400 bg-clip-text text-transparent">with AI magic</span>
-				</h1>
-				<p class="text-lg md:text-xl text-zinc-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-					Generate beautiful images in seconds with custom LoRA support.
-					Upload your own styles and create unique artwork that's truly yours.
-				</p>
-				<div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+	<!-- Hero Section -->
+	<section class="relative z-10 max-w-6xl mx-auto px-4 pt-20 pb-32">
+		<div class="text-center">
+			<div class="inline-flex items-center gap-2 px-3 py-1 mb-6 rounded-full bg-yellow-500/10 border border-yellow-500/20">
+				<Zap class="w-3.5 h-3.5 text-yellow-400" />
+				<span class="text-xs font-medium text-yellow-300">Powered by Z-Image Turbo</span>
+			</div>
+			<h1 class="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight">
+				Create stunning images<br />
+				<span class="bg-linear-to-r from-yellow-300 via-amber-400 to-orange-400 bg-clip-text text-transparent">with AI magic</span>
+			</h1>
+			<p class="text-lg md:text-xl text-zinc-400 mb-10 max-w-2xl mx-auto leading-relaxed">
+				Generate beautiful images in seconds with custom LoRA support.
+				Upload your own styles and create unique artwork that's truly yours.
+			</p>
+			<div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+				{#if data.user}
+					<a
+						href="/app"
+						class="group inline-flex items-center gap-2 px-8 py-4 bg-linear-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 font-semibold rounded-xl transition-all shadow-lg shadow-yellow-500/25 hover:shadow-yellow-500/40"
+					>
+						Go to App
+						<ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+					</a>
+				{:else}
 					<a
 						href="/login"
-						class="group inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 font-semibold rounded-xl transition-all shadow-lg shadow-yellow-500/25 hover:shadow-yellow-500/40"
+						class="group inline-flex items-center gap-2 px-8 py-4 bg-linear-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 font-semibold rounded-xl transition-all shadow-lg shadow-yellow-500/25 hover:shadow-yellow-500/40"
 					>
 						<Github class="w-5 h-5" />
 						Start creating for free
 						<ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" />
 					</a>
-					<button
-						onclick={() => activeTab = 'pricing'}
-						class="inline-flex items-center gap-2 px-8 py-4 text-zinc-300 hover:text-white font-medium transition-colors"
+				{/if}
+				<button
+					onclick={() => activeTab = 'pricing'}
+					class="inline-flex items-center gap-2 px-8 py-4 text-zinc-300 hover:text-white font-medium transition-colors"
+				>
+					View pricing
+				</button>
+			</div>
+		</div>
+
+		<!-- Hero visual -->
+		<div class="mt-20 relative">
+			<div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent z-10 pointer-events-none"></div>
+			<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+				<div class="aspect-square rounded-2xl bg-gradient-to-br from-yellow-900/50 to-amber-900/50 border border-zinc-800 overflow-hidden">
+					<div class="w-full h-full bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=400&fit=crop')] bg-cover bg-center opacity-80"></div>
+				</div>
+				<div class="aspect-square rounded-2xl bg-gradient-to-br from-amber-900/50 to-orange-900/50 border border-zinc-800 overflow-hidden mt-8">
+					<div class="w-full h-full bg-[url('https://images.unsplash.com/photo-1634017839464-5c339bbe3c35?w=400&h=400&fit=crop')] bg-cover bg-center opacity-80"></div>
+				</div>
+				<div class="aspect-square rounded-2xl bg-gradient-to-br from-orange-900/50 to-red-900/50 border border-zinc-800 overflow-hidden">
+					<div class="w-full h-full bg-[url('https://images.unsplash.com/photo-1614850715649-1d0106293bd1?w=400&h=400&fit=crop')] bg-cover bg-center opacity-80"></div>
+				</div>
+				<div class="aspect-square rounded-2xl bg-gradient-to-br from-red-900/50 to-yellow-900/50 border border-zinc-800 overflow-hidden mt-8">
+					<div class="w-full h-full bg-[url('https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=400&h=400&fit=crop')] bg-cover bg-center opacity-80"></div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Features Section -->
+	{#if activeTab === 'features'}
+	<section class="relative z-10 border-t border-zinc-800/50">
+		<div class="max-w-6xl mx-auto px-4 py-24">
+			<div class="text-center mb-16">
+				<h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Everything you need to create</h2>
+				<p class="text-zinc-400 max-w-xl mx-auto">Powerful features that make image generation fast, flexible, and fun.</p>
+			</div>
+
+			<div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+				<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors group">
+					<div class="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center mb-4 group-hover:bg-yellow-500/20 transition-colors">
+						<Zap class="w-6 h-6 text-yellow-400" />
+					</div>
+					<h3 class="text-lg font-semibold text-white mb-2">Lightning Fast</h3>
+					<p class="text-sm text-zinc-400">Generate images in seconds with Z-Image Turbo's optimized inference.</p>
+				</div>
+
+				<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors group">
+					<div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-4 group-hover:bg-amber-500/20 transition-colors">
+						<Layers class="w-6 h-6 text-amber-400" />
+					</div>
+					<h3 class="text-lg font-semibold text-white mb-2">Custom LoRAs</h3>
+					<p class="text-sm text-zinc-400">Upload your own LoRA files and combine up to 3 styles per generation.</p>
+				</div>
+
+				<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors group">
+					<div class="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center mb-4 group-hover:bg-orange-500/20 transition-colors">
+						<ImageIcon class="w-6 h-6 text-orange-400" />
+					</div>
+					<h3 class="text-lg font-semibold text-white mb-2">Multiple Outputs</h3>
+					<p class="text-sm text-zinc-400">Generate up to 4 images at once with various aspect ratios.</p>
+				</div>
+
+				<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors group">
+					<div class="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center mb-4 group-hover:bg-red-500/20 transition-colors">
+						<Clock class="w-6 h-6 text-red-400" />
+					</div>
+					<h3 class="text-lg font-semibold text-white mb-2">Full History</h3>
+					<p class="text-sm text-zinc-400">Never lose your creations. Access your entire generation history anytime.</p>
+				</div>
+			</div>
+
+			<!-- Additional features list -->
+			<div class="mt-16 grid md:grid-cols-2 gap-8">
+				<div class="space-y-4">
+					<h3 class="text-xl font-semibold text-white mb-6">Generation Features</h3>
+					<div class="flex items-start gap-3">
+						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
+						<span class="text-zinc-300">Text rendering in English and Chinese</span>
+					</div>
+					<div class="flex items-start gap-3">
+						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
+						<span class="text-zinc-300">Adjustable inference steps (1-8)</span>
+					</div>
+					<div class="flex items-start gap-3">
+						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
+						<span class="text-zinc-300">Reproducible results with seed control</span>
+					</div>
+					<div class="flex items-start gap-3">
+						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
+						<span class="text-zinc-300">Multiple aspect ratio presets</span>
+					</div>
+				</div>
+				<div class="space-y-4">
+					<h3 class="text-xl font-semibold text-white mb-6">LoRA Management</h3>
+					<div class="flex items-start gap-3">
+						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
+						<span class="text-zinc-300">Upload .safetensors files directly</span>
+					</div>
+					<div class="flex items-start gap-3">
+						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
+						<span class="text-zinc-300">Personal LoRA library</span>
+					</div>
+					<div class="flex items-start gap-3">
+						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
+						<span class="text-zinc-300">Adjustable LoRA scale per generation</span>
+					</div>
+					<div class="flex items-start gap-3">
+						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
+						<span class="text-zinc-300">Stack multiple LoRAs together</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+	{/if}
+
+	<!-- Pricing Section -->
+	{#if activeTab === 'pricing'}
+	<section class="relative z-10 border-t border-zinc-800/50">
+		<div class="max-w-6xl mx-auto px-4 py-24">
+			<div class="text-center mb-16">
+				<h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Simple, transparent pricing</h2>
+				<p class="text-zinc-400 max-w-xl mx-auto">Start for free, upgrade when you need more. No hidden fees.</p>
+			</div>
+
+			<div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+				<!-- Free Plan -->
+				<div class="p-8 rounded-2xl bg-zinc-900/50 border border-zinc-800 flex flex-col">
+					<div class="mb-6">
+						<h3 class="text-lg font-semibold text-white mb-2">Free</h3>
+						<p class="text-sm text-zinc-400">Perfect for trying out Zephyr</p>
+					</div>
+					<div class="mb-6">
+						<span class="text-4xl font-bold text-white">$0</span>
+						<span class="text-zinc-400">/month</span>
+					</div>
+					<ul class="space-y-3 mb-8 flex-grow">
+						<li class="flex items-center gap-3 text-sm text-zinc-300">
+							<Check class="w-4 h-4 text-green-400 shrink-0" />
+							25 tokens/month
+						</li>
+						<li class="flex items-center gap-3 text-sm text-zinc-300">
+							<Check class="w-4 h-4 text-green-400 shrink-0" />
+							Basic image generation
+						</li>
+						<li class="flex items-center gap-3 text-sm text-zinc-300">
+							<Check class="w-4 h-4 text-green-400 shrink-0" />
+							Up to 3 LoRA uploads
+						</li>
+						<li class="flex items-center gap-3 text-sm text-zinc-300">
+							<Check class="w-4 h-4 text-green-400 shrink-0" />
+							Generation history
+						</li>
+					</ul>
+					<a
+						href={data.user ? '/app' : '/login'}
+						class="block text-center px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-xl transition-colors"
 					>
-						View pricing
-					</button>
-				</div>
-			</div>
-
-			<!-- Hero visual -->
-			<div class="mt-20 relative">
-				<div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent z-10 pointer-events-none"></div>
-				<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-					<div class="aspect-square rounded-2xl bg-gradient-to-br from-yellow-900/50 to-amber-900/50 border border-zinc-800 overflow-hidden">
-						<div class="w-full h-full bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=400&fit=crop')] bg-cover bg-center opacity-80"></div>
-					</div>
-					<div class="aspect-square rounded-2xl bg-gradient-to-br from-amber-900/50 to-orange-900/50 border border-zinc-800 overflow-hidden mt-8">
-						<div class="w-full h-full bg-[url('https://images.unsplash.com/photo-1634017839464-5c339bbe3c35?w=400&h=400&fit=crop')] bg-cover bg-center opacity-80"></div>
-					</div>
-					<div class="aspect-square rounded-2xl bg-gradient-to-br from-orange-900/50 to-red-900/50 border border-zinc-800 overflow-hidden">
-						<div class="w-full h-full bg-[url('https://images.unsplash.com/photo-1614850715649-1d0106293bd1?w=400&h=400&fit=crop')] bg-cover bg-center opacity-80"></div>
-					</div>
-					<div class="aspect-square rounded-2xl bg-gradient-to-br from-red-900/50 to-yellow-900/50 border border-zinc-800 overflow-hidden mt-8">
-						<div class="w-full h-full bg-[url('https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=400&h=400&fit=crop')] bg-cover bg-center opacity-80"></div>
-					</div>
-				</div>
-			</div>
-		</section>
-
-		<!-- Features Section -->
-		{#if activeTab === 'features'}
-		<section class="relative z-10 border-t border-zinc-800/50">
-			<div class="max-w-6xl mx-auto px-4 py-24">
-				<div class="text-center mb-16">
-					<h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Everything you need to create</h2>
-					<p class="text-zinc-400 max-w-xl mx-auto">Powerful features that make image generation fast, flexible, and fun.</p>
+						Get started
+					</a>
 				</div>
 
-				<div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-					<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors group">
-						<div class="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center mb-4 group-hover:bg-yellow-500/20 transition-colors">
-							<Zap class="w-6 h-6 text-yellow-400" />
-						</div>
-						<h3 class="text-lg font-semibold text-white mb-2">Lightning Fast</h3>
-						<p class="text-sm text-zinc-400">Generate images in seconds with Z-Image Turbo's optimized inference.</p>
+				<!-- Pro Plan -->
+				<div class="p-8 rounded-2xl bg-gradient-to-b from-yellow-500/10 to-amber-500/10 border border-yellow-500/30 flex flex-col relative">
+					<div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-yellow-500 to-amber-500 rounded-full text-xs font-medium text-zinc-900">
+						Most Popular
 					</div>
-
-					<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors group">
-						<div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-4 group-hover:bg-amber-500/20 transition-colors">
-							<Layers class="w-6 h-6 text-amber-400" />
-						</div>
-						<h3 class="text-lg font-semibold text-white mb-2">Custom LoRAs</h3>
-						<p class="text-sm text-zinc-400">Upload your own LoRA files and combine up to 3 styles per generation.</p>
+					<div class="mb-6">
+						<h3 class="text-lg font-semibold text-white mb-2">Pro</h3>
+						<p class="text-sm text-zinc-400">For creators who need more</p>
 					</div>
-
-					<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors group">
-						<div class="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center mb-4 group-hover:bg-orange-500/20 transition-colors">
-							<ImageIcon class="w-6 h-6 text-orange-400" />
-						</div>
-						<h3 class="text-lg font-semibold text-white mb-2">Multiple Outputs</h3>
-						<p class="text-sm text-zinc-400">Generate up to 4 images at once with various aspect ratios.</p>
+					<div class="mb-6">
+						<span class="text-4xl font-bold text-white">$9</span>
+						<span class="text-zinc-400">/month</span>
 					</div>
-
-					<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors group">
-						<div class="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center mb-4 group-hover:bg-red-500/20 transition-colors">
-							<Clock class="w-6 h-6 text-red-400" />
-						</div>
-						<h3 class="text-lg font-semibold text-white mb-2">Full History</h3>
-						<p class="text-sm text-zinc-400">Never lose your creations. Access your entire generation history anytime.</p>
-					</div>
+					<ul class="space-y-3 mb-8 flex-grow">
+						<li class="flex items-center gap-3 text-sm text-zinc-300">
+							<Check class="w-4 h-4 text-yellow-400 shrink-0" />
+							1,000 tokens/month
+						</li>
+						<li class="flex items-center gap-3 text-sm text-zinc-300">
+							<Check class="w-4 h-4 text-yellow-400 shrink-0" />
+							Priority generation queue
+						</li>
+						<li class="flex items-center gap-3 text-sm text-zinc-300">
+							<Check class="w-4 h-4 text-yellow-400 shrink-0" />
+							Unlimited LoRA uploads
+						</li>
+						<li class="flex items-center gap-3 text-sm text-zinc-300">
+							<Check class="w-4 h-4 text-yellow-400 shrink-0" />
+							NSFW content allowed
+						</li>
+					</ul>
+					<a
+						href={data.user ? '/app' : '/login'}
+						class="block text-center px-6 py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 font-medium rounded-xl transition-all shadow-lg shadow-yellow-500/25"
+					>
+						{data.user ? 'Upgrade in App' : 'Start Pro'}
+					</a>
 				</div>
 
-				<!-- Additional features list -->
-				<div class="mt-16 grid md:grid-cols-2 gap-8">
-					<div class="space-y-4">
-						<h3 class="text-xl font-semibold text-white mb-6">Generation Features</h3>
-						<div class="flex items-start gap-3">
-							<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-							<span class="text-zinc-300">Text rendering in English and Chinese</span>
-						</div>
-						<div class="flex items-start gap-3">
-							<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-							<span class="text-zinc-300">Adjustable inference steps (1-8)</span>
-						</div>
-						<div class="flex items-start gap-3">
-							<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-							<span class="text-zinc-300">Reproducible results with seed control</span>
-						</div>
-						<div class="flex items-start gap-3">
-							<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-							<span class="text-zinc-300">Multiple aspect ratio presets</span>
-						</div>
+				<!-- Token Packs -->
+				<div class="p-8 rounded-2xl bg-zinc-900/50 border border-zinc-800 flex flex-col">
+					<div class="mb-6">
+						<h3 class="text-lg font-semibold text-white mb-2">Token Packs</h3>
+						<p class="text-sm text-zinc-400">One-time purchase, never expire</p>
 					</div>
-					<div class="space-y-4">
-						<h3 class="text-xl font-semibold text-white mb-6">LoRA Management</h3>
-						<div class="flex items-start gap-3">
-							<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-							<span class="text-zinc-300">Upload .safetensors files directly</span>
-						</div>
-						<div class="flex items-start gap-3">
-							<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-							<span class="text-zinc-300">Personal LoRA library</span>
-						</div>
-						<div class="flex items-start gap-3">
-							<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-							<span class="text-zinc-300">Adjustable LoRA scale per generation</span>
-						</div>
-						<div class="flex items-start gap-3">
-							<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-							<span class="text-zinc-300">Stack multiple LoRAs together</span>
-						</div>
+					<div class="mb-6">
+						<span class="text-4xl font-bold text-white">$5+</span>
 					</div>
-				</div>
-			</div>
-		</section>
-		{/if}
-
-		<!-- Pricing Section -->
-		{#if activeTab === 'pricing'}
-		<section class="relative z-10 border-t border-zinc-800/50">
-			<div class="max-w-6xl mx-auto px-4 py-24">
-				<div class="text-center mb-16">
-					<h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Simple, transparent pricing</h2>
-					<p class="text-zinc-400 max-w-xl mx-auto">Start for free, upgrade when you need more. No hidden fees.</p>
-				</div>
-
-				<div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-					<!-- Free Plan -->
-					<div class="p-8 rounded-2xl bg-zinc-900/50 border border-zinc-800 flex flex-col">
-						<div class="mb-6">
-							<h3 class="text-lg font-semibold text-white mb-2">Free</h3>
-							<p class="text-sm text-zinc-400">Perfect for trying out Zephyr</p>
-						</div>
-						<div class="mb-6">
-							<span class="text-4xl font-bold text-white">$0</span>
-							<span class="text-zinc-400">/month</span>
-						</div>
-						<ul class="space-y-3 mb-8 flex-grow">
-							<li class="flex items-center gap-3 text-sm text-zinc-300">
-								<Check class="w-4 h-4 text-green-400 shrink-0" />
-								50 tokens to start
-							</li>
-							<li class="flex items-center gap-3 text-sm text-zinc-300">
-								<Check class="w-4 h-4 text-green-400 shrink-0" />
-								Basic image generation
-							</li>
-							<li class="flex items-center gap-3 text-sm text-zinc-300">
-								<Check class="w-4 h-4 text-green-400 shrink-0" />
-								Up to 3 LoRA uploads
-							</li>
-							<li class="flex items-center gap-3 text-sm text-zinc-300">
-								<Check class="w-4 h-4 text-green-400 shrink-0" />
-								Generation history
-							</li>
-						</ul>
-						<a
-							href="/login"
-							class="block text-center px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-xl transition-colors"
-						>
-							Get started
-						</a>
-					</div>
-
-					<!-- Pro Plan -->
-					<div class="p-8 rounded-2xl bg-gradient-to-b from-yellow-500/10 to-amber-500/10 border border-yellow-500/30 flex flex-col relative">
-						<div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-yellow-500 to-amber-500 rounded-full text-xs font-medium text-zinc-900">
-							Most Popular
-						</div>
-						<div class="mb-6">
-							<h3 class="text-lg font-semibold text-white mb-2">Pro</h3>
-							<p class="text-sm text-zinc-400">For creators who need more</p>
-						</div>
-						<div class="mb-6">
-							<span class="text-4xl font-bold text-white">$12</span>
-							<span class="text-zinc-400">/month</span>
-						</div>
-						<ul class="space-y-3 mb-8 flex-grow">
-							<li class="flex items-center gap-3 text-sm text-zinc-300">
-								<Check class="w-4 h-4 text-yellow-400 shrink-0" />
-								1,000 tokens/month
-							</li>
-							<li class="flex items-center gap-3 text-sm text-zinc-300">
-								<Check class="w-4 h-4 text-yellow-400 shrink-0" />
-								Priority generation queue
-							</li>
-							<li class="flex items-center gap-3 text-sm text-zinc-300">
-								<Check class="w-4 h-4 text-yellow-400 shrink-0" />
-								Unlimited LoRA uploads
-							</li>
-							<li class="flex items-center gap-3 text-sm text-zinc-300">
-								<Check class="w-4 h-4 text-yellow-400 shrink-0" />
-								HD image downloads
-							</li>
-							<li class="flex items-center gap-3 text-sm text-zinc-300">
-								<Check class="w-4 h-4 text-yellow-400 shrink-0" />
-								NSFW content allowed
-							</li>
-						</ul>
-						<a
-							href="/login"
-							class="block text-center px-6 py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 font-medium rounded-xl transition-all shadow-lg shadow-yellow-500/25"
-						>
-							Start Pro trial
-						</a>
-					</div>
-
-					<!-- Enterprise Plan -->
-					<div class="p-8 rounded-2xl bg-zinc-900/50 border border-zinc-800 flex flex-col">
-						<div class="mb-6">
-							<h3 class="text-lg font-semibold text-white mb-2">Enterprise</h3>
-							<p class="text-sm text-zinc-400">For teams and businesses</p>
-						</div>
-						<div class="mb-6">
-							<span class="text-4xl font-bold text-white">Custom</span>
-						</div>
-						<ul class="space-y-3 mb-8 flex-grow">
-							<li class="flex items-center gap-3 text-sm text-zinc-300">
-								<Check class="w-4 h-4 text-green-400 shrink-0" />
-								Unlimited tokens
-							</li>
-							<li class="flex items-center gap-3 text-sm text-zinc-300">
-								<Check class="w-4 h-4 text-green-400 shrink-0" />
-								Dedicated infrastructure
-							</li>
-							<li class="flex items-center gap-3 text-sm text-zinc-300">
-								<Check class="w-4 h-4 text-green-400 shrink-0" />
-								API access
-							</li>
-							<li class="flex items-center gap-3 text-sm text-zinc-300">
-								<Check class="w-4 h-4 text-green-400 shrink-0" />
-								Custom model training
-							</li>
-							<li class="flex items-center gap-3 text-sm text-zinc-300">
-								<Check class="w-4 h-4 text-green-400 shrink-0" />
-								24/7 priority support
-							</li>
-						</ul>
-						<button
-							class="block w-full text-center px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-xl transition-colors"
-						>
-							Contact sales
-						</button>
-					</div>
-				</div>
-
-				<!-- Token explanation -->
-				<div class="mt-16 max-w-2xl mx-auto text-center">
-					<h3 class="text-lg font-semibold text-white mb-4">How tokens work</h3>
-					<p class="text-zinc-400 text-sm leading-relaxed">
-						Each image generation costs tokens based on the output size. Standard generations (1024×1024) cost ~1 token.
-						Using LoRAs adds a small premium. Unused tokens roll over to the next month on paid plans.
-					</p>
-				</div>
-			</div>
-		</section>
-		{/if}
-
-		<!-- Footer -->
-		<footer class="relative z-10 border-t border-zinc-800/50">
-			<div class="max-w-6xl mx-auto px-4 py-12">
-				<div class="flex flex-col md:flex-row items-center justify-between gap-6">
-					<div class="flex items-center gap-2">
-						<div class="w-6 h-6 rounded-md bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
-							<Sparkles class="w-3 h-3 text-zinc-900" />
-						</div>
-						<span class="text-sm font-semibold text-white">Zephyr</span>
-					</div>
-					<div class="flex items-center gap-6 text-sm text-zinc-400">
-						<a href="#" class="hover:text-white transition-colors">Terms</a>
-						<a href="#" class="hover:text-white transition-colors">Privacy</a>
-						<a href="#" class="hover:text-white transition-colors">Documentation</a>
-						<a href="https://github.com" target="_blank" rel="noopener" class="hover:text-white transition-colors">
-							<Github class="w-5 h-5" />
-						</a>
-					</div>
-					<p class="text-sm text-zinc-500">© 2025 Zephyr. All rights reserved.</p>
-				</div>
-			</div>
-		</footer>
-	</div>
-{:else}
-	<div class="min-h-screen bg-zinc-950">
-		<header class="border-b border-zinc-800">
-			<div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-				<h1 class="text-xl font-bold text-white">Zephyr</h1>
-				<div class="flex items-center gap-4">
-					<div class="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 rounded-lg">
-						<Coins class="w-4 h-4 text-yellow-500" />
-						<span class="text-sm font-medium text-white">{tokens}</span>
-					</div>
-					<div class="relative">
-						<button
-							onclick={() => (settingsOpen = !settingsOpen)}
-							class="p-2 text-zinc-400 hover:text-white transition-colors"
-						>
-							<Settings class="w-5 h-5" />
-						</button>
-						{#if settingsOpen}
-							<div class="absolute right-0 top-full mt-2 w-64 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl z-50">
-								<div class="flex items-center justify-between p-3 border-b border-zinc-800">
-									<span class="text-sm font-medium text-white">Settings</span>
-									<button
-										onclick={() => (settingsOpen = false)}
-										class="text-zinc-400 hover:text-white"
-									>
-										<X class="w-4 h-4" />
-									</button>
-								</div>
-								<div class="p-3">
-									<label class="flex items-center justify-between cursor-pointer">
-										<span class="text-sm text-zinc-300">Allow NSFW content</span>
-										<button
-											onclick={toggleNsfw}
-											disabled={savingSettings}
-											class="relative w-11 h-6 rounded-full transition-colors {nsfwEnabled
-												? 'bg-yellow-500'
-												: 'bg-zinc-700'}"
-										>
-											<span
-												class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform {nsfwEnabled
-													? 'translate-x-5'
-													: 'translate-x-0'}"
-											></span>
-										</button>
-									</label>
-								</div>
-							</div>
-						{/if}
-					</div>
-					{#if data.user.avatarUrl}
-						<img
-							src={data.user.avatarUrl}
-							alt={data.user.username || data.user.email}
-							class="w-8 h-8 rounded-full"
-						/>
-					{/if}
-					<span class="text-sm text-zinc-300">{data.user.username || data.user.email}</span>
-					<a href="/logout" class="text-sm text-zinc-500 hover:text-white transition-colors">
-						Sign out
+					<ul class="space-y-3 mb-8 flex-grow">
+						<li class="flex items-center gap-3 text-sm text-zinc-300">
+							<Check class="w-4 h-4 text-green-400 shrink-0" />
+							100 tokens - $5
+						</li>
+						<li class="flex items-center gap-3 text-sm text-zinc-300">
+							<Check class="w-4 h-4 text-green-400 shrink-0" />
+							500 tokens - $20
+						</li>
+						<li class="flex items-center gap-3 text-sm text-zinc-300">
+							<Check class="w-4 h-4 text-green-400 shrink-0" />
+							1,000 tokens - $35
+						</li>
+						<li class="flex items-center gap-3 text-sm text-zinc-300">
+							<Check class="w-4 h-4 text-green-400 shrink-0" />
+							Pay with crypto
+						</li>
+					</ul>
+					<a
+						href={data.user ? '/app' : '/login'}
+						class="block text-center px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-xl transition-colors"
+					>
+						{data.user ? 'Buy in App' : 'Get started'}
 					</a>
 				</div>
 			</div>
-		</header>
 
-		<main class="max-w-7xl mx-auto px-4 py-8">
-			<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-				<div class="lg:col-span-8 space-y-8">
-					<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-						<ImageGenerator {loras} {tokens} ongenerate={handleGenerate} />
-					</div>
-
-					<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-						<GenerationHistory
-							{generations}
-							loading={loadingMore}
-							{hasMore}
-							onloadmore={loadMoreGenerations}
-						/>
-					</div>
-				</div>
-
-				<div class="lg:col-span-4">
-					<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 sticky top-8">
-						<LoraLibrary {loras} onupload={handleLoraUpload} ondelete={handleLoraDelete} />
-					</div>
-				</div>
+			<!-- Token explanation -->
+			<div class="mt-16 max-w-2xl mx-auto text-center">
+				<h3 class="text-lg font-semibold text-white mb-4">How tokens work</h3>
+				<p class="text-zinc-400 text-sm leading-relaxed">
+					Each image generation costs 1 token. Using LoRAs doesn't add extra cost.
+					Bonus tokens from packs are used first before your monthly allocation.
+				</p>
 			</div>
-		</main>
-	</div>
-{/if}
+		</div>
+	</section>
+	{/if}
+
+	<!-- Footer -->
+	<footer class="relative z-10 border-t border-zinc-800/50">
+		<div class="max-w-6xl mx-auto px-4 py-12">
+			<div class="flex flex-col md:flex-row items-center justify-between gap-6">
+				<div class="flex items-center gap-2">
+					<div class="w-6 h-6 rounded-md bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
+						<Sparkles class="w-3 h-3 text-zinc-900" />
+					</div>
+					<span class="text-sm font-semibold text-white">Zephyr</span>
+				</div>
+				<div class="flex items-center gap-6 text-sm text-zinc-400">
+					<a href="https://github.com" target="_blank" rel="noopener" class="hover:text-white transition-colors">
+						<Github class="w-5 h-5" />
+					</a>
+				</div>
+				<p class="text-sm text-zinc-500">© 2025 Zephyr. All rights reserved.</p>
+			</div>
+		</div>
+	</footer>
+</div>

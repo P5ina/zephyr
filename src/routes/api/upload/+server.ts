@@ -1,6 +1,6 @@
-import { json, error } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
+import { error, json } from '@sveltejs/kit';
 import { uploadToFalStorage } from '$lib/server/fal';
+import type { RequestHandler } from './$types';
 
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB
 
