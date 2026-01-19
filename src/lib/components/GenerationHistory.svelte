@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Check, Copy, Download, X } from 'lucide-svelte';
+import { Check, Copy, Download, Trash2, X } from 'lucide-svelte';
 import type { Generation } from '$lib/server/db/schema';
 
 interface Props {
@@ -7,6 +7,7 @@ interface Props {
 	loading?: boolean;
 	hasMore?: boolean;
 	onloadmore?: () => void;
+	ondelete?: (id: string) => void;
 }
 
 let {
@@ -14,11 +15,13 @@ let {
 	loading = false,
 	hasMore = false,
 	onloadmore,
+	ondelete,
 }: Props = $props();
 
 let hoveredId = $state<string | null>(null);
 let selectedGeneration = $state<Generation | null>(null);
 let copied = $state(false);
+let deleting = $state(false);
 
 function openModal(gen: Generation) {
 	selectedGeneration = gen;
@@ -47,6 +50,28 @@ function downloadImage() {
 	link.href = selectedGeneration.imageUrl;
 	link.download = `zephyr-${selectedGeneration.visibleId}.png`;
 	link.click();
+}
+
+async function deleteGeneration() {
+	if (!selectedGeneration || deleting) return;
+
+	if (!confirm('Delete this generation? This cannot be undone.')) return;
+
+	deleting = true;
+	try {
+		const res = await fetch('/api/generations', {
+			method: 'DELETE',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ id: selectedGeneration.id }),
+		});
+
+		if (res.ok) {
+			ondelete?.(selectedGeneration.id);
+			closeModal();
+		}
+	} finally {
+		deleting = false;
+	}
 }
 </script>
 
@@ -168,25 +193,35 @@ function downloadImage() {
 				</div>
 
 				<!-- Actions -->
-				<div class="flex gap-2 mt-auto pt-4 border-t border-zinc-800">
+				<div class="flex flex-col gap-2 mt-auto pt-4 border-t border-zinc-800">
+					<div class="flex gap-2">
+						<button
+							onclick={copyPrompt}
+							class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium rounded-lg transition-colors"
+						>
+							{#if copied}
+								<Check class="w-4 h-4 text-green-400" />
+								Copied!
+							{:else}
+								<Copy class="w-4 h-4" />
+								Copy Prompt
+							{/if}
+						</button>
+						<button
+							onclick={downloadImage}
+							class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 text-sm font-medium rounded-lg transition-colors"
+						>
+							<Download class="w-4 h-4" />
+							Download
+						</button>
+					</div>
 					<button
-						onclick={copyPrompt}
-						class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium rounded-lg transition-colors"
+						onclick={deleteGeneration}
+						disabled={deleting}
+						class="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
 					>
-						{#if copied}
-							<Check class="w-4 h-4 text-green-400" />
-							Copied!
-						{:else}
-							<Copy class="w-4 h-4" />
-							Copy Prompt
-						{/if}
-					</button>
-					<button
-						onclick={downloadImage}
-						class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 text-sm font-medium rounded-lg transition-colors"
-					>
-						<Download class="w-4 h-4" />
-						Download
+						<Trash2 class="w-4 h-4" />
+						{deleting ? 'Deleting...' : 'Delete'}
 					</button>
 				</div>
 			</div>

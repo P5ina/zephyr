@@ -1,5 +1,5 @@
 import { error, json } from '@sveltejs/kit';
-import { count, desc, eq, lt } from 'drizzle-orm';
+import { and, count, desc, eq, lt } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import type { RequestHandler } from './$types';
@@ -48,4 +48,33 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 		nextCursor,
 		total: totalResult?.count ?? 0,
 	});
+};
+
+export const DELETE: RequestHandler = async ({ request, locals }) => {
+	if (!locals.user) {
+		error(401, 'Unauthorized');
+	}
+
+	const { id } = await request.json();
+
+	if (!id || typeof id !== 'string') {
+		error(400, 'Generation ID is required');
+	}
+
+	// Verify ownership and delete
+	const [deleted] = await db
+		.delete(table.generation)
+		.where(
+			and(
+				eq(table.generation.id, id),
+				eq(table.generation.userId, locals.user.id)
+			)
+		)
+		.returning();
+
+	if (!deleted) {
+		error(404, 'Generation not found');
+	}
+
+	return json({ success: true });
 };

@@ -64,6 +64,10 @@ function handleLoraDelete(id: string) {
 	loras = loras.filter((l) => l.id !== id);
 }
 
+function handleGenerationDelete(id: string) {
+	generations = generations.filter((g) => g.id !== id);
+}
+
 async function loadMoreGenerations() {
 	if (loadingMore || !nextCursor) return;
 
@@ -162,6 +166,7 @@ async function loadMoreGenerations() {
 						loading={loadingMore}
 						{hasMore}
 						onloadmore={loadMoreGenerations}
+						ondelete={handleGenerationDelete}
 					/>
 				</div>
 			</div>
