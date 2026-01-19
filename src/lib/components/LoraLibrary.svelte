@@ -1,5 +1,6 @@
 <script lang="ts">
 import { upload } from '@vercel/blob/client';
+import { onMount } from 'svelte';
 import { Trash2, Upload } from 'lucide-svelte';
 import type { Lora } from '$lib/server/db/schema';
 
@@ -19,6 +20,19 @@ let uploadStatus = $state<'uploading' | 'processing' | ''>('');
 let errorMsg = $state('');
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+
+// Warn user before leaving page during upload
+function handleBeforeUnload(e: BeforeUnloadEvent) {
+	if (uploading) {
+		e.preventDefault();
+		return 'Upload in progress. Are you sure you want to leave?';
+	}
+}
+
+onMount(() => {
+	window.addEventListener('beforeunload', handleBeforeUnload);
+	return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+});
 
 function formatFileSize(bytes: number): string {
 	if (bytes < 1024) return `${bytes} B`;
