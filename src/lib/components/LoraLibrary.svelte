@@ -17,9 +17,20 @@ let uploadProgress = $state(0);
 let uploadStatus = $state<'uploading' | 'processing' | ''>('');
 let error = $state('');
 
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+const UPLOAD_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+
+function formatFileSize(bytes: number): string {
+	if (bytes < 1024) return `${bytes} B`;
+	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function uploadWithProgress(formData: FormData): Promise<{ url: string }> {
 	return new Promise((resolve, reject) => {
 		const xhr = new XMLHttpRequest();
+
+		xhr.timeout = UPLOAD_TIMEOUT;
 
 		xhr.upload.onprogress = (e) => {
 			if (e.lengthComputable) {
@@ -32,19 +43,21 @@ function uploadWithProgress(formData: FormData): Promise<{ url: string }> {
 				try {
 					resolve(JSON.parse(xhr.responseText));
 				} catch {
-					reject(new Error('Invalid response'));
+					reject(new Error('Invalid server response'));
 				}
 			} else {
 				try {
 					const data = JSON.parse(xhr.responseText);
 					reject(new Error(data.message || 'Upload failed'));
 				} catch {
-					reject(new Error('Upload failed'));
+					reject(new Error(`Upload failed (${xhr.status})`));
 				}
 			}
 		};
 
-		xhr.onerror = () => reject(new Error('Network error'));
+		xhr.onerror = () => reject(new Error('Network error - check your connection'));
+		xhr.ontimeout = () => reject(new Error('Upload timed out - file may be too large'));
+		xhr.onabort = () => reject(new Error('Upload cancelled'));
 
 		xhr.open('POST', '/api/upload');
 		xhr.send(formData);
@@ -53,6 +66,18 @@ function uploadWithProgress(formData: FormData): Promise<{ url: string }> {
 
 async function handleUpload() {
 	if (!file || !name.trim()) return;
+
+	// Validate file size
+	if (file.size > MAX_FILE_SIZE) {
+		error = `File too large (${formatFileSize(file.size)}). Maximum size is ${formatFileSize(MAX_FILE_SIZE)}.`;
+		return;
+	}
+
+	// Validate file extension
+	if (!file.name.toLowerCase().endsWith('.safetensors')) {
+		error = 'Only .safetensors files are allowed';
+		return;
+	}
 
 	uploading = true;
 	uploadProgress = 0;
@@ -129,8 +154,13 @@ function handleFileSelect(e: Event) {
 			class="flex items-center justify-center gap-2 px-3 py-2 bg-zinc-800 border border-zinc-700 border-dashed rounded-lg cursor-pointer hover:border-zinc-600 transition-colors"
 		>
 			<Upload class="w-4 h-4 text-zinc-400" />
-			<span class="text-sm text-zinc-400">
-				{file ? file.name : 'Select .safetensors file'}
+			<span class="text-sm text-zinc-400 truncate max-w-[200px]">
+				{#if file}
+					{file.name}
+					<span class="text-zinc-500">({formatFileSize(file.size)})</span>
+				{:else}
+					Select .safetensors file
+				{/if}
 			</span>
 			<input
 				type="file"
