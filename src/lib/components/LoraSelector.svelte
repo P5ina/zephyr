@@ -49,7 +49,7 @@ function getScale(id: string): number {
 			{#each loras as lora}
 				<div
 					class="p-3 rounded-lg border transition-colors {isSelected(lora.id)
-						? 'bg-zinc-800 border-indigo-500'
+						? 'bg-zinc-800 border-yellow-500'
 						: 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'}"
 				>
 					<label class="flex items-center gap-3 cursor-pointer">
@@ -58,7 +58,7 @@ function getScale(id: string): number {
 							checked={isSelected(lora.id)}
 							disabled={!isSelected(lora.id) && selected.length >= 3}
 							onchange={() => toggleLora(lora)}
-							class="w-4 h-4 rounded border-zinc-600 bg-zinc-900 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-zinc-900"
+							class="w-4 h-4 rounded border-zinc-600 bg-zinc-900 text-yellow-500 focus:ring-yellow-500 focus:ring-offset-zinc-900"
 						/>
 						<span class="text-sm text-zinc-200 flex-1 truncate">{lora.name}</span>
 					</label>
@@ -74,7 +74,7 @@ function getScale(id: string): number {
 									value={getScale(lora.id)}
 									oninput={(e) =>
 										updateScale(lora.id, parseFloat(e.currentTarget.value))}
-									class="flex-1 h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+									class="flex-1 h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
 								/>
 								<span class="text-xs text-zinc-400 w-8">{getScale(lora.id).toFixed(1)}</span>
 							</div>

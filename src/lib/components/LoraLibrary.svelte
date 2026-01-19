@@ -128,7 +128,7 @@ function handleFileSelect(e: Event) {
 			type="text"
 			bind:value={name}
 			placeholder="LoRA name"
-			class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+			class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-yellow-500"
 		/>
 
 		<label
@@ -165,7 +165,7 @@ function handleFileSelect(e: Event) {
 				</div>
 				<div class="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
 					<div
-						class="h-full bg-indigo-500 transition-all duration-200 ease-out"
+						class="h-full bg-yellow-500 transition-all duration-200 ease-out"
 						style="width: {uploadStatus === 'processing' ? 100 : uploadProgress}%"
 					></div>
 				</div>
@@ -177,7 +177,7 @@ function handleFileSelect(e: Event) {
 			<button
 				onclick={handleUpload}
 				disabled={!file || !name.trim()}
-				class="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-medium rounded-lg transition-colors"
+				class="w-full px-4 py-2 bg-yellow-500 hover:bg-yellow-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-zinc-900 text-sm font-medium rounded-lg transition-colors"
 			>
 				Upload LoRA
 			</button>

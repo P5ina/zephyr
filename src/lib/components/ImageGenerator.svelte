@@ -101,7 +101,7 @@ function handleLoraChange(selected: SelectedLora[]) {
 			bind:value={prompt}
 			rows={4}
 			placeholder="Describe the image you want to generate..."
-			class="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 resize-none"
+			class="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-yellow-500 resize-none"
 		></textarea>
 	</div>
 
@@ -114,7 +114,7 @@ function handleLoraChange(selected: SelectedLora[]) {
 						onclick={() => setSize(size.width, size.height)}
 						class="px-3 py-1.5 text-sm rounded-lg transition-colors {width === size.width &&
 						height === size.height
-							? 'bg-indigo-600 text-white'
+							? 'bg-yellow-500 text-zinc-900'
 							: 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}"
 					>
 						{size.label}
@@ -133,7 +133,7 @@ function handleLoraChange(selected: SelectedLora[]) {
 				min="1"
 				max="8"
 				bind:value={steps}
-				class="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+				class="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
 			/>
 		</div>
 	</div>
@@ -149,7 +149,7 @@ function handleLoraChange(selected: SelectedLora[]) {
 				min="1"
 				max="4"
 				bind:value={numImages}
-				class="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+				class="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
 			/>
 		</div>
 
@@ -160,7 +160,7 @@ function handleLoraChange(selected: SelectedLora[]) {
 				type="number"
 				bind:value={seed}
 				placeholder="Random"
-				class="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+				class="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-yellow-500"
 			/>
 		</div>
 	</div>
@@ -179,7 +179,7 @@ function handleLoraChange(selected: SelectedLora[]) {
 	<button
 		onclick={generate}
 		disabled={generating || !prompt.trim() || totalTokens < numImages}
-		class="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white font-medium rounded-lg transition-colors"
+		class="w-full px-6 py-3 bg-yellow-500 hover:bg-yellow-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-zinc-900 font-medium rounded-lg transition-colors"
 	>
 		{#if generating}
 			Generating...
