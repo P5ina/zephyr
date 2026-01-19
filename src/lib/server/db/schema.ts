@@ -1,4 +1,5 @@
 import {
+	bigint,
 	boolean,
 	integer,
 	json,
@@ -94,8 +95,8 @@ export const transaction = pgTable('transaction', {
 	userId: text('user_id')
 		.notNull()
 		.references(() => user.id),
-	nowpaymentsPaymentId: integer('nowpayments_payment_id').unique(),
-	nowpaymentsInvoiceId: integer('nowpayments_invoice_id'),
+	nowpaymentsPaymentId: bigint('nowpayments_payment_id', { mode: 'number' }).unique(),
+	nowpaymentsInvoiceId: bigint('nowpayments_invoice_id', { mode: 'number' }),
 	orderId: text('order_id'),
 	type: text('type', { enum: ['subscription', 'credit_pack'] }).notNull(),
 	amount: integer('amount').notNull(),

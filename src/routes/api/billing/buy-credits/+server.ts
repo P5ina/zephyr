@@ -40,7 +40,7 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 		await db.insert(table.transaction).values({
 			id: nanoid(),
 			userId: locals.user.id,
-			nowpaymentsInvoiceId: parseInt(invoice.id, 10),
+			nowpaymentsInvoiceId: Number(invoice.id),
 			orderId,
 			type: 'credit_pack',
 			amount: pack.price * 100, // Store in cents

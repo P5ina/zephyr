@@ -43,6 +43,13 @@
       "when": 1768814586234,
       "tag": "0005_typical_weapon_omega",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1768815876167,
+      "tag": "0006_stiff_miek",
+      "breakpoints": true
     }
   ]
 }
