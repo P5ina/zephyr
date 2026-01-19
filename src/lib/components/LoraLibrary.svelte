@@ -1,7 +1,7 @@
 <script lang="ts">
 import { upload } from '@vercel/blob/client';
 import { onMount } from 'svelte';
-import { Trash2, Upload } from 'lucide-svelte';
+import { Trash2, Upload, Download } from 'lucide-svelte';
 import type { Lora } from '$lib/server/db/schema';
 
 interface Props {
@@ -191,12 +191,24 @@ function handleFileSelect(e: Event) {
 					class="flex items-center justify-between p-3 bg-zinc-900 rounded-lg border border-zinc-800"
 				>
 					<span class="text-sm text-zinc-200 truncate flex-1">{lora.name}</span>
-					<button
-						onclick={() => handleDelete(lora.id)}
-						class="p-1 text-zinc-500 hover:text-red-400 transition-colors"
-					>
-						<Trash2 class="w-4 h-4" />
-					</button>
+					<div class="flex items-center gap-1">
+						<a
+							href={lora.falUrl}
+							download="{lora.name}.safetensors"
+							target="_blank"
+							class="p-1 text-zinc-500 hover:text-blue-400 transition-colors"
+							title="Download LoRA"
+						>
+							<Download class="w-4 h-4" />
+						</a>
+						<button
+							onclick={() => handleDelete(lora.id)}
+							class="p-1 text-zinc-500 hover:text-red-400 transition-colors"
+							title="Delete LoRA"
+						>
+							<Trash2 class="w-4 h-4" />
+						</button>
+					</div>
 				</div>
 			{/each}
 		</div>

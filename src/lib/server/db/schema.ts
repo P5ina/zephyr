@@ -111,9 +111,65 @@ export const transaction = pgTable('transaction', {
 		.defaultNow(),
 });
 
+export const trainingJob = pgTable('training_job', {
+	id: text('id').primaryKey(),
+	visibleId: text('visible_id').notNull().unique(),
+	userId: text('user_id')
+		.notNull()
+		.references(() => user.id),
+	name: text('name').notNull(),
+	trainingType: text('training_type', {
+		enum: ['content', 'style', 'balanced'],
+	})
+		.notNull()
+		.default('balanced'),
+	steps: integer('steps').notNull().default(1000),
+	status: text('status', {
+		enum: [
+			'uploading',
+			'captioning',
+			'ready',
+			'training',
+			'completed',
+			'failed',
+		],
+	})
+		.notNull()
+		.default('uploading'),
+	progress: integer('progress').default(0),
+	falRequestId: text('fal_request_id'),
+	resultLoraId: text('result_lora_id').references(() => lora.id),
+	errorMessage: text('error_message'),
+	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
+		.notNull()
+		.defaultNow(),
+	completedAt: timestamp('completed_at', { withTimezone: true, mode: 'date' }),
+});
+
+export const trainingImage = pgTable('training_image', {
+	id: text('id').primaryKey(),
+	trainingJobId: text('training_job_id')
+		.notNull()
+		.references(() => trainingJob.id, { onDelete: 'cascade' }),
+	imageUrl: text('image_url').notNull(),
+	filename: text('filename').notNull(),
+	autoCaption: text('auto_caption'),
+	userCaption: text('user_caption'),
+	captionStatus: text('caption_status', {
+		enum: ['pending', 'processing', 'done', 'failed'],
+	})
+		.notNull()
+		.default('pending'),
+	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
+		.notNull()
+		.defaultNow(),
+});
+
 export type Session = typeof session.$inferSelect;
 export type User = typeof user.$inferSelect;
 export type Lora = typeof lora.$inferSelect;
 export type Generation = typeof generation.$inferSelect;
 export type Subscription = typeof subscription.$inferSelect;
 export type Transaction = typeof transaction.$inferSelect;
+export type TrainingJob = typeof trainingJob.$inferSelect;
+export type TrainingImage = typeof trainingImage.$inferSelect;

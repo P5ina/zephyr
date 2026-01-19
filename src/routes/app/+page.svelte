@@ -104,7 +104,13 @@ async function loadMoreGenerations() {
 <div class="min-h-screen bg-zinc-950">
 	<header class="border-b border-zinc-800">
 		<div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-			<a href="/" class="text-xl font-bold text-white hover:text-yellow-400 transition-colors">Zephyr</a>
+			<div class="flex items-center gap-6">
+				<a href="/" class="text-xl font-bold text-white hover:text-yellow-400 transition-colors">Zephyr</a>
+				<nav class="flex items-center gap-4">
+					<a href="/app" class="text-sm text-white font-medium">Generate</a>
+					<a href="/app/train" class="text-sm text-zinc-400 hover:text-white transition-colors">Train</a>
+				</nav>
+			</div>
 			<div class="flex items-center gap-4">
 				<a
 					href="/app/billing"

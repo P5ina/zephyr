@@ -91,3 +91,65 @@ export async function uploadToFalStorage(file: File): Promise<string> {
 	const url = await fal.storage.upload(file);
 	return url;
 }
+
+// Auto-caption an image using Florence-2
+export async function captionImage(imageUrl: string): Promise<string> {
+	const result = await fal.subscribe('fal-ai/florence-2-large/more-detailed-caption', {
+		input: {
+			image_url: imageUrl,
+		},
+	});
+	return result.data.results as string;
+}
+
+// Start training job (queue-based)
+export async function startTraining(
+	zipUrl: string,
+	steps: number,
+	triggerWord?: string,
+): Promise<{ request_id: string }> {
+	const input: Record<string, unknown> = {
+		image_data_url: zipUrl,
+		steps,
+	};
+
+	if (triggerWord) {
+		input.trigger_word = triggerWord;
+	}
+
+	console.log('[fal] Starting training with input:', JSON.stringify(input, null, 2));
+
+	const result = await fal.queue.submit('fal-ai/z-image-trainer', { input });
+
+	console.log('[fal] Submit result:', JSON.stringify(result, null, 2));
+
+	if (!result.request_id) {
+		throw new Error('No request_id returned from fal.ai');
+	}
+
+	return result;
+}
+
+// Check training status
+export async function getTrainingStatus(requestId: string) {
+	return await fal.queue.status('fal-ai/z-image-trainer', {
+		requestId,
+		logs: true,
+	});
+}
+
+// Cancel training job
+export async function cancelTraining(requestId: string): Promise<void> {
+	try {
+		await fal.queue.cancel('fal-ai/z-image-trainer', { requestId });
+		console.log('[fal] Cancelled training request:', requestId);
+	} catch (err) {
+		console.error('[fal] Failed to cancel training:', err);
+		// Don't throw - we still want to delete the job even if cancel fails
+	}
+}
+
+// Get training result
+export async function getTrainingResult(requestId: string) {
+	return await fal.queue.result('fal-ai/z-image-trainer', { requestId });
+}

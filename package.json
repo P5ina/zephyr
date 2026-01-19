@@ -37,6 +37,7 @@
 		"@neondatabase/serverless": "^1.0.2",
 		"@vercel/blob": "^2.0.0",
 		"arctic": "^3.7.0",
+		"jszip": "^3.10.1",
 		"lucide-svelte": "^0.562.0",
 		"nanoid": "^5.1.6"
 	}
