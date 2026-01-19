@@ -90,10 +90,14 @@ async function loadMoreGenerations() {
 		<div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
 			<a href="/" class="text-xl font-bold text-white hover:text-yellow-400 transition-colors">Zephyr</a>
 			<div class="flex items-center gap-4">
-				<div class="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 rounded-lg" title="Monthly: {tokens}, Bonus: {bonusTokens}">
+				<a
+					href="/app/billing"
+					class="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+					title="Monthly: {tokens}, Bonus: {bonusTokens}"
+				>
 					<Coins class="w-4 h-4 text-yellow-500" />
 					<span class="text-sm font-medium text-white">{tokens + bonusTokens}</span>
-				</div>
+				</a>
 				<div class="relative">
 					<button
 						onclick={() => (settingsOpen = !settingsOpen)}

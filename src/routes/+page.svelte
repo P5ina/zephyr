@@ -271,7 +271,7 @@ let { data }: { data: PageData } = $props();
 						<p class="text-sm text-zinc-400">For creators who need more</p>
 					</div>
 					<div class="mb-6">
-						<span class="text-4xl font-bold text-white">$9</span>
+						<span class="text-4xl font-bold text-white">$10</span>
 						<span class="text-zinc-400">/month</span>
 					</div>
 					<ul class="space-y-3 mb-8 flex-grow">
@@ -307,20 +307,20 @@ let { data }: { data: PageData } = $props();
 						<p class="text-sm text-zinc-400">One-time purchase, never expire</p>
 					</div>
 					<div class="mb-6">
-						<span class="text-4xl font-bold text-white">$5+</span>
+						<span class="text-4xl font-bold text-white">$10+</span>
 					</div>
 					<ul class="space-y-3 mb-8 flex-grow">
 						<li class="flex items-center gap-3 text-sm text-zinc-300">
 							<Check class="w-4 h-4 text-green-400 shrink-0" />
-							100 tokens - $5
+							100 tokens - $10
 						</li>
 						<li class="flex items-center gap-3 text-sm text-zinc-300">
 							<Check class="w-4 h-4 text-green-400 shrink-0" />
-							500 tokens - $20
+							500 tokens - $25
 						</li>
 						<li class="flex items-center gap-3 text-sm text-zinc-300">
 							<Check class="w-4 h-4 text-green-400 shrink-0" />
-							1,000 tokens - $35
+							1,000 tokens - $40
 						</li>
 						<li class="flex items-center gap-3 text-sm text-zinc-300">
 							<Check class="w-4 h-4 text-green-400 shrink-0" />

@@ -1,46 +1,15 @@
 import { env } from '$env/dynamic/private';
 import crypto from 'crypto';
+import { PRICING } from '$lib/pricing';
+
+export { PRICING };
+export type { TierType, CreditPackType } from '$lib/pricing';
 
 if (!env.NOWPAYMENTS_API_KEY) {
 	throw new Error('NOWPAYMENTS_API_KEY is not set');
 }
 
 const API_BASE = 'https://api.nowpayments.io/v1';
-
-export const PRICING = {
-	tiers: {
-		free: {
-			name: 'Free',
-			monthlyTokens: 25,
-			price: 0,
-		},
-		pro: {
-			name: 'Pro',
-			monthlyTokens: 1000,
-			price: 9, // $9 USD
-		},
-	},
-	creditPacks: {
-		credits_100: {
-			name: '100 Tokens',
-			tokens: 100,
-			price: 5, // $5 USD
-		},
-		credits_500: {
-			name: '500 Tokens',
-			tokens: 500,
-			price: 20, // $20 USD
-		},
-		credits_1000: {
-			name: '1,000 Tokens',
-			tokens: 1000,
-			price: 35, // $35 USD
-		},
-	},
-} as const;
-
-export type TierType = keyof typeof PRICING.tiers;
-export type CreditPackType = keyof typeof PRICING.creditPacks;
 
 interface CreatePaymentParams {
 	priceAmount: number;
@@ -132,8 +101,6 @@ export async function createInvoice(
 			ipn_callback_url: params.callbackUrl,
 			success_url: params.successUrl,
 			cancel_url: params.cancelUrl,
-			// Only show stablecoins and common cryptos with low minimums
-			selected_currencies: ['usdttrc20', 'usdterc20', 'usdtbsc', 'usdc', 'ltc', 'trx', 'doge', 'xrp', 'sol', 'matic'],
 		}),
 	});
 }
