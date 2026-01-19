@@ -66,6 +66,21 @@ function handleLoraDelete(id: string) {
 
 function handleGenerationDelete(id: string) {
 	generations = generations.filter((g) => g.id !== id);
+	// Update cursor if we deleted the item it pointed to
+	if (nextCursor === id) {
+		nextCursor = generations.length > 0 ? generations[generations.length - 1].id : null;
+		if (!nextCursor) hasMore = false;
+	}
+}
+
+function handleGenerationDeleteMany(ids: string[]) {
+	const idSet = new Set(ids);
+	generations = generations.filter((g) => !idSet.has(g.id));
+	// Update cursor if we deleted the item it pointed to
+	if (nextCursor && idSet.has(nextCursor)) {
+		nextCursor = generations.length > 0 ? generations[generations.length - 1].id : null;
+		if (!nextCursor) hasMore = false;
+	}
 }
 
 async function loadMoreGenerations() {
@@ -167,6 +182,7 @@ async function loadMoreGenerations() {
 						{hasMore}
 						onloadmore={loadMoreGenerations}
 						ondelete={handleGenerationDelete}
+						ondeletemany={handleGenerationDeleteMany}
 					/>
 				</div>
 			</div>

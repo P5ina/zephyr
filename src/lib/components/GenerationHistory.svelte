@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Check, Copy, Download, Trash2, X } from 'lucide-svelte';
+import { Check, CheckSquare, Copy, Download, Square, Trash2, X } from 'lucide-svelte';
 import type { Generation } from '$lib/server/db/schema';
 
 interface Props {
@@ -8,6 +8,7 @@ interface Props {
 	hasMore?: boolean;
 	onloadmore?: () => void;
 	ondelete?: (id: string) => void;
+	ondeletemany?: (ids: string[]) => void;
 }
 
 let {
@@ -16,6 +17,7 @@ let {
 	hasMore = false,
 	onloadmore,
 	ondelete,
+	ondeletemany,
 }: Props = $props();
 
 let hoveredId = $state<string | null>(null);
@@ -23,7 +25,67 @@ let selectedGeneration = $state<Generation | null>(null);
 let copied = $state(false);
 let deleting = $state(false);
 
+// Multi-select state
+let selectMode = $state(false);
+let selectedIds = $state<Set<string>>(new Set());
+let deletingMultiple = $state(false);
+
+function toggleSelectMode() {
+	selectMode = !selectMode;
+	if (!selectMode) {
+		selectedIds = new Set();
+	}
+}
+
+function toggleSelection(id: string, e?: Event) {
+	e?.stopPropagation();
+	const newSet = new Set(selectedIds);
+	if (newSet.has(id)) {
+		newSet.delete(id);
+	} else {
+		newSet.add(id);
+	}
+	selectedIds = newSet;
+}
+
+function selectAll() {
+	if (selectedIds.size === generations.length) {
+		selectedIds = new Set();
+	} else {
+		selectedIds = new Set(generations.map(g => g.id));
+	}
+}
+
+async function deleteSelected() {
+	if (selectedIds.size === 0 || deletingMultiple) return;
+
+	const count = selectedIds.size;
+	if (!confirm(`Delete ${count} generation${count > 1 ? 's' : ''}? This cannot be undone.`)) return;
+
+	deletingMultiple = true;
+	try {
+		const ids = Array.from(selectedIds);
+		const res = await fetch('/api/generations', {
+			method: 'DELETE',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ ids }),
+		});
+
+		if (res.ok) {
+			ondeletemany?.(ids);
+			selectedIds = new Set();
+			selectMode = false;
+		}
+	} finally {
+		deletingMultiple = false;
+	}
+}
+
 function openModal(gen: Generation) {
+	if (selectMode) {
+		toggleSelection(gen.id);
+		return;
+	}
 	selectedGeneration = gen;
 }
 
@@ -32,8 +94,12 @@ function closeModal() {
 }
 
 function handleKeydown(e: KeyboardEvent) {
-	if (e.key === 'Escape' && selectedGeneration) {
-		closeModal();
+	if (e.key === 'Escape') {
+		if (selectedGeneration) {
+			closeModal();
+		} else if (selectMode) {
+			toggleSelectMode();
+		}
 	}
 }
 
@@ -78,7 +144,46 @@ async function deleteGeneration() {
 <svelte:window onkeydown={handleKeydown} />
 
 <div class="space-y-4">
-	<h3 class="text-sm font-medium text-zinc-300">Generation History</h3>
+	<div class="flex items-center justify-between">
+		<h3 class="text-sm font-medium text-zinc-300">Generation History</h3>
+		{#if generations.length > 0}
+			<button
+				onclick={toggleSelectMode}
+				class="text-xs text-zinc-400 hover:text-white transition-colors"
+			>
+				{selectMode ? 'Cancel' : 'Select'}
+			</button>
+		{/if}
+	</div>
+
+	{#if selectMode && generations.length > 0}
+		<div class="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
+			<div class="flex items-center gap-3">
+				<button
+					onclick={selectAll}
+					class="flex items-center gap-2 text-sm text-zinc-300 hover:text-white transition-colors"
+				>
+					{#if selectedIds.size === generations.length}
+						<CheckSquare class="w-4 h-4 text-yellow-500" />
+					{:else}
+						<Square class="w-4 h-4" />
+					{/if}
+					Select all
+				</button>
+				<span class="text-sm text-zinc-500">
+					{selectedIds.size} selected
+				</span>
+			</div>
+			<button
+				onclick={deleteSelected}
+				disabled={selectedIds.size === 0 || deletingMultiple}
+				class="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+			>
+				<Trash2 class="w-4 h-4" />
+				{deletingMultiple ? 'Deleting...' : 'Delete'}
+			</button>
+		</div>
+	{/if}
 
 	{#if generations.length === 0 && !loading}
 		<p class="text-sm text-zinc-500 text-center py-8">No generations yet</p>
@@ -87,7 +192,7 @@ async function deleteGeneration() {
 			{#each generations as gen}
 				<button
 					type="button"
-					class="relative aspect-square rounded-lg overflow-hidden bg-zinc-900 group cursor-pointer text-left"
+					class="relative aspect-square rounded-lg overflow-hidden bg-zinc-900 group cursor-pointer text-left {selectMode && selectedIds.has(gen.id) ? 'ring-2 ring-yellow-500' : ''}"
 					onmouseenter={() => (hoveredId = gen.id)}
 					onmouseleave={() => (hoveredId = null)}
 					onclick={() => openModal(gen)}
@@ -98,7 +203,19 @@ async function deleteGeneration() {
 						class="w-full h-full object-cover"
 					/>
 
-					{#if hoveredId === gen.id}
+					{#if selectMode}
+						<div class="absolute top-2 left-2 z-10">
+							{#if selectedIds.has(gen.id)}
+								<div class="w-6 h-6 bg-yellow-500 rounded flex items-center justify-center">
+									<Check class="w-4 h-4 text-zinc-900" />
+								</div>
+							{:else}
+								<div class="w-6 h-6 bg-zinc-800/80 border border-zinc-600 rounded"></div>
+							{/if}
+						</div>
+					{/if}
+
+					{#if hoveredId === gen.id && !selectMode}
 						<div
 							class="absolute inset-0 bg-black/80 p-3 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-opacity"
 						>

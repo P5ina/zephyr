@@ -1,5 +1,5 @@
 import { error, json } from '@sveltejs/kit';
-import { and, count, desc, eq, lt } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, lt } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import type { RequestHandler } from './$types';
@@ -55,26 +55,29 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 		error(401, 'Unauthorized');
 	}
 
-	const { id } = await request.json();
+	const body = await request.json();
 
-	if (!id || typeof id !== 'string') {
-		error(400, 'Generation ID is required');
+	// Support both single ID and multiple IDs
+	const ids: string[] = body.ids || (body.id ? [body.id] : []);
+
+	if (ids.length === 0) {
+		error(400, 'Generation ID(s) required');
 	}
 
-	// Verify ownership and delete
-	const [deleted] = await db
+	if (ids.length > 100) {
+		error(400, 'Cannot delete more than 100 generations at once');
+	}
+
+	// Delete all matching generations owned by user
+	const deleted = await db
 		.delete(table.generation)
 		.where(
 			and(
-				eq(table.generation.id, id),
+				inArray(table.generation.id, ids),
 				eq(table.generation.userId, locals.user.id)
 			)
 		)
 		.returning();
 
-	if (!deleted) {
-		error(404, 'Generation not found');
-	}
-
-	return json({ success: true });
+	return json({ success: true, deleted: deleted.length });
 };
