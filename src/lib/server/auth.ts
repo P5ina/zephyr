@@ -36,6 +36,7 @@ export async function validateSessionToken(token: string) {
 				username: table.user.username,
 				avatarUrl: table.user.avatarUrl,
 				tokens: table.user.tokens,
+				nsfwEnabled: table.user.nsfwEnabled,
 			},
 			session: table.session,
 		})

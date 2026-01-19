@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { Lora, Generation } from '$lib/server/db/schema';
 import LoraSelector from './LoraSelector.svelte';
+import { AlertCircle } from 'lucide-svelte';
 
 interface SelectedLora {
 	id: string;
@@ -57,8 +58,8 @@ async function generate() {
 		});
 
 		if (!res.ok) {
-			const data = await res.json();
-			throw new Error(data.message || 'Generation failed');
+			const data = await res.json().catch(() => ({}));
+			throw new Error(data.message || data.error?.message || `Generation failed (${res.status})`);
 		}
 
 		const data = await res.json();
@@ -158,7 +159,10 @@ function handleLoraChange(selected: SelectedLora[]) {
 	{/if}
 
 	{#if error}
-		<p class="text-sm text-red-400">{error}</p>
+		<div class="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+			<AlertCircle class="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+			<p class="text-sm text-red-400">{error}</p>
+		</div>
 	{/if}
 
 	<button

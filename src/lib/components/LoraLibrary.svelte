@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Lora } from '$lib/server/db/schema';
+import { Upload, Trash2 } from 'lucide-svelte';
 
 interface Props {
 	loras: Lora[];
@@ -95,19 +96,7 @@ function handleFileSelect(e: Event) {
 		<label
 			class="flex items-center justify-center gap-2 px-3 py-2 bg-zinc-800 border border-zinc-700 border-dashed rounded-lg cursor-pointer hover:border-zinc-600 transition-colors"
 		>
-			<svg
-				class="w-4 h-4 text-zinc-400"
-				fill="none"
-				stroke="currentColor"
-				viewBox="0 0 24 24"
-			>
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					stroke-width="2"
-					d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-				/>
-			</svg>
+			<Upload class="w-4 h-4 text-zinc-400" />
 			<span class="text-sm text-zinc-400">
 				{file ? file.name : 'Select .safetensors file'}
 			</span>
@@ -143,14 +132,7 @@ function handleFileSelect(e: Event) {
 						onclick={() => handleDelete(lora.id)}
 						class="p-1 text-zinc-500 hover:text-red-400 transition-colors"
 					>
-						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-							/>
-						</svg>
+						<Trash2 class="w-4 h-4" />
 					</button>
 				</div>
 			{/each}

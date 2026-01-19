@@ -1,4 +1,4 @@
-import { integer, json, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { boolean, integer, json, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 export const user = pgTable('user', {
 	id: text('id').primaryKey(),
@@ -7,6 +7,7 @@ export const user = pgTable('user', {
 	avatarUrl: text('avatar_url'),
 	githubId: integer('github_id').unique(),
 	tokens: integer('tokens').notNull().default(25),
+	nsfwEnabled: boolean('nsfw_enabled').notNull().default(true),
 	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
 		.notNull()
 		.defaultNow(),

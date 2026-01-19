@@ -14,6 +14,7 @@ export interface GenerateImageOptions {
 	numImages?: number;
 	seed?: number;
 	loras?: Array<{ path: string; scale: number }>;
+	enableSafetyChecker?: boolean;
 }
 
 export interface GeneratedImage {
@@ -40,6 +41,7 @@ export async function generateImage(
 		numImages = 1,
 		seed,
 		loras,
+		enableSafetyChecker = false,
 	} = options;
 
 	const useLoras = loras && loras.length > 0;
@@ -52,6 +54,7 @@ export async function generateImage(
 		image_size: { width, height },
 		num_inference_steps: numInferenceSteps,
 		num_images: numImages,
+		enable_safety_checker: enableSafetyChecker,
 	};
 
 	if (seed !== undefined) {
@@ -62,13 +65,23 @@ export async function generateImage(
 		input.loras = loras;
 	}
 
-	const result = await fal.subscribe(endpoint, { input } as Parameters<typeof fal.subscribe>[1]);
+	try {
+		const result = await fal.subscribe(endpoint, { input } as Parameters<typeof fal.subscribe>[1]);
 
-	return {
-		images: result.data.images as GeneratedImage[],
-		seed: result.data.seed as number,
-		prompt: result.data.prompt as string,
-	};
+		const images = result.data.images as GeneratedImage[] | undefined;
+		if (!images || images.length === 0) {
+			throw new Error('No images generated');
+		}
+
+		return {
+			images,
+			seed: result.data.seed as number,
+			prompt: result.data.prompt as string,
+		};
+	} catch (err) {
+		const message = err instanceof Error ? err.message : 'Image generation failed';
+		throw new Error(message);
+	}
 }
 
 export async function uploadToFalStorage(file: File): Promise<string> {

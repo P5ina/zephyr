@@ -4,17 +4,38 @@ import type { Lora, Generation } from '$lib/server/db/schema';
 import ImageGenerator from '$lib/components/ImageGenerator.svelte';
 import GenerationHistory from '$lib/components/GenerationHistory.svelte';
 import LoraLibrary from '$lib/components/LoraLibrary.svelte';
+import { Coins, Settings, X } from 'lucide-svelte';
 
 let { data }: { data: PageData } = $props();
 
 let loras = $state<Lora[]>(data.loras);
 let generations = $state<Generation[]>(data.generations);
 let tokens = $state(data.user?.tokens ?? 0);
+let nsfwEnabled = $state(data.user?.nsfwEnabled ?? true);
 let loadingMore = $state(false);
 let hasMore = $state(data.generations.length === 20);
 let nextCursor = $state<string | null>(
 	data.generations.length > 0 ? data.generations[data.generations.length - 1].id : null
 );
+let settingsOpen = $state(false);
+let savingSettings = $state(false);
+
+async function toggleNsfw() {
+	savingSettings = true;
+	const newValue = !nsfwEnabled;
+	try {
+		const res = await fetch('/api/settings', {
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ nsfwEnabled: newValue }),
+		});
+		if (res.ok) {
+			nsfwEnabled = newValue;
+		}
+	} finally {
+		savingSettings = false;
+	}
+}
 
 function handleGenerate(newGenerations: Generation[], tokensRemaining: number) {
 	generations = [...newGenerations, ...generations];
@@ -67,10 +88,47 @@ async function loadMoreGenerations() {
 				<h1 class="text-xl font-bold text-white">Zephyr</h1>
 				<div class="flex items-center gap-4">
 					<div class="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 rounded-lg">
-						<svg class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-							<path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.736 6.979C9.208 6.193 9.696 6 10 6c.304 0 .792.193 1.264.979a1 1 0 001.715-1.029C12.279 4.784 11.232 4 10 4s-2.279.784-2.979 1.95c-.285.475-.507 1-.67 1.55H6a1 1 0 000 2h.013a9.358 9.358 0 000 1H6a1 1 0 100 2h.351c.163.55.385 1.075.67 1.55C7.721 15.216 8.768 16 10 16s2.279-.784 2.979-1.95a1 1 0 10-1.715-1.029c-.472.786-.96.979-1.264.979-.304 0-.792-.193-1.264-.979a4.265 4.265 0 01-.264-.521H10a1 1 0 100-2H8.017a7.36 7.36 0 010-1H10a1 1 0 100-2H8.472c.08-.185.167-.36.264-.521z"/>
-						</svg>
+						<Coins class="w-4 h-4 text-yellow-500" />
 						<span class="text-sm font-medium text-white">{tokens}</span>
+					</div>
+					<div class="relative">
+						<button
+							onclick={() => (settingsOpen = !settingsOpen)}
+							class="p-2 text-zinc-400 hover:text-white transition-colors"
+						>
+							<Settings class="w-5 h-5" />
+						</button>
+						{#if settingsOpen}
+							<div class="absolute right-0 top-full mt-2 w-64 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl z-50">
+								<div class="flex items-center justify-between p-3 border-b border-zinc-800">
+									<span class="text-sm font-medium text-white">Settings</span>
+									<button
+										onclick={() => (settingsOpen = false)}
+										class="text-zinc-400 hover:text-white"
+									>
+										<X class="w-4 h-4" />
+									</button>
+								</div>
+								<div class="p-3">
+									<label class="flex items-center justify-between cursor-pointer">
+										<span class="text-sm text-zinc-300">Allow NSFW content</span>
+										<button
+											onclick={toggleNsfw}
+											disabled={savingSettings}
+											class="relative w-11 h-6 rounded-full transition-colors {nsfwEnabled
+												? 'bg-indigo-600'
+												: 'bg-zinc-700'}"
+										>
+											<span
+												class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform {nsfwEnabled
+													? 'translate-x-5'
+													: 'translate-x-0'}"
+											></span>
+										</button>
+									</label>
+								</div>
+							</div>
+						{/if}
 					</div>
 					{#if data.user.avatarUrl}
 						<img

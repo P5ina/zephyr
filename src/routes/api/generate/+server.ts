@@ -67,15 +67,22 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			.filter((l): l is { path: string; scale: number } => l !== null);
 	}
 
-	const result = await generateImage({
-		prompt: body.prompt,
-		width: body.width,
-		height: body.height,
-		numInferenceSteps: body.numInferenceSteps,
-		numImages: body.numImages,
-		seed: body.seed,
-		loras: lorasForGeneration,
-	});
+	let result;
+	try {
+		result = await generateImage({
+			prompt: body.prompt,
+			width: body.width,
+			height: body.height,
+			numInferenceSteps: body.numInferenceSteps,
+			numImages: body.numImages,
+			seed: body.seed,
+			loras: lorasForGeneration,
+			enableSafetyChecker: !locals.user.nsfwEnabled,
+		});
+	} catch (err) {
+		const message = err instanceof Error ? err.message : 'Generation failed';
+		error(422, message);
+	}
 
 	const generations = await Promise.all(
 		result.images.map(async (image) => {
