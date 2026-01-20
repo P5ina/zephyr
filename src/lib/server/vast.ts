@@ -112,7 +112,7 @@ export async function createInstance(params: CreateInstanceParams): Promise<{ ne
 
 	// Use template if provided, otherwise use Docker image
 	if (templateId) {
-		body.template_hash = templateId;
+		body.template_hash_id = templateId;
 	} else if (dockerImage) {
 		body.image = dockerImage;
 		body.runtype = 'ssh_proxy';
