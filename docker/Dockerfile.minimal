@@ -1,7 +1,7 @@
 # Minimal ComfyUI worker - ~3-4GB instead of 8.85GB
 FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime
 
-WORKDIR /app
+WORKDIR /workspace
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -11,10 +11,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Clone ComfyUI
-RUN git clone https://github.com/comfyanonymous/ComfyUI.git /app/ComfyUI
+# Clone ComfyUI to workspace (Vast.ai persistent storage)
+RUN git clone https://github.com/comfyanonymous/ComfyUI.git /workspace/ComfyUI
 
-WORKDIR /app/ComfyUI
+WORKDIR /workspace/ComfyUI
 
 # Install ComfyUI dependencies
 RUN pip install --no-cache-dir -r requirements.txt
@@ -26,18 +26,18 @@ RUN pip install --no-cache-dir \
     kornia
 
 # Copy provisioning script
-COPY provisioning.sh /app/provisioning.sh
-RUN chmod +x /app/provisioning.sh
+COPY provisioning.sh /workspace/provisioning.sh
+RUN chmod +x /workspace/provisioning.sh
 
 # Copy workflows
-COPY workflows/ /app/ComfyUI/user/default/workflows/
+COPY workflows/ /workspace/ComfyUI/user/default/workflows/
 
-# Environment
-ENV COMFYUI_DIR=/app/ComfyUI
-ENV MODELS_DIR=/app/ComfyUI/models
-ENV CUSTOM_NODES_DIR=/app/ComfyUI/custom_nodes
+# Environment for Vast.ai
+ENV WORKSPACE=/workspace
+ENV COMFYUI_DIR=/workspace/ComfyUI
+ENV CUSTOM_NODES_DIR=/workspace/ComfyUI/custom_nodes
 
 EXPOSE 8188
 
 # Run provisioning then start ComfyUI
-CMD ["/bin/bash", "-c", "/app/provisioning.sh && python main.py --listen 0.0.0.0 --port 8188"]
+CMD ["/bin/bash", "-c", "/workspace/provisioning.sh && cd /workspace/ComfyUI && python main.py --listen 0.0.0.0 --port 8188"]
