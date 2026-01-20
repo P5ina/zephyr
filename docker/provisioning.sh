@@ -4,9 +4,22 @@ set -e
 # Provisioning script for ComfyUI worker
 # This runs on container startup
 
+# Vast.ai mounts disk at /workspace
+WORKSPACE="${WORKSPACE:-/workspace}"
 COMFYUI_DIR="${COMFYUI_DIR:-/opt/ComfyUI}"
-MODELS_DIR="${MODELS_DIR:-${COMFYUI_DIR}/models}"
-CUSTOM_NODES_DIR="${CUSTOM_NODES_DIR:-${COMFYUI_DIR}/custom_nodes}"
+
+# Store models in workspace (persistent disk), symlink to ComfyUI
+MODELS_DIR="${WORKSPACE}/models"
+CUSTOM_NODES_DIR="${COMFYUI_DIR}/custom_nodes"
+
+# Create workspace models directory and symlink
+mkdir -p "${MODELS_DIR}"
+if [ -d "${COMFYUI_DIR}/models" ] && [ ! -L "${COMFYUI_DIR}/models" ]; then
+    # Move existing models to workspace if any
+    cp -rn "${COMFYUI_DIR}/models/"* "${MODELS_DIR}/" 2>/dev/null || true
+    rm -rf "${COMFYUI_DIR}/models"
+fi
+ln -sfn "${MODELS_DIR}" "${COMFYUI_DIR}/models"
 
 echo "=== Starting provisioning ==="
 
