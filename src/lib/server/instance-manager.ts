@@ -24,6 +24,8 @@ export interface ManagedInstance {
 }
 
 export async function getOrCreateInstance(): Promise<ManagedInstance> {
+	console.log('[Instance Manager] getOrCreateInstance called');
+
 	// First, check for an existing ready instance
 	const existing = await db.query.vastInstance.findFirst({
 		where: or(
@@ -32,6 +34,8 @@ export async function getOrCreateInstance(): Promise<ManagedInstance> {
 			eq(table.vastInstance.status, 'creating'),
 		),
 	});
+
+	console.log('[Instance Manager] Existing instance:', existing?.id, existing?.status);
 
 	if (existing) {
 		// If it's ready, mark it as busy
@@ -66,6 +70,9 @@ export async function getOrCreateInstance(): Promise<ManagedInstance> {
 }
 
 async function createNewInstance(): Promise<ManagedInstance> {
+	console.log('[Instance Manager] Creating new instance...');
+	console.log('[Instance Manager] Search params: minGpuRam=', VAST_GPU_MIN_RAM);
+
 	// Search for available offers
 	const offers = await searchOffers({
 		minGpuRam: VAST_GPU_MIN_RAM,
@@ -73,12 +80,15 @@ async function createNewInstance(): Promise<ManagedInstance> {
 		minReliability: 0.95,
 	});
 
+	console.log('[Instance Manager] Found offers:', offers.length);
+
 	if (offers.length === 0) {
 		throw new Error('No suitable GPU offers available');
 	}
 
 	// Pick the cheapest offer
 	const offer = offers[0];
+	console.log('[Instance Manager] Selected offer:', offer.id, offer.gpu_name, '$' + offer.dph_total + '/hr');
 
 	// Create the instance
 	const result = await createInstance({

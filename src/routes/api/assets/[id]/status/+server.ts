@@ -3,7 +3,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { getHistory, getImage, queuePrompt, buildWorkflow } from '$lib/server/comfyui-client';
-import { releaseInstance, markInstanceFailed, getCurrentInstance } from '$lib/server/instance-manager';
+import { releaseInstance, markInstanceFailed, getCurrentInstance, getOrCreateInstance } from '$lib/server/instance-manager';
 import { generatePBRMaps, uploadToBlob } from '$lib/server/asset-generation';
 import type { RequestHandler } from './$types';
 
@@ -55,6 +55,8 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 };
 
 async function handleQueuedJob(asset: table.AssetGeneration) {
+	console.log('[Status] handleQueuedJob called for asset:', asset.id);
+
 	// Check if instance is ready
 	const instance = asset.vastInstanceId
 		? await db.query.vastInstance.findFirst({
@@ -62,8 +64,25 @@ async function handleQueuedJob(asset: table.AssetGeneration) {
 			})
 		: await getCurrentInstance();
 
+	console.log('[Status] Current instance:', instance?.id, instance?.status);
+
 	if (!instance) {
-		return json({ status: 'queued', message: 'Waiting for instance' });
+		console.log('[Status] No instance found, creating one...');
+		try {
+			const newInstance = await getOrCreateInstance();
+			console.log('[Status] Created instance:', newInstance.id, newInstance.status);
+
+			// Update asset with new instance
+			await db
+				.update(table.assetGeneration)
+				.set({ vastInstanceId: newInstance.id })
+				.where(eq(table.assetGeneration.id, asset.id));
+
+			return json({ status: 'queued', message: 'Instance creating' });
+		} catch (err) {
+			console.error('[Status] Failed to create instance:', err);
+			return json({ status: 'queued', message: 'Waiting for instance' });
+		}
 	}
 
 	if (instance.status === 'creating' || instance.status === 'starting') {
