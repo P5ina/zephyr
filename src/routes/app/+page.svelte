@@ -30,8 +30,6 @@ let savingSettings = $state(false);
 let prompt = $state('');
 let negativePrompt = $state('');
 let assetType = $state<'sprite' | 'pixel_art' | 'texture'>('sprite');
-let width = $state(512);
-let height = $state(512);
 let generating = $state(false);
 
 // Generation history
@@ -92,8 +90,6 @@ async function generate() {
 				assetType,
 				prompt: prompt.trim(),
 				negativePrompt: negativePrompt.trim() || undefined,
-				width,
-				height,
 			}),
 		});
 
@@ -338,39 +334,7 @@ async function cancelGeneration(id: string) {
 						></textarea>
 					</div>
 
-					<!-- Size -->
-					<div class="mb-6">
-						<span class="block text-sm font-medium text-zinc-400 mb-2">Size</span>
-						<div class="flex gap-2">
-							<div class="flex-1">
-								<label for="width-select" class="text-xs text-zinc-500">Width</label>
-								<select
-									id="width-select"
-									bind:value={width}
-									class="w-full mt-1 px-3 py-2 bg-zinc-800/50 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
-								>
-									<option value={256}>256</option>
-									<option value={512}>512</option>
-									<option value={768}>768</option>
-									<option value={1024}>1024</option>
-								</select>
-							</div>
-							<div class="flex-1">
-								<label for="height-select" class="text-xs text-zinc-500">Height</label>
-								<select
-									id="height-select"
-									bind:value={height}
-									class="w-full mt-1 px-3 py-2 bg-zinc-800/50 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
-								>
-									<option value={256}>256</option>
-									<option value={512}>512</option>
-									<option value={768}>768</option>
-									<option value={1024}>1024</option>
-								</select>
-							</div>
-						</div>
-					</div>
-
+	
 					<!-- Generate Button -->
 					<button
 						onclick={generate}
@@ -402,15 +366,15 @@ async function cancelGeneration(id: string) {
 						<div class="grid grid-cols-2 md:grid-cols-3 gap-4">
 							{#each generations as gen (gen.id)}
 								<div class="group relative aspect-square bg-zinc-800/50 rounded-lg overflow-hidden border border-zinc-700">
-									{#if gen.status === 'completed' && gen.resultUrls?.processed}
+									{#if gen.status === 'completed' && gen.resultUrls?.raw}
 										<img
-											src={gen.resultUrls.processed}
+											src={gen.resultUrls.raw}
 											alt={gen.prompt}
 											class="w-full h-full object-cover"
 										/>
 										<div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
 											<a
-												href={gen.resultUrls.processed}
+												href={gen.resultUrls.raw}
 												download
 												class="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
 											>
@@ -421,7 +385,12 @@ async function cancelGeneration(id: string) {
 										<div class="w-full h-full flex items-center justify-center text-red-400">
 											<div class="text-center p-4">
 												<X class="w-8 h-8 mx-auto mb-2" />
-												<p class="text-xs">Failed</p>
+												<p class="text-xs font-medium">Failed</p>
+												{#if gen.errorMessage}
+													<p class="text-[10px] mt-1 text-red-300/70 max-w-full px-2 break-words line-clamp-3" title={gen.errorMessage}>
+														{gen.errorMessage}
+													</p>
+												{/if}
 											</div>
 										</div>
 									{:else}

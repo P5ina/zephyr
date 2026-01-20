@@ -1,55 +1,187 @@
-export interface ComfyUIWorkflow {
+import { env } from '$env/dynamic/private';
+import spriteWorkflow from '$lib/workflows/sprite.json';
+
+// ComfyUI connection config
+const COMFYUI_URL = env.COMFYUI_URL || 'https://cod-pam-citations-industries.trycloudflare.com';
+const COMFYUI_TOKEN = env.COMFYUI_TOKEN || '';
+
+export type WorkflowType = 'sprite';
+
+export interface GenerateParams {
+	workflow: WorkflowType;
+	prompt: string;
+	width?: number;
+	height?: number;
+	seed?: number;
+	guidance?: number;
+	steps?: number;
+}
+
+export interface GenerateResult {
+	success: boolean;
+	imageUrl?: string;
+	imageData?: Buffer;
+	seed?: number;
+	error?: string;
+}
+
+interface ComfyUIWorkflow {
 	[nodeId: string]: {
 		class_type: string;
 		inputs: Record<string, unknown>;
 	};
 }
 
-export interface ComfyUIOutput {
-	images?: Array<{
-		filename: string;
-		subfolder: string;
-		type: string;
-	}>;
-}
-
-export interface ComfyUIHistory {
-	prompt: unknown[];
-	outputs: Record<string, ComfyUIOutput>;
-	status: {
-		status_str: string;
-		completed: boolean;
-		messages: Array<[string, unknown]>;
-	};
-}
+// Store auth cookie after first request
+let authCookie: string | null = null;
 
 async function comfyFetch(
-	host: string,
-	port: number,
 	endpoint: string,
 	options: RequestInit = {},
 ): Promise<Response> {
-	const url = `http://${host}:${port}${endpoint}`;
-	const controller = new AbortController();
-	const timeout = setTimeout(() => controller.abort(), 30000);
+	const url = `${COMFYUI_URL}${endpoint}`;
 
+	const headers: Record<string, string> = {
+		...options.headers as Record<string, string>,
+	};
+
+	// Add auth cookie if we have one
+	if (authCookie) {
+		headers['Cookie'] = authCookie;
+	}
+
+	let response: Response;
 	try {
-		const res = await fetch(url, {
+		response = await fetch(url, {
 			...options,
-			signal: controller.signal,
+			headers,
+			redirect: 'manual', // Handle redirects manually to capture cookies
 		});
-		return res;
-	} finally {
-		clearTimeout(timeout);
+	} catch (err) {
+		const msg = err instanceof Error ? err.message : 'Unknown error';
+		throw new Error(`ComfyUI connection failed: ${msg}`);
+	}
+
+	// If 302, we need to authenticate with token
+	if (response.status === 302 || response.status === 401) {
+		return await authenticateAndRetry(endpoint, options);
+	}
+
+	return response;
+}
+
+async function authenticateAndRetry(
+	endpoint: string,
+	options: RequestInit = {},
+): Promise<Response> {
+	// First request with token to get auth cookie
+	const authUrl = `${COMFYUI_URL}/?token=${COMFYUI_TOKEN}`;
+	const authResponse = await fetch(authUrl, { redirect: 'manual' });
+
+	// Extract Set-Cookie header
+	const setCookie = authResponse.headers.get('set-cookie');
+	if (setCookie) {
+		// Extract just the cookie value (before the first semicolon)
+		authCookie = setCookie.split(';')[0];
+	}
+
+	// Retry original request with cookie
+	const headers: Record<string, string> = {
+		...options.headers as Record<string, string>,
+	};
+	if (authCookie) {
+		headers['Cookie'] = authCookie;
+	}
+
+	return await fetch(`${COMFYUI_URL}${endpoint}`, {
+		...options,
+		headers,
+	});
+}
+
+export async function checkHealth(): Promise<boolean> {
+	try {
+		const res = await comfyFetch('/system_stats');
+		return res.ok;
+	} catch {
+		return false;
 	}
 }
 
-export async function queuePrompt(
-	host: string,
-	port: number,
-	workflow: ComfyUIWorkflow,
-): Promise<string> {
-	const res = await comfyFetch(host, port, '/prompt', {
+export async function waitForHealthy(
+	timeout: number = 180000,
+	pollInterval: number = 5000,
+): Promise<boolean> {
+	const start = Date.now();
+
+	while (Date.now() - start < timeout) {
+		if (await checkHealth()) {
+			return true;
+		}
+		await new Promise((resolve) => setTimeout(resolve, pollInterval));
+	}
+
+	return false;
+}
+
+const WORKFLOWS: Record<WorkflowType, ComfyUIWorkflow> = {
+	sprite: spriteWorkflow as ComfyUIWorkflow,
+};
+
+// Prompt templates for different asset types
+const PROMPT_TEMPLATES: Record<WorkflowType, { prefix: string; suffix: string }> = {
+	sprite: {
+		prefix: '',
+		suffix: ', white background, isolated, single object',
+	},
+};
+
+function buildPrompt(workflow: WorkflowType, userPrompt: string): string {
+	const template = PROMPT_TEMPLATES[workflow];
+	if (!template) return userPrompt;
+	return `${template.prefix}${userPrompt}${template.suffix}`;
+}
+
+function applyParams(workflow: ComfyUIWorkflow, params: GenerateParams): ComfyUIWorkflow {
+	const wf = JSON.parse(JSON.stringify(workflow)) as ComfyUIWorkflow;
+	const finalPrompt = buildPrompt(params.workflow, params.prompt);
+
+	for (const [nodeId, node] of Object.entries(wf)) {
+		const classType = node.class_type;
+		const inputs = node.inputs;
+
+		// Set prompt
+		if (classType === 'CLIPTextEncode' && 'text' in inputs) {
+			inputs.text = finalPrompt;
+		}
+
+		// Set dimensions
+		if (classType === 'EmptySD3LatentImage' || classType === 'EmptyLatentImage') {
+			if ('width' in inputs) inputs.width = params.width || 1024;
+			if ('height' in inputs) inputs.height = params.height || 1024;
+		}
+
+		// Set sampler params
+		if (classType === 'KSampler') {
+			if ('seed' in inputs) {
+				inputs.seed = params.seed ?? Math.floor(Math.random() * 2 ** 32);
+			}
+			if ('steps' in inputs && params.steps) {
+				inputs.steps = params.steps;
+			}
+		}
+
+		// Set FLUX guidance
+		if (classType === 'FluxGuidance' && 'guidance' in inputs) {
+			inputs.guidance = params.guidance || 3.5;
+		}
+	}
+
+	return wf;
+}
+
+async function queuePrompt(workflow: ComfyUIWorkflow): Promise<string> {
+	const res = await comfyFetch('/prompt', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ prompt: workflow }),
@@ -60,34 +192,90 @@ export async function queuePrompt(
 		throw new Error(`ComfyUI queue error ${res.status}: ${text}`);
 	}
 
-	const data = (await res.json()) as { prompt_id: string };
+	const data = await res.json() as { prompt_id: string };
 	return data.prompt_id;
 }
 
-export async function getHistory(
-	host: string,
-	port: number,
-	promptId: string,
-): Promise<ComfyUIHistory | null> {
-	const res = await comfyFetch(host, port, `/history/${promptId}`);
+interface HistoryOutput {
+	images?: Array<{
+		filename: string;
+		subfolder: string;
+		type: string;
+	}>;
+}
+
+interface HistoryMessage {
+	0: string; // message type
+	1: {
+		prompt_id?: string;
+		node_id?: string;
+		node_type?: string;
+		exception_message?: string;
+		exception_type?: string;
+	};
+}
+
+interface HistoryEntry {
+	outputs: Record<string, HistoryOutput>;
+	status?: {
+		completed: boolean;
+		status_str: string;
+		messages?: HistoryMessage[];
+	};
+}
+
+async function getHistory(promptId: string): Promise<HistoryEntry | null> {
+	const res = await comfyFetch(`/history/${promptId}`);
 
 	if (!res.ok) {
 		return null;
 	}
 
-	const data = (await res.json()) as Record<string, ComfyUIHistory>;
+	const data = await res.json() as Record<string, HistoryEntry>;
 	return data[promptId] || null;
 }
 
-export async function getImage(
-	host: string,
-	port: number,
+async function waitForCompletion(
+	promptId: string,
+	timeout: number = 120000,
+	pollInterval: number = 1000,
+): Promise<HistoryEntry> {
+	const start = Date.now();
+
+	while (Date.now() - start < timeout) {
+		const history = await getHistory(promptId);
+
+		if (history?.status?.status_str === 'error') {
+			// Extract error details from messages
+			const errorMsg = history.status.messages?.find(
+				(m) => m[0] === 'execution_error'
+			);
+			if (errorMsg) {
+				const details = errorMsg[1];
+				const nodeInfo = details.node_type ? ` in ${details.node_type}` : '';
+				const errText = details.exception_message || 'Unknown execution error';
+				throw new Error(`Workflow error${nodeInfo}: ${errText}`);
+			}
+			throw new Error('Workflow execution failed');
+		}
+
+		if (history?.status?.completed) {
+			return history;
+		}
+
+		await new Promise((resolve) => setTimeout(resolve, pollInterval));
+	}
+
+	throw new Error(`Generation timeout after ${timeout / 1000}s`);
+}
+
+async function getImage(
 	filename: string,
-	subfolder: string,
-	type: string,
+	subfolder: string = '',
+	type: string = 'output',
 ): Promise<Buffer> {
 	const params = new URLSearchParams({ filename, subfolder, type });
-	const res = await comfyFetch(host, port, `/view?${params}`);
+	const res = await comfyFetch(`/view?${params}`);
 
 	if (!res.ok) {
 		throw new Error(`Failed to fetch image: ${res.status}`);
@@ -97,156 +285,50 @@ export async function getImage(
 	return Buffer.from(arrayBuffer);
 }
 
-export interface WaitResult {
-	success: boolean;
-	history?: ComfyUIHistory;
-	error?: string;
-}
-
-export async function waitForCompletion(
-	host: string,
-	port: number,
-	promptId: string,
-	timeout: number = 300000, // 5 minutes default
-	pollInterval: number = 1000,
-): Promise<WaitResult> {
-	const start = Date.now();
-
-	while (Date.now() - start < timeout) {
-		try {
-			const history = await getHistory(host, port, promptId);
-
-			if (history && history.status?.completed) {
-				return { success: true, history };
-			}
-
-			// Check for errors in status messages
-			if (history?.status?.messages) {
-				for (const [type, _data] of history.status.messages) {
-					if (type === 'execution_error') {
-						return {
-							success: false,
-							error: 'Workflow execution error',
-							history,
-						};
-					}
-				}
-			}
-		} catch (err) {
-			// Transient errors during polling are okay, keep trying
-			console.error('Polling error:', err);
-		}
-
-		await new Promise((resolve) => setTimeout(resolve, pollInterval));
-	}
-
-	return { success: false, error: 'Timeout waiting for completion' };
-}
-
-export async function checkHealth(host: string, port: number): Promise<boolean> {
+export async function generate(params: GenerateParams): Promise<GenerateResult> {
 	try {
-		const res = await comfyFetch(host, port, '/system_stats');
-		return res.ok;
-	} catch {
-		return false;
-	}
-}
-
-export async function waitForHealthy(
-	host: string,
-	port: number,
-	timeout: number = 180000, // 3 minutes default
-	pollInterval: number = 5000,
-): Promise<boolean> {
-	const start = Date.now();
-
-	while (Date.now() - start < timeout) {
-		if (await checkHealth(host, port)) {
-			return true;
+		// Get workflow template
+		const template = WORKFLOWS[params.workflow];
+		if (!template) {
+			return { success: false, error: `Unknown workflow: ${params.workflow}` };
 		}
-		await new Promise((resolve) => setTimeout(resolve, pollInterval));
+
+		// Apply parameters
+		const workflow = applyParams(template, params);
+
+		// Queue the prompt
+		const promptId = await queuePrompt(workflow);
+
+		// Wait for completion
+		const history = await waitForCompletion(promptId);
+
+		// Extract images from outputs
+		const images: Array<{ filename: string; subfolder: string; type: string }> = [];
+		for (const output of Object.values(history.outputs)) {
+			if (output.images) {
+				images.push(...output.images);
+			}
+		}
+
+		if (images.length === 0) {
+			return { success: false, error: 'No images generated' };
+		}
+
+		// Get the first image
+		const img = images[0];
+		const imageData = await getImage(img.filename, img.subfolder, img.type);
+
+		// Build image URL for direct access
+		const imageUrl = `${COMFYUI_URL}/view?filename=${encodeURIComponent(img.filename)}&subfolder=${encodeURIComponent(img.subfolder)}&type=${encodeURIComponent(img.type)}&token=${COMFYUI_TOKEN}`;
+
+		return {
+			success: true,
+			imageUrl,
+			imageData,
+			seed: params.seed,
+		};
+	} catch (err) {
+		const message = err instanceof Error ? err.message : 'Unknown error';
+		return { success: false, error: message };
 	}
-
-	return false;
-}
-
-export interface WorkflowParams {
-	assetType: 'sprite' | 'pixel_art' | 'texture';
-	prompt: string;
-	negativePrompt?: string;
-	width?: number;
-	height?: number;
-	seed?: number;
-}
-
-// Workflow templates - these match the workflow JSON files
-const WORKFLOW_TEMPLATES: Record<string, ComfyUIWorkflow> = {
-	sprite: {
-		positive_prompt: {
-			class_type: 'CLIPTextEncode',
-			inputs: { text: '', clip: ['clip_loader', 0] },
-		},
-		negative_prompt: {
-			class_type: 'CLIPTextEncode',
-			inputs: { text: '', clip: ['clip_loader', 0] },
-		},
-		latent: {
-			class_type: 'EmptyLatentImage',
-			inputs: { width: 512, height: 512, batch_size: 1 },
-		},
-		sampler: {
-			class_type: 'KSampler',
-			inputs: {
-				seed: -1,
-				steps: 20,
-				cfg: 7,
-				sampler_name: 'euler',
-				scheduler: 'normal',
-				denoise: 1,
-				model: ['model_loader', 0],
-				positive: ['positive_prompt', 0],
-				negative: ['negative_prompt', 0],
-				latent_image: ['latent', 0],
-			},
-		},
-		decoder: {
-			class_type: 'VAEDecode',
-			inputs: { samples: ['sampler', 0], vae: ['vae_loader', 0] },
-		},
-		save: {
-			class_type: 'SaveImage',
-			inputs: { filename_prefix: 'output', images: ['decoder', 0] },
-		},
-		model_loader: {
-			class_type: 'CheckpointLoaderSimple',
-			inputs: { ckpt_name: 'flux/schnell' },
-		},
-		clip_loader: {
-			class_type: 'CLIPLoader',
-			inputs: { clip_name: 'flux/schnell' },
-		},
-		vae_loader: {
-			class_type: 'VAELoader',
-			inputs: { vae_name: 'flux/schnell' },
-		},
-	},
-};
-
-export function buildWorkflow(params: WorkflowParams): ComfyUIWorkflow {
-	// For now, use sprite template for all types (can be expanded later)
-	const template = structuredClone(WORKFLOW_TEMPLATES.sprite);
-
-	// Inject parameters
-	template.positive_prompt.inputs.text = params.prompt;
-	template.negative_prompt.inputs.text = params.negativePrompt || '';
-	template.latent.inputs.width = params.width || 512;
-	template.latent.inputs.height = params.height || 512;
-
-	if (params.seed !== undefined && params.seed !== -1) {
-		template.sampler.inputs.seed = params.seed;
-	} else {
-		template.sampler.inputs.seed = Math.floor(Math.random() * 2147483647);
-	}
-
-	return template;
 }
