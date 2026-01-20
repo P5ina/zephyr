@@ -14,9 +14,15 @@ import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
 
-let tokens = $state(data.user.tokens);
-let bonusTokens = $state(data.user.bonusTokens);
-let nsfwEnabled = $state(data.user.nsfwEnabled);
+// Capture initial values for local state management
+// svelte-ignore state_referenced_locally
+const initialUser = data.user;
+// svelte-ignore state_referenced_locally
+const initialGenerations = data.assetGenerations;
+
+let tokens = $state(initialUser.tokens);
+let bonusTokens = $state(initialUser.bonusTokens);
+let nsfwEnabled = $state(initialUser.nsfwEnabled);
 let settingsOpen = $state(false);
 let savingSettings = $state(false);
 
@@ -29,12 +35,12 @@ let height = $state(512);
 let generating = $state(false);
 
 // Generation history
-let generations = $state<AssetGeneration[]>(data.assetGenerations);
+let generations = $state<AssetGeneration[]>(initialGenerations);
 let loadingMore = $state(false);
-let hasMore = $state(data.assetGenerations.length === 20);
+let hasMore = $state(initialGenerations.length === 20);
 let nextCursor = $state<string | null>(
-	data.assetGenerations.length > 0
-		? data.assetGenerations[data.assetGenerations.length - 1].id
+	initialGenerations.length > 0
+		? initialGenerations[initialGenerations.length - 1].id
 		: null,
 );
 
@@ -191,11 +197,13 @@ function getStatusLabel(status: string) {
 								</button>
 							</div>
 							<div class="p-3">
-								<label class="flex items-center justify-between cursor-pointer">
+								<div class="flex items-center justify-between cursor-pointer">
 									<span class="text-sm text-zinc-300">Allow NSFW content</span>
 									<button
 										onclick={toggleNsfw}
 										disabled={savingSettings}
+										aria-label="Toggle NSFW content"
+										aria-pressed={nsfwEnabled}
 										class="relative w-11 h-6 rounded-full transition-colors {nsfwEnabled
 											? 'bg-yellow-500'
 											: 'bg-zinc-700'}"
@@ -206,7 +214,7 @@ function getStatusLabel(status: string) {
 												: 'translate-x-0'}"
 										></span>
 									</button>
-								</label>
+								</div>
 							</div>
 						</div>
 					{/if}
@@ -235,7 +243,7 @@ function getStatusLabel(status: string) {
 
 					<!-- Asset Type -->
 					<div class="mb-4">
-						<label class="block text-sm font-medium text-zinc-400 mb-2">Asset Type</label>
+						<span class="block text-sm font-medium text-zinc-400 mb-2">Asset Type</span>
 						<div class="grid grid-cols-3 gap-2">
 							<button
 								onclick={() => (assetType = 'sprite')}
@@ -298,11 +306,12 @@ function getStatusLabel(status: string) {
 
 					<!-- Size -->
 					<div class="mb-6">
-						<label class="block text-sm font-medium text-zinc-400 mb-2">Size</label>
+						<span class="block text-sm font-medium text-zinc-400 mb-2">Size</span>
 						<div class="flex gap-2">
 							<div class="flex-1">
-								<label class="text-xs text-zinc-500">Width</label>
+								<label for="width-select" class="text-xs text-zinc-500">Width</label>
 								<select
+									id="width-select"
 									bind:value={width}
 									class="w-full mt-1 px-3 py-2 bg-zinc-800/50 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
 								>
@@ -313,8 +322,9 @@ function getStatusLabel(status: string) {
 								</select>
 							</div>
 							<div class="flex-1">
-								<label class="text-xs text-zinc-500">Height</label>
+								<label for="height-select" class="text-xs text-zinc-500">Height</label>
 								<select
+									id="height-select"
 									bind:value={height}
 									class="w-full mt-1 px-3 py-2 bg-zinc-800/50 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500/50"
 								>

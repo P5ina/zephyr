@@ -99,8 +99,11 @@ function getStatusIcon(status: string) {
 	}
 }
 
-const currentTier = data.subscription?.tier || 'free';
-const isPro = currentTier === 'pro' && data.subscription?.status === 'active';
+// Capture initial value for local state management
+// svelte-ignore state_referenced_locally
+const initialSubscription = data.subscription;
+const currentTier = initialSubscription?.tier || 'free';
+const isPro = currentTier === 'pro' && initialSubscription?.status === 'active';
 </script>
 
 <div class="min-h-screen bg-zinc-950">
