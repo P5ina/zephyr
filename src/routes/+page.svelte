@@ -2,9 +2,8 @@
 import {
 	ArrowRight,
 	Check,
-	Clock,
 	Github,
-	Image as ImageIcon,
+	Grid,
 	Layers,
 	Sparkles,
 	Zap,
@@ -61,15 +60,15 @@ let { data }: { data: PageData } = $props();
 		<div class="text-center">
 			<div class="inline-flex items-center gap-2 px-3 py-1 mb-6 rounded-full bg-yellow-500/10 border border-yellow-500/20">
 				<Zap class="w-3.5 h-3.5 text-yellow-400" />
-				<span class="text-xs font-medium text-yellow-300">Powered by Z-Image Turbo</span>
+				<span class="text-xs font-medium text-yellow-300">Powered by FLUX.1 + ComfyUI</span>
 			</div>
 			<h1 class="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight">
-				Create stunning images<br />
+				Create game-ready assets<br />
 				<span class="bg-linear-to-r from-yellow-300 via-amber-400 to-orange-400 bg-clip-text text-transparent">with AI magic</span>
 			</h1>
 			<p class="text-lg md:text-xl text-zinc-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-				Generate beautiful images in seconds with custom LoRA support.
-				Upload your own styles and create unique artwork that's truly yours.
+				Generate sprites, pixel art, and PBR textures in seconds.
+				Perfect for indie developers, game designers, and creative studios.
 			</p>
 			<div class="flex flex-col sm:flex-row items-center justify-center gap-4">
 				{#if data.user}
@@ -128,77 +127,81 @@ let { data }: { data: PageData } = $props();
 			</div>
 
 			<div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+				<!-- Game Sprites -->
 				<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors group">
 					<div class="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center mb-4 group-hover:bg-yellow-500/20 transition-colors">
-						<Zap class="w-6 h-6 text-yellow-400" />
+						<Sparkles class="w-6 h-6 text-yellow-400" />
 					</div>
-					<h3 class="text-lg font-semibold text-white mb-2">Lightning Fast</h3>
-					<p class="text-sm text-zinc-400">Generate images in seconds with Z-Image Turbo's optimized inference.</p>
+					<h3 class="text-lg font-semibold text-white mb-2">Game Sprites</h3>
+					<p class="text-sm text-zinc-400">Characters, items, UI elements with automatic background removal.</p>
 				</div>
 
+				<!-- Pixel Art -->
 				<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors group">
 					<div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-4 group-hover:bg-amber-500/20 transition-colors">
-						<Layers class="w-6 h-6 text-amber-400" />
+						<Grid class="w-6 h-6 text-amber-400" />
 					</div>
-					<h3 class="text-lg font-semibold text-white mb-2">Custom LoRAs</h3>
-					<p class="text-sm text-zinc-400">Upload your own LoRA files and combine up to 3 styles per generation.</p>
+					<h3 class="text-lg font-semibold text-white mb-2">Pixel Art</h3>
+					<p class="text-sm text-zinc-400">Retro-style assets with crisp pixels and transparent backgrounds.</p>
 				</div>
 
+				<!-- PBR Textures -->
 				<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors group">
 					<div class="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center mb-4 group-hover:bg-orange-500/20 transition-colors">
-						<ImageIcon class="w-6 h-6 text-orange-400" />
+						<Layers class="w-6 h-6 text-orange-400" />
 					</div>
-					<h3 class="text-lg font-semibold text-white mb-2">Multiple Outputs</h3>
-					<p class="text-sm text-zinc-400">Generate up to 4 images at once with various aspect ratios.</p>
+					<h3 class="text-lg font-semibold text-white mb-2">PBR Textures</h3>
+					<p class="text-sm text-zinc-400">Complete texture sets with Normal, Roughness, and Height maps.</p>
 				</div>
 
+				<!-- Fast Generation -->
 				<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors group">
 					<div class="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center mb-4 group-hover:bg-red-500/20 transition-colors">
-						<Clock class="w-6 h-6 text-red-400" />
+						<Zap class="w-6 h-6 text-red-400" />
 					</div>
-					<h3 class="text-lg font-semibold text-white mb-2">Full History</h3>
-					<p class="text-sm text-zinc-400">Never lose your creations. Access your entire generation history anytime.</p>
+					<h3 class="text-lg font-semibold text-white mb-2">Lightning Fast</h3>
+					<p class="text-sm text-zinc-400">Generate assets in seconds with optimized GPU inference on RunPod.</p>
 				</div>
 			</div>
 
 			<!-- Additional features list -->
 			<div class="mt-16 grid md:grid-cols-2 gap-8">
 				<div class="space-y-4">
-					<h3 class="text-xl font-semibold text-white mb-6">Generation Features</h3>
+					<h3 class="text-xl font-semibold text-white mb-6">Asset Generation</h3>
 					<div class="flex items-start gap-3">
 						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-						<span class="text-zinc-300">Text rendering in English and Chinese</span>
+						<span class="text-zinc-300">Automatic background removal (BiRefNet)</span>
 					</div>
 					<div class="flex items-start gap-3">
 						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-						<span class="text-zinc-300">Adjustable inference steps (1-8)</span>
+						<span class="text-zinc-300">PBR maps: Normal, Roughness, Height</span>
 					</div>
 					<div class="flex items-start gap-3">
 						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-						<span class="text-zinc-300">Reproducible results with seed control</span>
+						<span class="text-zinc-300">Multiple sizes up to 1024x1024</span>
 					</div>
 					<div class="flex items-start gap-3">
 						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-						<span class="text-zinc-300">Multiple aspect ratio presets</span>
+						<span class="text-zinc-300">Seed control for reproducible results</span>
 					</div>
 				</div>
 				<div class="space-y-4">
-					<h3 class="text-xl font-semibold text-white mb-6">LoRA Management</h3>
+					<h3 class="text-xl font-semibold text-white mb-6">Game-Ready Output</h3>
 					<div class="flex items-start gap-3">
 						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-						<span class="text-zinc-300">Upload .safetensors files directly</span>
+						<span class="text-zinc-300">PNG with transparency for sprites</span>
 					</div>
 					<div class="flex items-start gap-3">
 						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-						<span class="text-zinc-300">Personal LoRA library</span>
+						<span class="text-zinc-300">Tileable textures for seamless patterns</span>
 					</div>
 					<div class="flex items-start gap-3">
 						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-						<span class="text-zinc-300">Adjustable LoRA scale per generation</span>
+						<span class="text-zinc-300">Direct download or cloud storage</span>
 					</div>
 					<div class="flex items-start gap-3">
 						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-						<span class="text-zinc-300">Stack multiple LoRAs together</span>
+						<span class="text-zinc-300">Full generation history</span>
 					</div>
 				</div>
 			</div>
@@ -329,7 +332,7 @@ let { data }: { data: PageData } = $props();
 			<div class="mt-16 max-w-2xl mx-auto text-center">
 				<h3 class="text-lg font-semibold text-white mb-4">How tokens work</h3>
 				<p class="text-zinc-400 text-sm leading-relaxed">
-					Each image generation costs 1 token. Using LoRAs doesn't add extra cost.
+					Sprites and Pixel Art cost 2 tokens each. PBR Textures cost 3 tokens (includes all maps).
 					Bonus tokens from packs are used first before your monthly allocation.
 				</p>
 			</div>
