@@ -73,12 +73,12 @@ export async function searchOffers(params: VastSearchParams = {}): Promise<VastO
 		disk_space: { gte: 100 }, // Minimum 100GB free disk
 		dph_total: { lte: maxDph },
 		reliability2: { gte: minReliability },
-		inet_down: { gte: 200 }, // Minimum 200 Mbps download speed
+		inet_down: { gte: 1000 }, // Minimum 1 Gbps download speed
 		num_gpus: { eq: 1 },
 		cuda_max_good: { gte: 12.0 },
 		type: 'on-demand',
 		limit: 20,
-		order: [['dph_total', 'asc']],
+		order: [['inet_down', 'desc'], ['dph_total', 'asc']],
 	};
 
 	if (gpuNames && gpuNames.length > 0) {
