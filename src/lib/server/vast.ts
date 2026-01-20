@@ -71,6 +71,7 @@ export async function searchOffers(params: VastSearchParams = {}): Promise<VastO
 		rentable: { eq: true },
 		rented: { eq: false },
 		gpu_ram: { gte: minGpuRam * 1024 }, // Vast uses MB
+		disk_space: { gte: 100 }, // Minimum 100GB free disk
 		dph_total: { lte: maxDph },
 		reliability2: { gte: minReliability },
 		num_gpus: { eq: 1 },
