@@ -17,7 +17,6 @@ const VAST_PROVISIONING_SCRIPT =
 	'https://raw.githubusercontent.com/P5ina/zephyr/feature/lora-training/docker/provisioning.sh';
 const VAST_IDLE_TIMEOUT = parseInt(env.VAST_IDLE_TIMEOUT || '600', 10) * 1000; // ms
 const VAST_GPU_MIN_RAM = parseInt(env.VAST_GPU_MIN_RAM || '24', 10);
-const HF_TOKEN = env.HF_TOKEN;
 
 export interface ManagedInstance {
 	id: string;
@@ -93,20 +92,15 @@ async function createNewInstance(): Promise<ManagedInstance> {
 	const offer = offers[0];
 	console.log('[Instance Manager] Selected offer:', offer.id, offer.gpu_name, '$' + offer.dph_total + '/hr');
 
-	// Build environment variables
-	const instanceEnv: Record<string, string> = {
-		PROVISIONING_SCRIPT: VAST_PROVISIONING_SCRIPT,
-	};
-	if (HF_TOKEN) {
-		instanceEnv.HF_TOKEN = HF_TOKEN;
-	}
-
 	// Create the instance using docker image directly (no template needed)
+	// HF_TOKEN is configured at Vast.ai account level
 	const result = await createInstance({
 		offerId: offer.id,
 		dockerImage: VAST_DOCKER_IMAGE,
 		disk: 150, // 150GB for Docker image + models
-		env: instanceEnv,
+		env: {
+			PROVISIONING_SCRIPT: VAST_PROVISIONING_SCRIPT,
+		},
 	});
 
 	const instanceId = result.new_contract.toString();
