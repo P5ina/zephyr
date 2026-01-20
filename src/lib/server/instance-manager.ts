@@ -12,7 +12,7 @@ import {
 } from './vast';
 import { waitForHealthy } from './comfyui-client';
 
-const VAST_TEMPLATE_ID = env.VAST_TEMPLATE_ID || 'f19465be4e72942c55ef8c105413c9eb';
+const VAST_TEMPLATE_ID = env.VAST_TEMPLATE_ID || 'b32e179cfe5e94e366981f55219d5002';
 const VAST_IDLE_TIMEOUT = parseInt(env.VAST_IDLE_TIMEOUT || '600', 10) * 1000; // ms
 const VAST_GPU_MIN_RAM = parseInt(env.VAST_GPU_MIN_RAM || '24', 10);
 

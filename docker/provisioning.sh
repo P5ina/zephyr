@@ -4,9 +4,9 @@ set -e
 # Provisioning script for ComfyUI worker
 # This runs on container startup
 
-COMFYUI_DIR="/opt/ComfyUI"
-MODELS_DIR="${COMFYUI_DIR}/models"
-CUSTOM_NODES_DIR="${COMFYUI_DIR}/custom_nodes"
+COMFYUI_DIR="${COMFYUI_DIR:-/opt/ComfyUI}"
+MODELS_DIR="${MODELS_DIR:-${COMFYUI_DIR}/models}"
+CUSTOM_NODES_DIR="${CUSTOM_NODES_DIR:-${COMFYUI_DIR}/custom_nodes}"
 
 echo "=== Starting provisioning ==="
 
