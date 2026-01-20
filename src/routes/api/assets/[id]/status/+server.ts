@@ -70,8 +70,8 @@ async function handleQueuedJob(asset: table.AssetGeneration) {
 		return json({ status: 'queued', message: 'Instance starting up' });
 	}
 
-	if (instance.status === 'failed') {
-		// Instance failed, try to get a new one or fail the job
+	if (instance.status === 'failed' || instance.status === 'stopped') {
+		// Instance failed or stopped, try to get a new one or fail the job
 		if (asset.retryCount >= MAX_RETRIES) {
 			await db
 				.update(table.assetGeneration)
@@ -152,7 +152,14 @@ async function handleProcessingJob(asset: table.AssetGeneration) {
 		where: eq(table.vastInstance.id, asset.vastInstanceId),
 	});
 
-	if (!instance || !instance.httpHost || !instance.httpPort) {
+	// Check if instance is gone, stopped, or failed
+	const instanceLost = !instance ||
+		!instance.httpHost ||
+		!instance.httpPort ||
+		instance.status === 'stopped' ||
+		instance.status === 'failed';
+
+	if (instanceLost) {
 		// Instance gone, mark for retry
 		if (asset.retryCount >= MAX_RETRIES) {
 			await db
