@@ -5,31 +5,12 @@ set -e
 # This runs on container startup
 
 # Vast.ai mounts persistent volume at /data
-# Fall back to /workspace if /data doesn't exist
-if [ -d "/data" ]; then
-    STORAGE_DIR="/data"
-elif [ -d "/workspace" ]; then
-    STORAGE_DIR="/workspace"
-else
-    STORAGE_DIR="/tmp"
-fi
-
 COMFYUI_DIR="${COMFYUI_DIR:-/workspace/ComfyUI}"
-
-# Store models in persistent storage, symlink to ComfyUI
-MODELS_DIR="${STORAGE_DIR}/models"
+MODELS_DIR="/data/models"
 CUSTOM_NODES_DIR="${COMFYUI_DIR}/custom_nodes"
 
-echo "Using storage directory: ${STORAGE_DIR}"
-echo "Models directory: ${MODELS_DIR}"
-
-# Create models directory and symlink
+# Create models directory and symlink to ComfyUI
 mkdir -p "${MODELS_DIR}"
-if [ -d "${COMFYUI_DIR}/models" ] && [ ! -L "${COMFYUI_DIR}/models" ]; then
-    # Move existing models to storage if any
-    cp -rn "${COMFYUI_DIR}/models/"* "${MODELS_DIR}/" 2>/dev/null || true
-    rm -rf "${COMFYUI_DIR}/models"
-fi
 ln -sfn "${MODELS_DIR}" "${COMFYUI_DIR}/models"
 
 echo "=== Starting provisioning ==="
