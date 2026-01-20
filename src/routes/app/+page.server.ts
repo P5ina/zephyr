@@ -9,21 +9,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 		redirect(302, '/login');
 	}
 
-	const [loras, generations] = await Promise.all([
-		db.query.lora.findMany({
-			where: eq(table.lora.userId, locals.user.id),
-			orderBy: desc(table.lora.createdAt),
-		}),
-		db.query.generation.findMany({
-			where: eq(table.generation.userId, locals.user.id),
-			orderBy: desc(table.generation.createdAt),
-			limit: 20,
-		}),
-	]);
+	const assetGenerations = await db.query.assetGeneration.findMany({
+		where: eq(table.assetGeneration.userId, locals.user.id),
+		orderBy: desc(table.assetGeneration.createdAt),
+		limit: 20,
+	});
 
 	return {
 		user: locals.user,
-		loras,
-		generations,
+		assetGenerations,
 	};
 };

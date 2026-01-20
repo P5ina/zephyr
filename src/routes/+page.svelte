@@ -238,7 +238,7 @@ let { data }: { data: PageData } = $props();
 						</li>
 						<li class="flex items-center gap-3 text-sm text-zinc-300">
 							<Check class="w-4 h-4 text-green-400 shrink-0" />
-							Up to 3 LoRA uploads
+							All asset types
 						</li>
 						<li class="flex items-center gap-3 text-sm text-zinc-300">
 							<Check class="w-4 h-4 text-green-400 shrink-0" />
@@ -277,7 +277,7 @@ let { data }: { data: PageData } = $props();
 						</li>
 						<li class="flex items-center gap-3 text-sm text-zinc-300">
 							<Check class="w-4 h-4 text-yellow-400 shrink-0" />
-							Unlimited LoRA uploads
+							All asset types
 						</li>
 						<li class="flex items-center gap-3 text-sm text-zinc-300">
 							<Check class="w-4 h-4 text-yellow-400 shrink-0" />
