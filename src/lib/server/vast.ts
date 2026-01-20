@@ -69,6 +69,7 @@ export async function searchOffers(params: VastSearchParams = {}): Promise<VastO
 	const body: Record<string, unknown> = {
 		rentable: { eq: true },
 		rented: { eq: false },
+		verified: { eq: true }, // Only verified datacenters
 		gpu_ram: { gte: minGpuRam * 1024 }, // Vast uses MB
 		disk_space: { gte: 150 }, // Minimum 150GB free disk
 		dph_total: { lte: maxDph },

@@ -1,29 +1,44 @@
 {
-  "checkpoint": {
-    "class_type": "CheckpointLoaderSimple",
+  "unet_loader": {
+    "class_type": "UNETLoader",
     "inputs": {
-      "ckpt_name": "flux/schnell/flux1-schnell.safetensors"
+      "unet_name": "flux1-schnell.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "clip_loader": {
+    "class_type": "DualCLIPLoader",
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "t5xxl_fp8_e4m3fn.safetensors",
+      "type": "flux"
+    }
+  },
+  "vae_loader": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ae.safetensors"
     }
   },
   "positive_prompt": {
     "class_type": "CLIPTextEncode",
     "inputs": {
       "text": "",
-      "clip": ["checkpoint", 1]
+      "clip": ["clip_loader", 0]
     }
   },
-  "negative_prompt": {
-    "class_type": "CLIPTextEncode",
+  "guidance": {
+    "class_type": "FluxGuidance",
     "inputs": {
-      "text": "",
-      "clip": ["checkpoint", 1]
+      "guidance": 3.5,
+      "conditioning": ["positive_prompt", 0]
     }
   },
   "latent": {
-    "class_type": "EmptyLatentImage",
+    "class_type": "EmptySD3LatentImage",
     "inputs": {
-      "width": 512,
-      "height": 512,
+      "width": 1024,
+      "height": 1024,
       "batch_size": 1
     }
   },
@@ -36,9 +51,9 @@
       "sampler_name": "euler",
       "scheduler": "simple",
       "denoise": 1.0,
-      "model": ["checkpoint", 0],
-      "positive": ["positive_prompt", 0],
-      "negative": ["negative_prompt", 0],
+      "model": ["unet_loader", 0],
+      "positive": ["guidance", 0],
+      "negative": ["positive_prompt", 0],
       "latent_image": ["latent", 0]
     }
   },
@@ -46,20 +61,21 @@
     "class_type": "VAEDecode",
     "inputs": {
       "samples": ["sampler", 0],
-      "vae": ["checkpoint", 2]
+      "vae": ["vae_loader", 0]
     }
   },
-  "birefnet": {
-    "class_type": "BiRefNet",
+  "rmbg": {
+    "class_type": "RMBG",
     "inputs": {
-      "image": ["vae_decode", 0]
+      "image": ["vae_decode", 0],
+      "model": "BiRefNet.safetensors"
     }
   },
   "save_image": {
     "class_type": "SaveImage",
     "inputs": {
       "filename_prefix": "sprite",
-      "images": ["birefnet", 0]
+      "images": ["rmbg", 0]
     }
   }
 }
