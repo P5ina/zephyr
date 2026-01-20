@@ -1,4 +1,7 @@
 <script lang="ts">
+import type { PageData } from './$types';
+
+let { data }: { data: PageData } = $props();
 </script>
 
 <div class="min-h-screen flex items-center justify-center bg-zinc-950">
@@ -17,5 +20,21 @@
 			</svg>
 			Continue with GitHub
 		</a>
+
+		{#if data.isPreview}
+			<div class="mt-4">
+				<a
+					href="/login/preview"
+					class="flex items-center justify-center gap-3 w-full px-4 py-3 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border border-yellow-500/30 rounded-lg transition-colors"
+				>
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+					</svg>
+					Preview Login
+				</a>
+			</div>
+			<p class="mt-3 text-xs text-zinc-500 text-center">Preview mode - team members only</p>
+		{/if}
 	</div>
 </div>
