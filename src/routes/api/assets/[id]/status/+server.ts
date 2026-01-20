@@ -208,7 +208,7 @@ async function handleProcessingJob(asset: table.AssetGeneration) {
 	}
 
 	try {
-		const history = await getHistory(instance.httpHost, instance.httpPort, asset.comfyuiPromptId);
+		const history = await getHistory(instance.httpHost!, instance.httpPort!, asset.comfyuiPromptId);
 
 		if (!history) {
 			// Job still running
@@ -238,8 +238,8 @@ async function handleProcessingJob(asset: table.AssetGeneration) {
 			if (output.images && output.images.length > 0) {
 				const img = output.images[0];
 				imageData = await getImage(
-					instance.httpHost,
-					instance.httpPort,
+					instance.httpHost!,
+					instance.httpPort!,
 					img.filename,
 					img.subfolder,
 					img.type,

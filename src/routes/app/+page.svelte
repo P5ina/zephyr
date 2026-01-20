@@ -50,6 +50,19 @@ const TOKEN_COSTS = {
 	texture: 3,
 };
 
+// Track which generations we're already polling
+const pollingSet = new Set<string>();
+
+// Start polling for any pending generations on page load
+$effect(() => {
+	for (const gen of initialGenerations) {
+		if (gen.status !== 'completed' && gen.status !== 'failed' && !pollingSet.has(gen.id)) {
+			pollingSet.add(gen.id);
+			pollStatus(gen.id);
+		}
+	}
+});
+
 async function toggleNsfw() {
 	savingSettings = true;
 	const newValue = !nsfwEnabled;
