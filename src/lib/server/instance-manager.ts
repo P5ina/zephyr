@@ -94,6 +94,7 @@ async function createNewInstance(): Promise<ManagedInstance> {
 	const result = await createInstance({
 		offerId: offer.id,
 		templateId: VAST_TEMPLATE_ID,
+		disk: 150, // 150GB for Docker image + models
 	});
 
 	const instanceId = result.new_contract.toString();
