@@ -4,18 +4,29 @@ set -e
 # Provisioning script for ComfyUI worker
 # This runs on container startup
 
-# Vast.ai mounts disk at /workspace
-WORKSPACE="${WORKSPACE:-/workspace}"
-COMFYUI_DIR="${COMFYUI_DIR:-/opt/ComfyUI}"
+# Vast.ai mounts persistent volume at /data
+# Fall back to /workspace if /data doesn't exist
+if [ -d "/data" ]; then
+    STORAGE_DIR="/data"
+elif [ -d "/workspace" ]; then
+    STORAGE_DIR="/workspace"
+else
+    STORAGE_DIR="/tmp"
+fi
 
-# Store models in workspace (persistent disk), symlink to ComfyUI
-MODELS_DIR="${WORKSPACE}/models"
+COMFYUI_DIR="${COMFYUI_DIR:-/workspace/ComfyUI}"
+
+# Store models in persistent storage, symlink to ComfyUI
+MODELS_DIR="${STORAGE_DIR}/models"
 CUSTOM_NODES_DIR="${COMFYUI_DIR}/custom_nodes"
 
-# Create workspace models directory and symlink
+echo "Using storage directory: ${STORAGE_DIR}"
+echo "Models directory: ${MODELS_DIR}"
+
+# Create models directory and symlink
 mkdir -p "${MODELS_DIR}"
 if [ -d "${COMFYUI_DIR}/models" ] && [ ! -L "${COMFYUI_DIR}/models" ]; then
-    # Move existing models to workspace if any
+    # Move existing models to storage if any
     cp -rn "${COMFYUI_DIR}/models/"* "${MODELS_DIR}/" 2>/dev/null || true
     rm -rf "${COMFYUI_DIR}/models"
 fi
