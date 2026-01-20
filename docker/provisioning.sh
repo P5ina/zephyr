@@ -6,7 +6,7 @@ set -e
 
 # Vast.ai mounts persistent volume at /data
 COMFYUI_DIR="${COMFYUI_DIR:-/workspace/ComfyUI}"
-MODELS_DIR="/data/models"
+MODELS_DIR="/workspace/models"
 CUSTOM_NODES_DIR="${COMFYUI_DIR}/custom_nodes"
 
 # Create models directory and symlink to ComfyUI
