@@ -67,13 +67,13 @@ export async function searchOffers(params: VastSearchParams = {}): Promise<VastO
 
 	// Build query for Vast.ai search API
 	const body: Record<string, unknown> = {
-		verified: { eq: true },
 		rentable: { eq: true },
 		rented: { eq: false },
 		gpu_ram: { gte: minGpuRam * 1024 }, // Vast uses MB
 		disk_space: { gte: 100 }, // Minimum 100GB free disk
 		dph_total: { lte: maxDph },
 		reliability2: { gte: minReliability },
+		inet_down: { gte: 200 }, // Minimum 200 Mbps download speed
 		num_gpus: { eq: 1 },
 		cuda_max_good: { gte: 12.0 },
 		type: 'on-demand',
