@@ -123,8 +123,8 @@ async function createNewInstance(): Promise<ManagedInstance> {
 }
 
 async function waitForInstanceReady(instanceId: string): Promise<void> {
-	const maxWaitTime = 300000; // 5 minutes
-	const pollInterval = 10000; // 10 seconds
+	const maxWaitTime = 900000; // 15 minutes (large Docker images take time to pull)
+	const pollInterval = 15000; // 15 seconds
 	const start = Date.now();
 
 	try {
@@ -169,8 +169,8 @@ async function waitForInstanceReady(instanceId: string): Promise<void> {
 			})
 			.where(eq(table.vastInstance.id, instanceId));
 
-		// Wait for ComfyUI to be healthy
-		const healthy = await waitForHealthy(endpoint.host, endpoint.port, 180000);
+		// Wait for ComfyUI to be healthy (models take time to load)
+		const healthy = await waitForHealthy(endpoint.host, endpoint.port, 300000);
 
 		if (!healthy) {
 			throw new Error('ComfyUI health check failed');
