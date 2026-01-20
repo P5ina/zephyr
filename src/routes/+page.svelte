@@ -160,7 +160,7 @@ let { data }: { data: PageData } = $props();
 						<Zap class="w-6 h-6 text-red-400" />
 					</div>
 					<h3 class="text-lg font-semibold text-white mb-2">Lightning Fast</h3>
-					<p class="text-sm text-zinc-400">Generate assets in seconds with optimized GPU inference on RunPod.</p>
+					<p class="text-sm text-zinc-400">Generate assets in seconds with optimized GPU inference.</p>
 				</div>
 			</div>
 
