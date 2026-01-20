@@ -95,21 +95,28 @@ export async function searchOffers(params: VastSearchParams = {}): Promise<VastO
 
 export interface CreateInstanceParams {
 	offerId: number;
-	dockerImage: string;
+	templateId?: string;
+	dockerImage?: string;
 	disk?: number; // GB
 	onstart?: string; // startup script
 	env?: Record<string, string>;
 }
 
 export async function createInstance(params: CreateInstanceParams): Promise<{ new_contract: number }> {
-	const { offerId, dockerImage, disk = 40, onstart, env: envVars } = params;
+	const { offerId, templateId, dockerImage, disk = 100, onstart, env: envVars } = params;
 
 	const body: Record<string, unknown> = {
 		client_id: 'me',
-		image: dockerImage,
 		disk,
-		runtype: 'ssh_proxy', // Use SSH proxy for port access
 	};
+
+	// Use template if provided, otherwise use Docker image
+	if (templateId) {
+		body.template_id = templateId;
+	} else if (dockerImage) {
+		body.image = dockerImage;
+		body.runtype = 'ssh_proxy';
+	}
 
 	if (onstart) {
 		body.onstart = onstart;

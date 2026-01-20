@@ -12,7 +12,7 @@ import {
 } from './vast';
 import { waitForHealthy } from './comfyui-client';
 
-const VAST_DOCKER_IMAGE = env.VAST_DOCKER_IMAGE || 'your-docker-hub/comfyui-worker:latest';
+const VAST_TEMPLATE_ID = env.VAST_TEMPLATE_ID || 'f19465be4e72942c55ef8c105413c9eb';
 const VAST_IDLE_TIMEOUT = parseInt(env.VAST_IDLE_TIMEOUT || '600', 10) * 1000; // ms
 const VAST_GPU_MIN_RAM = parseInt(env.VAST_GPU_MIN_RAM || '24', 10);
 
@@ -90,14 +90,10 @@ async function createNewInstance(): Promise<ManagedInstance> {
 	const offer = offers[0];
 	console.log('[Instance Manager] Selected offer:', offer.id, offer.gpu_name, '$' + offer.dph_total + '/hr');
 
-	// Create the instance
+	// Create the instance using template
 	const result = await createInstance({
 		offerId: offer.id,
-		dockerImage: VAST_DOCKER_IMAGE,
-		disk: 100, // Need space for Docker image + models (~50GB)
-		env: {
-			COMFYUI_PORT: '8188',
-		},
+		templateId: VAST_TEMPLATE_ID,
 	});
 
 	const instanceId = result.new_contract.toString();
