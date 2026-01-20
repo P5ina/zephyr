@@ -65,23 +65,28 @@ async function vastFetch<T>(
 export async function searchOffers(params: VastSearchParams = {}): Promise<VastOffer[]> {
 	const { minGpuRam = 24, maxDph = 1.0, minReliability = 0.95, gpuNames } = params;
 
-	// Build query string for Vast.ai search
-	const query: Record<string, unknown> = {
+	// Build query for Vast.ai search API
+	const body: Record<string, unknown> = {
+		verified: { eq: true },
 		rentable: { eq: true },
+		rented: { eq: false },
 		gpu_ram: { gte: minGpuRam * 1024 }, // Vast uses MB
 		dph_total: { lte: maxDph },
 		reliability2: { gte: minReliability },
 		num_gpus: { eq: 1 },
 		cuda_max_good: { gte: 12.0 },
+		type: 'on-demand',
+		limit: 20,
+		order: [['dph_total', 'asc']],
 	};
 
 	if (gpuNames && gpuNames.length > 0) {
-		query.gpu_name = { in: gpuNames };
+		body.gpu_name = { in: gpuNames };
 	}
 
-	const response = await vastFetch<{ offers: VastOffer[] }>('/bundles', {
+	const response = await vastFetch<{ offers: VastOffer[] }>('/bundles/', {
 		method: 'POST',
-		body: JSON.stringify({ q: query, order: [['dph_total', 'asc']], limit: 20 }),
+		body: JSON.stringify(body),
 	});
 
 	return response.offers || [];
