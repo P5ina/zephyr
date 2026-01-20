@@ -3,6 +3,10 @@
 		{
 			"path": "/api/cron/reset-tokens",
 			"schedule": "0 0 * * *"
+		},
+		{
+			"path": "/api/cron/instance-cleanup",
+			"schedule": "*/5 * * * *"
 		}
 	]
 }

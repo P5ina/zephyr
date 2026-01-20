@@ -1,0 +1,59 @@
+{
+  "checkpoint": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "flux/schnell/flux1-schnell.safetensors"
+    }
+  },
+  "positive_prompt": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "",
+      "clip": ["checkpoint", 1]
+    }
+  },
+  "negative_prompt": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "",
+      "clip": ["checkpoint", 1]
+    }
+  },
+  "latent": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 512,
+      "height": 512,
+      "batch_size": 1
+    }
+  },
+  "sampler": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": -1,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0,
+      "model": ["checkpoint", 0],
+      "positive": ["positive_prompt", 0],
+      "negative": ["negative_prompt", 0],
+      "latent_image": ["latent", 0]
+    }
+  },
+  "vae_decode": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["sampler", 0],
+      "vae": ["checkpoint", 2]
+    }
+  },
+  "save_image": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "texture",
+      "images": ["vae_decode", 0]
+    }
+  }
+}

@@ -173,3 +173,77 @@ export type Subscription = typeof subscription.$inferSelect;
 export type Transaction = typeof transaction.$inferSelect;
 export type TrainingJob = typeof trainingJob.$inferSelect;
 export type TrainingImage = typeof trainingImage.$inferSelect;
+
+export const vastInstance = pgTable('vast_instance', {
+	id: text('id').primaryKey(), // Vast.ai instance ID as string
+	status: text('status', {
+		enum: ['creating', 'starting', 'ready', 'busy', 'stopping', 'stopped', 'failed'],
+	})
+		.notNull()
+		.default('creating'),
+
+	// Connection info
+	httpHost: text('http_host'),
+	httpPort: integer('http_port'),
+
+	// Metadata
+	gpuName: text('gpu_name'),
+	costPerHour: text('cost_per_hour'),
+
+	// Tracking
+	currentJobId: text('current_job_id'),
+	lastActivityAt: timestamp('last_activity_at', { withTimezone: true, mode: 'date' }),
+	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+	errorMessage: text('error_message'),
+});
+
+export type VastInstance = typeof vastInstance.$inferSelect;
+
+export const assetGeneration = pgTable('asset_generation', {
+	id: text('id').primaryKey(),
+	visibleId: text('visible_id').notNull().unique(),
+	userId: text('user_id')
+		.notNull()
+		.references(() => user.id),
+
+	// Configuration
+	assetType: text('asset_type', { enum: ['sprite', 'pixel_art', 'texture'] }).notNull(),
+	prompt: text('prompt').notNull(),
+	negativePrompt: text('negative_prompt'),
+	width: integer('width').notNull().default(512),
+	height: integer('height').notNull().default(512),
+
+	// Status
+	status: text('status', {
+		enum: ['pending', 'queued', 'processing', 'post_processing', 'completed', 'failed'],
+	})
+		.notNull()
+		.default('pending'),
+	vastInstanceId: text('vast_instance_id').references(() => vastInstance.id),
+	comfyuiPromptId: text('comfyui_prompt_id'),
+	retryCount: integer('retry_count').notNull().default(0),
+
+	// Results
+	resultUrls: json('result_urls').$type<{
+		raw?: string;
+		processed?: string;
+		thumbnail?: string;
+	}>(),
+	pbrUrls: json('pbr_urls').$type<{
+		baseColor?: string;
+		normal?: string;
+		roughness?: string;
+		height?: string;
+	}>(),
+
+	// Metadata
+	seed: integer('seed'),
+	tokenCost: integer('token_cost').notNull(),
+	errorMessage: text('error_message'),
+	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
+		.notNull()
+		.defaultNow(),
+	completedAt: timestamp('completed_at', { withTimezone: true, mode: 'date' }),
+});
+
+export type AssetGeneration = typeof assetGeneration.$inferSelect;

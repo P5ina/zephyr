@@ -1,0 +1,75 @@
+{
+  "checkpoint": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "flux/schnell/flux1-schnell.safetensors"
+    }
+  },
+  "lora_loader": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "lora_name": "pixel_art.safetensors",
+      "strength_model": 0.8,
+      "strength_clip": 0.8,
+      "model": ["checkpoint", 0],
+      "clip": ["checkpoint", 1]
+    }
+  },
+  "positive_prompt": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "",
+      "clip": ["lora_loader", 1]
+    }
+  },
+  "negative_prompt": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "",
+      "clip": ["lora_loader", 1]
+    }
+  },
+  "latent": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 512,
+      "height": 512,
+      "batch_size": 1
+    }
+  },
+  "sampler": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": -1,
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0,
+      "model": ["lora_loader", 0],
+      "positive": ["positive_prompt", 0],
+      "negative": ["negative_prompt", 0],
+      "latent_image": ["latent", 0]
+    }
+  },
+  "vae_decode": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["sampler", 0],
+      "vae": ["checkpoint", 2]
+    }
+  },
+  "birefnet": {
+    "class_type": "BiRefNet",
+    "inputs": {
+      "image": ["vae_decode", 0]
+    }
+  },
+  "save_image": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "pixel_art",
+      "images": ["birefnet", 0]
+    }
+  }
+}

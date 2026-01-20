@@ -57,6 +57,20 @@
       "when": 1768827699867,
       "tag": "0007_premium_catseye",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1768901201232,
+      "tag": "0008_condemned_celestials",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1768902186848,
+      "tag": "0009_furry_lady_mastermind",
+      "breakpoints": true
     }
   ]
 }
