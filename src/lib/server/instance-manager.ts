@@ -84,7 +84,7 @@ async function createNewInstance(): Promise<ManagedInstance> {
 	const result = await createInstance({
 		offerId: offer.id,
 		dockerImage: VAST_DOCKER_IMAGE,
-		disk: 50,
+		disk: 100, // Need space for Docker image + models (~50GB)
 		env: {
 			COMFYUI_PORT: '8188',
 		},
