@@ -171,6 +171,27 @@ function getStatusLabel(status: string) {
 			return status;
 	}
 }
+
+async function cancelGeneration(id: string) {
+	if (!confirm('Cancel this generation? Tokens will be refunded.')) return;
+
+	try {
+		const res = await fetch(`/api/assets/${id}/cancel`, { method: 'POST' });
+		if (res.ok) {
+			const data = await res.json();
+			generations = generations.map((g) =>
+				g.id === id ? { ...g, status: 'failed', errorMessage: 'Cancelled by user' } : g,
+			);
+			// Update token balance
+			tokens = tokens + data.tokensRefunded;
+		} else {
+			const error = await res.json();
+			alert(error.message || 'Failed to cancel');
+		}
+	} catch {
+		alert('Failed to cancel generation');
+	}
+}
 </script>
 
 <div class="min-h-screen bg-zinc-950">
@@ -404,11 +425,17 @@ function getStatusLabel(status: string) {
 											</div>
 										</div>
 									{:else}
-										<div class="w-full h-full flex items-center justify-center">
+										<div class="w-full h-full flex flex-col items-center justify-center">
 											<div class="text-center">
 												<Loader2 class="w-8 h-8 mx-auto mb-2 animate-spin text-yellow-400" />
 												<p class="text-xs text-zinc-400">{getStatusLabel(gen.status)}</p>
 											</div>
+											<button
+												onclick={() => cancelGeneration(gen.id)}
+												class="mt-3 px-3 py-1 text-xs bg-zinc-700/50 hover:bg-red-500/20 hover:text-red-400 text-zinc-400 rounded transition-colors"
+											>
+												Cancel
+											</button>
 										</div>
 									{/if}
 									<div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
