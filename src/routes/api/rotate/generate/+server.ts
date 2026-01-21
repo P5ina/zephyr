@@ -9,10 +9,11 @@ import { checkHealth, generateRotations } from '$lib/server/comfyui-client';
 import type { RequestHandler } from './$types';
 
 const TOKEN_COST = 8;
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 interface RotationSettings {
 	mode: 'regular' | 'pixel_art';
+	prompt: string;
+	seed?: number;
 	pixelResolution?: number;
 	colorCount?: number;
 }
@@ -22,28 +23,27 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		error(401, 'Unauthorized');
 	}
 
-	const formData = await request.formData();
-	const imageFile = formData.get('image') as File | null;
-	const mode = (formData.get('mode') as string) || 'regular';
-	const pixelResolution = formData.get('pixelResolution');
-	const colorCount = formData.get('colorCount');
+	const body = await request.json();
+	const prompt = body.prompt as string | undefined;
+	const mode = (body.mode as string) || 'regular';
+	const seed = body.seed as number | undefined;
+	const pixelResolution = body.pixelResolution as number | undefined;
+	const colorCount = body.colorCount as number | undefined;
 
-	if (!imageFile) {
-		error(400, 'Image is required');
+	if (!prompt || prompt.trim().length === 0) {
+		error(400, 'Prompt is required');
 	}
 
-	if (imageFile.size > MAX_FILE_SIZE) {
-		error(400, 'Image must be less than 10MB');
-	}
-
-	if (!imageFile.type.startsWith('image/')) {
-		error(400, 'File must be an image');
+	if (prompt.length > 500) {
+		error(400, 'Prompt must be less than 500 characters');
 	}
 
 	const settings: RotationSettings = {
 		mode: mode === 'pixel_art' ? 'pixel_art' : 'regular',
-		pixelResolution: pixelResolution ? parseInt(pixelResolution as string) : undefined,
-		colorCount: colorCount ? parseInt(colorCount as string) : undefined,
+		prompt: prompt.trim(),
+		seed,
+		pixelResolution,
+		colorCount,
 	};
 
 	const total = locals.user.tokens + locals.user.bonusTokens;
@@ -79,6 +79,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			userId: locals.user.id,
 			status: 'processing',
 			tokenCost: TOKEN_COST,
+			prompt: settings.prompt,
 			mode: settings.mode,
 			pixelResolution: settings.pixelResolution,
 			colorCount: settings.colorCount,
@@ -89,7 +90,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	processRotation(
 		jobId,
 		locals.user.id,
-		imageFile,
 		settings,
 		TOKEN_COST,
 	).catch(console.error);
@@ -105,7 +105,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 async function processRotation(
 	jobId: string,
 	userId: string,
-	imageFile: File,
 	settings: RotationSettings,
 	tokenCost: number,
 ) {
@@ -113,17 +112,14 @@ async function processRotation(
 
 	try {
 		console.log(`${logPrefix} Starting rotation generation (mode: ${settings.mode})`);
-
-		// Convert File to Buffer
-		const arrayBuffer = await imageFile.arrayBuffer();
-		const imageData = Buffer.from(arrayBuffer);
+		console.log(`${logPrefix} Prompt: "${settings.prompt.substring(0, 50)}..."`);
 
 		// Call ComfyUI with appropriate workflow
 		const workflow = settings.mode === 'pixel_art' ? 'rotate_pixel' : 'rotate_regular';
 		const result = await generateRotations({
 			workflow,
-			imageData,
-			imageName: `input_${jobId}.png`,
+			prompt: settings.prompt,
+			seed: settings.seed,
 			pixelResolution: settings.pixelResolution,
 			colorCount: settings.colorCount,
 		});

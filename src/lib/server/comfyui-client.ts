@@ -363,8 +363,8 @@ export interface RotateResult {
 
 export interface RotateParams {
 	workflow: RotationWorkflowType;
-	imageData: Buffer;
-	imageName: string;
+	prompt: string;
+	seed?: number;
 	pixelResolution?: number;
 	colorCount?: number;
 }
@@ -384,46 +384,25 @@ const ROTATION_OUTPUT_NODES: Record<string, string> = {
 // Generate rotations using TripoSR workflow
 export async function generateRotations(params: RotateParams): Promise<RotateResult> {
 	try {
-		// Upload input image to ComfyUI
-		const uploaded = await uploadImage(params.imageData, params.imageName);
-		console.log(`[Rotate] Uploaded image: ${uploaded.name}`);
-
 		// Clone the workflow
 		const workflow = JSON.parse(JSON.stringify(rotateWorkflow)) as ComfyUIWorkflow;
 
-		// Add LoadImage node for the uploaded image
-		workflow['100'] = {
-			class_type: 'LoadImage',
-			inputs: {
-				image: uploaded.name,
-			},
-		};
-
-		// Point RMBG (node 2) to use LoadImage instead of VAEDecode
-		if (workflow['2']?.inputs) {
-			workflow['2'].inputs.image = ['100', 0];
-		}
-
-		// Remove the image generation nodes (Flux) since we're using uploaded image
-		// These nodes are: 45, 46, 47, 49, 50, 51, 52, 56, 57, 61, 72
-		const nodesToRemove = ['45', '46', '47', '49', '50', '51', '52', '57', '72'];
-		for (const nodeId of nodesToRemove) {
-			delete workflow[nodeId];
-		}
-
-		// Keep node 56 (seed) and 61 (prompt) as they're used by ControlNet refinement
-		// Update prompt to generic value
+		// Set the prompt (node 61 is PrimitiveStringMultiline for prompt)
 		if (workflow['61']?.inputs) {
-			workflow['61'].inputs.value = 'high quality, detailed, white background';
+			workflow['61'].inputs.value = params.prompt;
 		}
 
-		// Queue the prompt
-		console.log(`[Rotate] Queuing workflow...`);
+		// Set seed (node 56 is PrimitiveInt for seed)
+		if (workflow['56']?.inputs) {
+			workflow['56'].inputs.value = params.seed ?? Math.floor(Math.random() * 2 ** 32);
+		}
+
+		console.log(`[Rotate] Queuing workflow with prompt: "${params.prompt.substring(0, 50)}..."`);
 		const promptId = await queuePrompt(workflow);
 		console.log(`[Rotate] Prompt ID: ${promptId}`);
 
-		// Wait for completion (longer timeout for 3D processing)
-		const history = await waitForCompletion(promptId, 300000, 2000);
+		// Wait for completion (longer timeout for 3D processing + 8 ControlNet passes)
+		const history = await waitForCompletion(promptId, 600000, 3000);
 		console.log(`[Rotate] Workflow completed`);
 
 		// Extract images from outputs

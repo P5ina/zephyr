@@ -209,7 +209,7 @@ export const rotationJob = pgTable('rotation_job', {
 		.default('pending'),
 
 	// Input
-	inputImageUrl: text('input_image_url'),
+	prompt: text('prompt'),
 
 	// Mode settings
 	mode: text('mode', { enum: ['regular', 'pixel_art'] }).notNull().default('regular'),
