@@ -64,6 +64,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	return json({
 		id: job.id,
+		job,
 		status: 'pending',
 		tokensRemaining: locals.user.tokens - regularDeduct,
 		bonusTokensRemaining: locals.user.bonusTokens - bonusDeduct,
