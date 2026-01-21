@@ -159,3 +159,80 @@ export const assetGeneration = pgTable('asset_generation', {
 });
 
 export type AssetGeneration = typeof assetGeneration.$inferSelect;
+
+export const textureGeneration = pgTable('texture_generation', {
+	id: text('id').primaryKey(),
+	userId: text('user_id')
+		.notNull()
+		.references(() => user.id),
+
+	// Configuration
+	prompt: text('prompt').notNull(),
+
+	// Status
+	status: text('status', {
+		enum: ['pending', 'processing', 'completed', 'failed'],
+	})
+		.notNull()
+		.default('pending'),
+
+	// Results - URLs for each PBR map
+	basecolorUrl: text('basecolor_url'),
+	normalUrl: text('normal_url'),
+	roughnessUrl: text('roughness_url'),
+	metallicUrl: text('metallic_url'),
+	heightUrl: text('height_url'),
+
+	// Metadata
+	seed: integer('seed'),
+	tokenCost: integer('token_cost').notNull(),
+	errorMessage: text('error_message'),
+	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
+		.notNull()
+		.defaultNow(),
+	completedAt: timestamp('completed_at', { withTimezone: true, mode: 'date' }),
+});
+
+export type TextureGeneration = typeof textureGeneration.$inferSelect;
+
+export const rotationJob = pgTable('rotation_job', {
+	id: text('id').primaryKey(),
+	userId: text('user_id')
+		.notNull()
+		.references(() => user.id),
+
+	// Status
+	status: text('status', {
+		enum: ['pending', 'processing', 'completed', 'failed'],
+	})
+		.notNull()
+		.default('pending'),
+
+	// Input
+	inputImageUrl: text('input_image_url'),
+
+	// Mode settings
+	mode: text('mode', { enum: ['regular', 'pixel_art'] }).notNull().default('regular'),
+	pixelResolution: integer('pixel_resolution'),
+	colorCount: integer('color_count'),
+
+	// Results - 8 directions
+	rotationN: text('rotation_n'),
+	rotationNE: text('rotation_ne'),
+	rotationE: text('rotation_e'),
+	rotationSE: text('rotation_se'),
+	rotationS: text('rotation_s'),
+	rotationSW: text('rotation_sw'),
+	rotationW: text('rotation_w'),
+	rotationNW: text('rotation_nw'),
+
+	// Metadata
+	tokenCost: integer('token_cost').notNull(),
+	errorMessage: text('error_message'),
+	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
+		.notNull()
+		.defaultNow(),
+	completedAt: timestamp('completed_at', { withTimezone: true, mode: 'date' }),
+});
+
+export type RotationJob = typeof rotationJob.$inferSelect;

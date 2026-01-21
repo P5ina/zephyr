@@ -1,11 +1,13 @@
 import { env } from '$env/dynamic/private';
 import spriteWorkflow from '$lib/workflows/sprite.json';
+import rotateWorkflow from '$lib/workflows/rotate_regular.json';
 
 // ComfyUI connection config
 const COMFYUI_URL = env.COMFYUI_URL || 'https://cod-pam-citations-industries.trycloudflare.com';
 const COMFYUI_TOKEN = env.COMFYUI_TOKEN || '';
 
 export type WorkflowType = 'sprite';
+export type RotationWorkflowType = 'rotate_regular' | 'rotate_pixel';
 
 export interface GenerateParams {
 	workflow: WorkflowType;
@@ -41,13 +43,18 @@ async function comfyFetch(
 ): Promise<Response> {
 	const url = `${COMFYUI_URL}${endpoint}`;
 
+	console.log(`[ComfyUI] Fetching: ${url}`);
+
 	const headers: Record<string, string> = {
+		'ngrok-skip-browser-warning': 'true',
+		'User-Agent': 'Zephyr/1.0',
 		...options.headers as Record<string, string>,
 	};
 
 	// Add auth cookie if we have one
 	if (authCookie) {
 		headers['Cookie'] = authCookie;
+		console.log(`[ComfyUI] Using auth cookie`);
 	}
 
 	let response: Response;
@@ -57,13 +64,16 @@ async function comfyFetch(
 			headers,
 			redirect: 'manual', // Handle redirects manually to capture cookies
 		});
+		console.log(`[ComfyUI] Response status: ${response.status} ${response.statusText}`);
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : 'Unknown error';
+		console.error(`[ComfyUI] Fetch error: ${msg}`);
 		throw new Error(`ComfyUI connection failed: ${msg}`);
 	}
 
-	// If 302, we need to authenticate with token
-	if (response.status === 302 || response.status === 401) {
+	// If 302, we need to authenticate with token (only if token is set)
+	if ((response.status === 302 || response.status === 401) && COMFYUI_TOKEN) {
+		console.log(`[ComfyUI] Got ${response.status}, need to authenticate`);
 		return await authenticateAndRetry(endpoint, options);
 	}
 
@@ -76,34 +86,61 @@ async function authenticateAndRetry(
 ): Promise<Response> {
 	// First request with token to get auth cookie
 	const authUrl = `${COMFYUI_URL}/?token=${COMFYUI_TOKEN}`;
-	const authResponse = await fetch(authUrl, { redirect: 'manual' });
+	console.log(`[ComfyUI] Authenticating at: ${authUrl}`);
+
+	const authResponse = await fetch(authUrl, {
+		redirect: 'manual',
+		headers: {
+			'ngrok-skip-browser-warning': 'true',
+			'User-Agent': 'Zephyr/1.0',
+		},
+	});
+	console.log(`[ComfyUI] Auth response: ${authResponse.status}`);
 
 	// Extract Set-Cookie header
 	const setCookie = authResponse.headers.get('set-cookie');
 	if (setCookie) {
 		// Extract just the cookie value (before the first semicolon)
 		authCookie = setCookie.split(';')[0];
+		console.log(`[ComfyUI] Got auth cookie: ${authCookie?.substring(0, 30)}...`);
+	} else {
+		console.log(`[ComfyUI] No Set-Cookie header received`);
 	}
 
 	// Retry original request with cookie
 	const headers: Record<string, string> = {
+		'ngrok-skip-browser-warning': 'true',
+		'User-Agent': 'Zephyr/1.0',
 		...options.headers as Record<string, string>,
 	};
 	if (authCookie) {
 		headers['Cookie'] = authCookie;
 	}
 
-	return await fetch(`${COMFYUI_URL}${endpoint}`, {
+	console.log(`[ComfyUI] Retrying: ${COMFYUI_URL}${endpoint}`);
+	const retryResponse = await fetch(`${COMFYUI_URL}${endpoint}`, {
 		...options,
 		headers,
 	});
+	console.log(`[ComfyUI] Retry response: ${retryResponse.status}`);
+
+	return retryResponse;
 }
 
 export async function checkHealth(): Promise<boolean> {
+	console.log(`[ComfyUI] Health check starting... URL: ${COMFYUI_URL}`);
 	try {
 		const res = await comfyFetch('/system_stats');
+		if (!res.ok) {
+			const text = await res.text();
+			console.error(`[ComfyUI] Health check failed: ${res.status} - ${text.substring(0, 200)}`);
+		} else {
+			console.log(`[ComfyUI] Health check OK`);
+		}
 		return res.ok;
-	} catch {
+	} catch (err) {
+		const msg = err instanceof Error ? err.message : 'Unknown error';
+		console.error(`[ComfyUI] Health check error: ${msg}`);
 		return false;
 	}
 }
@@ -283,6 +320,138 @@ async function getImage(
 
 	const arrayBuffer = await res.arrayBuffer();
 	return Buffer.from(arrayBuffer);
+}
+
+// Upload image to ComfyUI
+export async function uploadImage(
+	imageData: Buffer,
+	filename: string,
+): Promise<{ name: string; subfolder: string; type: string }> {
+	const formData = new FormData();
+	const uint8Array = new Uint8Array(imageData);
+	const blob = new Blob([uint8Array], { type: 'image/png' });
+	formData.append('image', blob, filename);
+
+	const res = await comfyFetch('/upload/image', {
+		method: 'POST',
+		body: formData,
+	});
+
+	if (!res.ok) {
+		const text = await res.text();
+		throw new Error(`Failed to upload image: ${res.status} - ${text}`);
+	}
+
+	return await res.json();
+}
+
+// Rotation generation result
+export interface RotateResult {
+	success: boolean;
+	images?: {
+		n?: Buffer;
+		ne?: Buffer;
+		e?: Buffer;
+		se?: Buffer;
+		s?: Buffer;
+		sw?: Buffer;
+		w?: Buffer;
+		nw?: Buffer;
+	};
+	error?: string;
+}
+
+export interface RotateParams {
+	workflow: RotationWorkflowType;
+	imageData: Buffer;
+	imageName: string;
+	pixelResolution?: number;
+	colorCount?: number;
+}
+
+// Map of SaveImage node IDs to directions
+const ROTATION_OUTPUT_NODES: Record<string, string> = {
+	'69': 'n',   // sprite_N
+	'40': 'ne',  // sprite_NE
+	'41': 'e',   // sprite_E
+	'42': 'se',  // sprite_SE
+	'43': 's',   // sprite_S
+	'53': 'sw',  // sprite_SW
+	'54': 'w',   // sprite_W
+	'55': 'nw',  // sprite_NW
+};
+
+// Generate rotations using TripoSR workflow
+export async function generateRotations(params: RotateParams): Promise<RotateResult> {
+	try {
+		// Upload input image to ComfyUI
+		const uploaded = await uploadImage(params.imageData, params.imageName);
+		console.log(`[Rotate] Uploaded image: ${uploaded.name}`);
+
+		// Clone the workflow
+		const workflow = JSON.parse(JSON.stringify(rotateWorkflow)) as ComfyUIWorkflow;
+
+		// Add LoadImage node for the uploaded image
+		workflow['100'] = {
+			class_type: 'LoadImage',
+			inputs: {
+				image: uploaded.name,
+			},
+		};
+
+		// Point RMBG (node 2) to use LoadImage instead of VAEDecode
+		if (workflow['2']?.inputs) {
+			workflow['2'].inputs.image = ['100', 0];
+		}
+
+		// Remove the image generation nodes (Flux) since we're using uploaded image
+		// These nodes are: 45, 46, 47, 49, 50, 51, 52, 56, 57, 61, 72
+		const nodesToRemove = ['45', '46', '47', '49', '50', '51', '52', '57', '72'];
+		for (const nodeId of nodesToRemove) {
+			delete workflow[nodeId];
+		}
+
+		// Keep node 56 (seed) and 61 (prompt) as they're used by ControlNet refinement
+		// Update prompt to generic value
+		if (workflow['61']?.inputs) {
+			workflow['61'].inputs.value = 'high quality, detailed, white background';
+		}
+
+		// Queue the prompt
+		console.log(`[Rotate] Queuing workflow...`);
+		const promptId = await queuePrompt(workflow);
+		console.log(`[Rotate] Prompt ID: ${promptId}`);
+
+		// Wait for completion (longer timeout for 3D processing)
+		const history = await waitForCompletion(promptId, 300000, 2000);
+		console.log(`[Rotate] Workflow completed`);
+
+		// Extract images from outputs
+		const images: RotateResult['images'] = {};
+
+		for (const [nodeId, output] of Object.entries(history.outputs)) {
+			const direction = ROTATION_OUTPUT_NODES[nodeId];
+			if (direction && output.images && output.images.length > 0) {
+				const img = output.images[0];
+				const imageData = await getImage(img.filename, img.subfolder, img.type);
+				images[direction as keyof typeof images] = imageData;
+				console.log(`[Rotate] Got ${direction.toUpperCase()} image`);
+			}
+		}
+
+		const imageCount = Object.keys(images).length;
+		if (imageCount === 0) {
+			return { success: false, error: 'No rotation images generated' };
+		}
+
+		console.log(`[Rotate] Generated ${imageCount} rotation images`);
+		return { success: true, images };
+
+	} catch (err) {
+		const message = err instanceof Error ? err.message : 'Unknown error';
+		console.error(`[Rotate] Error: ${message}`);
+		return { success: false, error: message };
+	}
 }
 
 export async function generate(params: GenerateParams): Promise<GenerateResult> {
