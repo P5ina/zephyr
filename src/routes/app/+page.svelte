@@ -280,14 +280,23 @@ async function cancelGeneration(id: string) {
 									</div>
 								</div>
 							{:else}
-								<div class="w-full h-full flex flex-col items-center justify-center">
-									<div class="text-center">
-										<Loader2 class="w-8 h-8 mx-auto mb-2 animate-spin text-yellow-400" />
-										<p class="text-xs text-zinc-400">{getStatusLabel(gen.status)}</p>
+								<div class="w-full h-full flex flex-col items-center justify-center p-3">
+									<div class="text-center w-full">
+										<Loader2 class="w-6 h-6 mx-auto mb-2 animate-spin text-yellow-400" />
+										<p class="text-xs text-zinc-400 mb-1">{gen.currentStage || getStatusLabel(gen.status)}</p>
+										{#if gen.progress > 0}
+											<div class="w-full h-1.5 bg-zinc-700 rounded-full overflow-hidden mb-1">
+												<div
+													class="h-full bg-gradient-to-r from-yellow-500 to-amber-400 transition-all duration-500"
+													style="width: {gen.progress}%"
+												></div>
+											</div>
+											<p class="text-[10px] text-zinc-500">{gen.progress}%</p>
+										{/if}
 									</div>
 									<button
 										onclick={() => cancelGeneration(gen.id)}
-										class="mt-3 px-3 py-1 text-xs bg-zinc-700/50 hover:bg-red-500/20 hover:text-red-400 text-zinc-400 rounded transition-colors"
+										class="mt-2 px-3 py-1 text-xs bg-zinc-700/50 hover:bg-red-500/20 hover:text-red-400 text-zinc-400 rounded transition-colors"
 									>
 										Cancel
 									</button>
