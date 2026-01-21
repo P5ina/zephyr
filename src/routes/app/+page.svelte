@@ -1,7 +1,10 @@
 <script lang="ts">
 import {
+	Calendar,
+	Copy,
 	Download,
 	Grid,
+	Info,
 	Loader2,
 	Sparkles,
 	X,
@@ -22,6 +25,9 @@ let prompt = $state('');
 let negativePrompt = $state('');
 let assetType = $state<'sprite' | 'pixel_art'>('sprite');
 let generating = $state(false);
+
+// Modal state
+let selectedGeneration = $state<AssetGeneration | null>(null);
 
 // Generation history
 let generations = $state<AssetGeneration[]>(initialGenerations);
@@ -160,6 +166,43 @@ async function cancelGeneration(id: string) {
 		alert('Failed to cancel generation');
 	}
 }
+
+function openModal(gen: AssetGeneration) {
+	selectedGeneration = gen;
+}
+
+function closeModal() {
+	selectedGeneration = null;
+}
+
+function copyPrompt(text: string) {
+	navigator.clipboard.writeText(text);
+}
+
+function formatDate(date: Date | string | null) {
+	if (!date) return 'N/A';
+	const d = typeof date === 'string' ? new Date(date) : date;
+	return d.toLocaleDateString('en-US', {
+		month: 'short',
+		day: 'numeric',
+		year: 'numeric',
+		hour: '2-digit',
+		minute: '2-digit',
+	});
+}
+
+function getAssetTypeLabel(type: string) {
+	switch (type) {
+		case 'sprite':
+			return 'Sprite';
+		case 'pixel_art':
+			return 'Pixel Art';
+		case 'texture':
+			return 'Texture';
+		default:
+			return type;
+	}
+}
 </script>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -251,21 +294,20 @@ async function cancelGeneration(id: string) {
 			{:else}
 				<div class="grid grid-cols-2 md:grid-cols-3 gap-4">
 					{#each generations as gen (gen.id)}
-						<div class="group relative aspect-square bg-zinc-800/50 rounded-lg overflow-hidden border border-zinc-700">
+						<button
+							onclick={() => openModal(gen)}
+							class="group relative aspect-square bg-zinc-800/50 rounded-lg overflow-hidden border border-zinc-700 cursor-pointer w-full text-left hover:border-zinc-600 transition-colors"
+						>
 							{#if gen.status === 'completed' && gen.resultUrls?.raw}
 								<img
 									src={gen.resultUrls.raw}
 									alt={gen.prompt}
 									class="w-full h-full object-cover"
 								/>
-								<div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-									<a
-										href={gen.resultUrls.raw}
-										download
-										class="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
-									>
-										<Download class="w-5 h-5 text-white" />
-									</a>
+								<div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+									<span class="p-2 bg-white/20 rounded-lg">
+										<Info class="w-5 h-5 text-white" />
+									</span>
 								</div>
 							{:else if gen.status === 'failed'}
 								<div class="w-full h-full flex items-center justify-center text-red-400">
@@ -305,7 +347,7 @@ async function cancelGeneration(id: string) {
 							<div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
 								<p class="text-xs text-white truncate">{gen.prompt}</p>
 							</div>
-						</div>
+						</button>
 					{/each}
 				</div>
 
@@ -327,3 +369,157 @@ async function cancelGeneration(id: string) {
 		</div>
 	</div>
 </div>
+
+<!-- Detail Modal -->
+{#if selectedGeneration}
+	<div
+		class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+		onclick={closeModal}
+		onkeydown={(e) => e.key === 'Escape' && closeModal()}
+		role="dialog"
+		tabindex="-1"
+	>
+		<div
+			class="bg-zinc-900 border border-zinc-700 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
+			onclick={(e) => e.stopPropagation()}
+			role="document"
+		>
+			<!-- Header -->
+			<div class="flex items-center justify-between p-4 border-b border-zinc-800">
+				<h3 class="text-lg font-semibold text-white">Generation Details</h3>
+				<button
+					onclick={closeModal}
+					class="p-1 hover:bg-zinc-800 rounded-lg transition-colors"
+				>
+					<X class="w-5 h-5 text-zinc-400" />
+				</button>
+			</div>
+
+			<!-- Content -->
+			<div class="p-4 overflow-y-auto max-h-[calc(90vh-120px)]">
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<!-- Image Preview -->
+					<div class="aspect-square bg-zinc-800/50 rounded-lg overflow-hidden border border-zinc-700">
+						{#if selectedGeneration.status === 'completed' && selectedGeneration.resultUrls?.raw}
+							<img
+								src={selectedGeneration.resultUrls.raw}
+								alt={selectedGeneration.prompt}
+								class="w-full h-full object-contain"
+							/>
+						{:else if selectedGeneration.status === 'failed'}
+							<div class="w-full h-full flex items-center justify-center text-red-400">
+								<div class="text-center">
+									<X class="w-12 h-12 mx-auto mb-2" />
+									<p class="text-sm">Generation Failed</p>
+								</div>
+							</div>
+						{:else}
+							<div class="w-full h-full flex items-center justify-center">
+								<div class="text-center">
+									<Loader2 class="w-12 h-12 mx-auto mb-2 animate-spin text-yellow-400" />
+									<p class="text-sm text-zinc-400">{selectedGeneration.currentStage || getStatusLabel(selectedGeneration.status)}</p>
+									{#if selectedGeneration.progress > 0}
+										<p class="text-xs text-zinc-500 mt-1">{selectedGeneration.progress}%</p>
+									{/if}
+								</div>
+							</div>
+						{/if}
+					</div>
+
+					<!-- Details -->
+					<div class="space-y-4">
+						<!-- Prompt -->
+						<div>
+							<div class="flex items-center justify-between mb-1">
+								<span class="text-xs text-zinc-500 uppercase tracking-wide">Prompt</span>
+								<button
+									onclick={() => copyPrompt(selectedGeneration?.prompt || '')}
+									class="p-1 hover:bg-zinc-800 rounded transition-colors"
+									title="Copy prompt"
+								>
+									<Copy class="w-3.5 h-3.5 text-zinc-500" />
+								</button>
+							</div>
+							<p class="text-sm text-white bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
+								{selectedGeneration.prompt}
+							</p>
+						</div>
+
+						<!-- Negative Prompt -->
+						{#if selectedGeneration.negativePrompt}
+							<div>
+								<span class="text-xs text-zinc-500 uppercase tracking-wide block mb-1">Negative Prompt</span>
+								<p class="text-sm text-zinc-400 bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
+									{selectedGeneration.negativePrompt}
+								</p>
+							</div>
+						{/if}
+
+						<!-- Metadata Grid -->
+						<div class="grid grid-cols-2 gap-3">
+							<div class="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
+								<span class="text-xs text-zinc-500 block mb-1">Type</span>
+								<span class="text-sm text-white">{getAssetTypeLabel(selectedGeneration.assetType)}</span>
+							</div>
+							<div class="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
+								<span class="text-xs text-zinc-500 block mb-1">Dimensions</span>
+								<span class="text-sm text-white">{selectedGeneration.width}x{selectedGeneration.height}</span>
+							</div>
+							<div class="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
+								<span class="text-xs text-zinc-500 block mb-1">Status</span>
+								<span class="text-sm {selectedGeneration.status === 'completed' ? 'text-green-400' : selectedGeneration.status === 'failed' ? 'text-red-400' : 'text-yellow-400'}">
+									{getStatusLabel(selectedGeneration.status)}
+								</span>
+							</div>
+							<div class="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
+								<span class="text-xs text-zinc-500 block mb-1">Tokens</span>
+								<span class="text-sm text-white">{selectedGeneration.tokenCost}</span>
+							</div>
+						</div>
+
+						<!-- Dates -->
+						<div class="flex items-center gap-2 text-xs text-zinc-500">
+							<Calendar class="w-3.5 h-3.5" />
+							<span>Created {formatDate(selectedGeneration.createdAt)}</span>
+						</div>
+
+						<!-- Error Message -->
+						{#if selectedGeneration.errorMessage}
+							<div class="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+								<span class="text-xs text-red-400 uppercase tracking-wide block mb-1">Error</span>
+								<p class="text-sm text-red-300">{selectedGeneration.errorMessage}</p>
+							</div>
+						{/if}
+
+						<!-- Seed -->
+						{#if selectedGeneration.seed}
+							<div class="text-xs text-zinc-500">
+								Seed: {selectedGeneration.seed}
+							</div>
+						{/if}
+					</div>
+				</div>
+			</div>
+
+			<!-- Footer -->
+			<div class="p-4 border-t border-zinc-800 flex justify-end gap-2">
+				{#if selectedGeneration.status === 'completed' && selectedGeneration.resultUrls?.raw}
+					<a
+						href={selectedGeneration.resultUrls.raw}
+						download
+						class="flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 font-medium rounded-lg transition-colors"
+					>
+						<Download class="w-4 h-4" />
+						Download
+					</a>
+				{/if}
+				<button
+					onclick={closeModal}
+					class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors"
+				>
+					Close
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
