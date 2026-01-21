@@ -696,7 +696,7 @@ const hasAnyRotation = $derived(Object.values(rotations).some((v) => v !== null)
 										<RotateCw class="w-5 h-5 text-zinc-600" />
 									</div>
 								{:else}
-									{@const url = selectedJob[`rotation${dir.label.charAt(0).toUpperCase() + dir.label.slice(1).toLowerCase()}` as keyof RotationJob] as string | null}
+									{@const url = selectedJob[`rotation${dir.label}` as keyof RotationJob] as string | null}
 									<div class="aspect-square bg-zinc-800/50 rounded-lg border border-zinc-700 overflow-hidden">
 										{#if url}
 											<img src={url} alt={dir.label} class="w-full h-full object-contain" />
