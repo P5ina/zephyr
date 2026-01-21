@@ -34,6 +34,7 @@ let colorCount = $state<8 | 16 | 32 | 64>(16);
 let generating = $state(false);
 let status = $state<string | null>(null);
 let progress = $state(0);
+let estimatedTimeRemaining = $state<number | null>(null);
 
 // Results - 8 directions
 let rotations = $state<{
@@ -103,8 +104,9 @@ async function generate() {
 	}
 
 	generating = true;
-	status = 'Generating sprite...';
+	status = 'Starting generation...';
 	progress = 0;
+	estimatedTimeRemaining = null;
 	resetRotations();
 
 	try {
@@ -146,6 +148,7 @@ async function generate() {
 		generating = false;
 		status = null;
 		progress = 0;
+		estimatedTimeRemaining = null;
 	}
 }
 
@@ -158,21 +161,24 @@ async function pollStatus(id: string) {
 			const result = await res.json();
 			status = result.statusMessage || result.status;
 			progress = result.progress || 0;
+			estimatedTimeRemaining = result.estimatedTimeRemaining ?? null;
 
 			if (result.status === 'completed') {
 				rotations = result.rotations;
+				estimatedTimeRemaining = null;
 				return;
 			}
 
 			if (result.status === 'failed') {
 				alert(result.error || 'Generation failed');
+				estimatedTimeRemaining = null;
 				return;
 			}
 
-			await new Promise((r) => setTimeout(r, 3000));
+			await new Promise((r) => setTimeout(r, 2000));
 			return poll();
 		} catch {
-			// Ignore errors
+			// Ignore errors, continue polling
 		}
 	};
 	await poll();
@@ -328,18 +334,24 @@ const hasAnyRotation = $derived(Object.values(rotations).some((v) => v !== null)
 
 			<!-- Status -->
 			{#if status}
-				<div class="mt-4 px-3 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-					<div class="flex items-center gap-2">
-						<Loader2 class="w-4 h-4 animate-spin text-yellow-400" />
-						<span class="text-sm text-yellow-300">{status}</span>
-					</div>
-					{#if progress > 0}
-						<div class="mt-2 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
-							<div
-								class="h-full bg-yellow-500 transition-all duration-300"
-								style="width: {progress}%"
-							></div>
+				<div class="mt-4 px-4 py-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+					<div class="flex items-center justify-between mb-2">
+						<div class="flex items-center gap-2">
+							<Loader2 class="w-4 h-4 animate-spin text-yellow-400" />
+							<span class="text-sm text-yellow-300">{status}</span>
 						</div>
+						<span class="text-sm text-yellow-400 font-medium">{progress}%</span>
+					</div>
+					<div class="h-2 bg-zinc-700 rounded-full overflow-hidden">
+						<div
+							class="h-full bg-gradient-to-r from-yellow-500 to-amber-400 transition-all duration-500 ease-out"
+							style="width: {progress}%"
+						></div>
+					</div>
+					{#if estimatedTimeRemaining !== null && estimatedTimeRemaining > 0}
+						<p class="text-xs text-zinc-400 mt-2">
+							~{Math.floor(estimatedTimeRemaining / 60)}:{(estimatedTimeRemaining % 60).toString().padStart(2, '0')} remaining
+						</p>
 					{/if}
 				</div>
 			{/if}

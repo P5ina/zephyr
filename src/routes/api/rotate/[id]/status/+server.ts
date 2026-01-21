@@ -25,11 +25,19 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		status: job.status,
 	};
 
+	if (job.status === 'pending') {
+		response.statusMessage = job.currentStage || 'Queued for processing...';
+		response.progress = 0;
+	}
+
 	if (job.status === 'processing') {
-		response.statusMessage = 'Generating rotations...';
+		// Progress is updated by the worker via WebSocket
+		response.progress = job.progress;
+		response.statusMessage = job.currentStage || 'Processing...';
 	}
 
 	if (job.status === 'completed') {
+		response.progress = 100;
 		response.rotations = {
 			n: job.rotationN,
 			ne: job.rotationNE,

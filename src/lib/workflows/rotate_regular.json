@@ -281,7 +281,7 @@
   },
   "56": {
     "inputs": {
-      "value": -49968598138453
+      "value": -527473276840627
     },
     "class_type": "PrimitiveInt",
     "_meta": {
@@ -483,9 +483,42 @@
       "title": "VAE Encode"
     }
   },
+  "74:60": {
+    "inputs": {
+      "seed": [
+        "56",
+        0
+      ],
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 0.8,
+      "model": [
+        "74:66",
+        0
+      ],
+      "positive": [
+        "74:70",
+        0
+      ],
+      "negative": [
+        "74:70",
+        1
+      ],
+      "latent_image": [
+        "74:58",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
   "74:70": {
     "inputs": {
-      "strength": 0.7,
+      "strength": 0.2,
       "start_percent": 0,
       "end_percent": 1,
       "positive": [
@@ -512,39 +545,6 @@
     "class_type": "ControlNetApplyAdvanced",
     "_meta": {
       "title": "Apply ControlNet"
-    }
-  },
-  "74:60": {
-    "inputs": {
-      "seed": [
-        "56",
-        0
-      ],
-      "steps": 4,
-      "cfg": 1,
-      "sampler_name": "euler",
-      "scheduler": "normal",
-      "denoise": 0.6,
-      "model": [
-        "74:66",
-        0
-      ],
-      "positive": [
-        "74:70",
-        0
-      ],
-      "negative": [
-        "74:70",
-        1
-      ],
-      "latent_image": [
-        "74:58",
-        0
-      ]
-    },
-    "class_type": "KSampler",
-    "_meta": {
-      "title": "KSampler"
     }
   },
   "75:64": {
@@ -695,9 +695,42 @@
       "title": "VAE Encode"
     }
   },
+  "75:60": {
+    "inputs": {
+      "seed": [
+        "56",
+        0
+      ],
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 0.8,
+      "model": [
+        "75:66",
+        0
+      ],
+      "positive": [
+        "75:70",
+        0
+      ],
+      "negative": [
+        "75:70",
+        1
+      ],
+      "latent_image": [
+        "75:58",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
   "75:70": {
     "inputs": {
-      "strength": 0.7,
+      "strength": 0.2,
       "start_percent": 0,
       "end_percent": 1,
       "positive": [
@@ -724,39 +757,6 @@
     "class_type": "ControlNetApplyAdvanced",
     "_meta": {
       "title": "Apply ControlNet"
-    }
-  },
-  "75:60": {
-    "inputs": {
-      "seed": [
-        "56",
-        0
-      ],
-      "steps": 4,
-      "cfg": 1,
-      "sampler_name": "euler",
-      "scheduler": "normal",
-      "denoise": 0.6,
-      "model": [
-        "75:66",
-        0
-      ],
-      "positive": [
-        "75:70",
-        0
-      ],
-      "negative": [
-        "75:70",
-        1
-      ],
-      "latent_image": [
-        "75:58",
-        0
-      ]
-    },
-    "class_type": "KSampler",
-    "_meta": {
-      "title": "KSampler"
     }
   },
   "76:64": {
@@ -907,9 +907,42 @@
       "title": "VAE Encode"
     }
   },
+  "76:60": {
+    "inputs": {
+      "seed": [
+        "56",
+        0
+      ],
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 0.8,
+      "model": [
+        "76:66",
+        0
+      ],
+      "positive": [
+        "76:70",
+        0
+      ],
+      "negative": [
+        "76:70",
+        1
+      ],
+      "latent_image": [
+        "76:58",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
   "76:70": {
     "inputs": {
-      "strength": 0.7,
+      "strength": 0.2,
       "start_percent": 0,
       "end_percent": 1,
       "positive": [
@@ -936,39 +969,6 @@
     "class_type": "ControlNetApplyAdvanced",
     "_meta": {
       "title": "Apply ControlNet"
-    }
-  },
-  "76:60": {
-    "inputs": {
-      "seed": [
-        "56",
-        0
-      ],
-      "steps": 4,
-      "cfg": 1,
-      "sampler_name": "euler",
-      "scheduler": "normal",
-      "denoise": 0.6,
-      "model": [
-        "76:66",
-        0
-      ],
-      "positive": [
-        "76:70",
-        0
-      ],
-      "negative": [
-        "76:70",
-        1
-      ],
-      "latent_image": [
-        "76:58",
-        0
-      ]
-    },
-    "class_type": "KSampler",
-    "_meta": {
-      "title": "KSampler"
     }
   },
   "77:64": {
@@ -1119,9 +1119,42 @@
       "title": "VAE Encode"
     }
   },
+  "77:60": {
+    "inputs": {
+      "seed": [
+        "56",
+        0
+      ],
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 0.8,
+      "model": [
+        "77:66",
+        0
+      ],
+      "positive": [
+        "77:70",
+        0
+      ],
+      "negative": [
+        "77:70",
+        1
+      ],
+      "latent_image": [
+        "77:58",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
   "77:70": {
     "inputs": {
-      "strength": 0.7,
+      "strength": 0.2,
       "start_percent": 0,
       "end_percent": 1,
       "positive": [
@@ -1148,39 +1181,6 @@
     "class_type": "ControlNetApplyAdvanced",
     "_meta": {
       "title": "Apply ControlNet"
-    }
-  },
-  "77:60": {
-    "inputs": {
-      "seed": [
-        "56",
-        0
-      ],
-      "steps": 4,
-      "cfg": 1,
-      "sampler_name": "euler",
-      "scheduler": "normal",
-      "denoise": 0.6,
-      "model": [
-        "77:66",
-        0
-      ],
-      "positive": [
-        "77:70",
-        0
-      ],
-      "negative": [
-        "77:70",
-        1
-      ],
-      "latent_image": [
-        "77:58",
-        0
-      ]
-    },
-    "class_type": "KSampler",
-    "_meta": {
-      "title": "KSampler"
     }
   },
   "78:64": {
@@ -1290,7 +1290,7 @@
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "normal",
-      "denoise": 0.6,
+      "denoise": 0.8,
       "model": [
         "78:66",
         0
@@ -1366,7 +1366,7 @@
   },
   "78:70": {
     "inputs": {
-      "strength": 0.7,
+      "strength": 0.2,
       "start_percent": 0,
       "end_percent": 1,
       "positive": [
@@ -1492,37 +1492,6 @@
       "title": "Load ControlNet Model"
     }
   },
-  "79:70": {
-    "inputs": {
-      "strength": 0.6,
-      "start_percent": 0,
-      "end_percent": 1,
-      "positive": [
-        "79:65",
-        0
-      ],
-      "negative": [
-        "79:64",
-        0
-      ],
-      "control_net": [
-        "79:69",
-        0
-      ],
-      "image": [
-        "79:68",
-        0
-      ],
-      "vae": [
-        "79:59",
-        0
-      ]
-    },
-    "class_type": "ControlNetApplyAdvanced",
-    "_meta": {
-      "title": "Apply ControlNet"
-    }
-  },
   "79:44": {
     "inputs": {
       "model": "RMBG-2.0",
@@ -1584,7 +1553,7 @@
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "normal",
-      "denoise": 0.6,
+      "denoise": 0.8,
       "model": [
         "79:66",
         0
@@ -1605,6 +1574,37 @@
     "class_type": "KSampler",
     "_meta": {
       "title": "KSampler"
+    }
+  },
+  "79:70": {
+    "inputs": {
+      "strength": 0.2,
+      "start_percent": 0,
+      "end_percent": 1,
+      "positive": [
+        "79:65",
+        0
+      ],
+      "negative": [
+        "79:64",
+        0
+      ],
+      "control_net": [
+        "79:69",
+        0
+      ],
+      "image": [
+        "79:68",
+        0
+      ],
+      "vae": [
+        "79:59",
+        0
+      ]
+    },
+    "class_type": "ControlNetApplyAdvanced",
+    "_meta": {
+      "title": "Apply ControlNet"
     }
   },
   "80:64": {
@@ -1704,37 +1704,6 @@
       "title": "Load ControlNet Model"
     }
   },
-  "80:70": {
-    "inputs": {
-      "strength": 0.6,
-      "start_percent": 0,
-      "end_percent": 1,
-      "positive": [
-        "80:65",
-        0
-      ],
-      "negative": [
-        "80:64",
-        0
-      ],
-      "control_net": [
-        "80:69",
-        0
-      ],
-      "image": [
-        "80:68",
-        0
-      ],
-      "vae": [
-        "80:59",
-        0
-      ]
-    },
-    "class_type": "ControlNetApplyAdvanced",
-    "_meta": {
-      "title": "Apply ControlNet"
-    }
-  },
   "80:44": {
     "inputs": {
       "model": "RMBG-2.0",
@@ -1796,7 +1765,7 @@
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "normal",
-      "denoise": 0.6,
+      "denoise": 0.8,
       "model": [
         "80:66",
         0
@@ -1817,6 +1786,37 @@
     "class_type": "KSampler",
     "_meta": {
       "title": "KSampler"
+    }
+  },
+  "80:70": {
+    "inputs": {
+      "strength": 0.2,
+      "start_percent": 0,
+      "end_percent": 1,
+      "positive": [
+        "80:65",
+        0
+      ],
+      "negative": [
+        "80:64",
+        0
+      ],
+      "control_net": [
+        "80:69",
+        0
+      ],
+      "image": [
+        "80:68",
+        0
+      ],
+      "vae": [
+        "80:59",
+        0
+      ]
+    },
+    "class_type": "ControlNetApplyAdvanced",
+    "_meta": {
+      "title": "Apply ControlNet"
     }
   },
   "81:64": {
@@ -1916,37 +1916,6 @@
       "title": "Load ControlNet Model"
     }
   },
-  "81:70": {
-    "inputs": {
-      "strength": 0.6,
-      "start_percent": 0,
-      "end_percent": 1,
-      "positive": [
-        "81:65",
-        0
-      ],
-      "negative": [
-        "81:64",
-        0
-      ],
-      "control_net": [
-        "81:69",
-        0
-      ],
-      "image": [
-        "81:68",
-        0
-      ],
-      "vae": [
-        "81:59",
-        0
-      ]
-    },
-    "class_type": "ControlNetApplyAdvanced",
-    "_meta": {
-      "title": "Apply ControlNet"
-    }
-  },
   "81:44": {
     "inputs": {
       "model": "RMBG-2.0",
@@ -2008,7 +1977,7 @@
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "normal",
-      "denoise": 0.6,
+      "denoise": 0.8,
       "model": [
         "81:66",
         0
@@ -2029,6 +1998,37 @@
     "class_type": "KSampler",
     "_meta": {
       "title": "KSampler"
+    }
+  },
+  "81:70": {
+    "inputs": {
+      "strength": 0.2,
+      "start_percent": 0,
+      "end_percent": 1,
+      "positive": [
+        "81:65",
+        0
+      ],
+      "negative": [
+        "81:64",
+        0
+      ],
+      "control_net": [
+        "81:69",
+        0
+      ],
+      "image": [
+        "81:68",
+        0
+      ],
+      "vae": [
+        "81:59",
+        0
+      ]
+    },
+    "class_type": "ControlNetApplyAdvanced",
+    "_meta": {
+      "title": "Apply ControlNet"
     }
   }
 }

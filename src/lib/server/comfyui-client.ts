@@ -6,6 +6,60 @@ import rotateWorkflow from '$lib/workflows/rotate_regular.json';
 const COMFYUI_URL = env.COMFYUI_URL || 'https://cod-pam-citations-industries.trycloudflare.com';
 const COMFYUI_TOKEN = env.COMFYUI_TOKEN || '';
 
+// Progress stages for rotate workflow with estimated durations (seconds) and cumulative progress
+export const ROTATE_STAGES = [
+	{ name: 'Generating image', duration: 15, progressEnd: 15 },
+	{ name: 'Removing background', duration: 3, progressEnd: 18 },
+	{ name: 'Loading 3D model', duration: 5, progressEnd: 23 },
+	{ name: 'Creating 3D mesh', duration: 35, progressEnd: 58 },
+	{ name: 'Rendering 8 directions', duration: 10, progressEnd: 68 },
+	{ name: 'Refining N direction', duration: 5, progressEnd: 72 },
+	{ name: 'Refining NE direction', duration: 5, progressEnd: 76 },
+	{ name: 'Refining E direction', duration: 5, progressEnd: 80 },
+	{ name: 'Refining SE direction', duration: 5, progressEnd: 84 },
+	{ name: 'Refining S direction', duration: 5, progressEnd: 88 },
+	{ name: 'Refining SW direction', duration: 5, progressEnd: 92 },
+	{ name: 'Refining W direction', duration: 5, progressEnd: 96 },
+	{ name: 'Refining NW direction', duration: 5, progressEnd: 100 },
+] as const;
+
+export const TOTAL_ESTIMATED_DURATION = ROTATE_STAGES.reduce((sum, s) => sum + s.duration, 0);
+
+export interface ProgressInfo {
+	progress: number;
+	stage: string;
+	estimatedTimeRemaining: number;
+}
+
+export function estimateProgress(elapsedSeconds: number): ProgressInfo {
+	let cumulativeTime = 0;
+
+	for (const stage of ROTATE_STAGES) {
+		cumulativeTime += stage.duration;
+		if (elapsedSeconds < cumulativeTime) {
+			// We're in this stage
+			const stageStart = cumulativeTime - stage.duration;
+			const stageProgress = (elapsedSeconds - stageStart) / stage.duration;
+			const prevEnd = ROTATE_STAGES[ROTATE_STAGES.indexOf(stage) - 1]?.progressEnd ?? 0;
+			const progress = Math.min(99, Math.round(prevEnd + stageProgress * (stage.progressEnd - prevEnd)));
+			const remaining = Math.max(0, TOTAL_ESTIMATED_DURATION - elapsedSeconds);
+
+			return {
+				progress,
+				stage: stage.name,
+				estimatedTimeRemaining: remaining,
+			};
+		}
+	}
+
+	// Past estimated time, still processing
+	return {
+		progress: 99,
+		stage: 'Finalizing...',
+		estimatedTimeRemaining: 0,
+	};
+}
+
 export type WorkflowType = 'sprite';
 export type RotationWorkflowType = 'rotate_regular' | 'rotate_pixel';
 
