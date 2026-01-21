@@ -493,7 +493,7 @@
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "normal",
-      "denoise": 0.8,
+      "denoise": 0.4,
       "model": [
         "74:66",
         0
@@ -518,7 +518,7 @@
   },
   "74:70": {
     "inputs": {
-      "strength": 0.2,
+      "strength": 0.5,
       "start_percent": 0,
       "end_percent": 1,
       "positive": [
@@ -705,7 +705,7 @@
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "normal",
-      "denoise": 0.8,
+      "denoise": 0.4,
       "model": [
         "75:66",
         0
@@ -730,7 +730,7 @@
   },
   "75:70": {
     "inputs": {
-      "strength": 0.2,
+      "strength": 0.5,
       "start_percent": 0,
       "end_percent": 1,
       "positive": [
@@ -917,7 +917,7 @@
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "normal",
-      "denoise": 0.8,
+      "denoise": 0.4,
       "model": [
         "76:66",
         0
@@ -942,7 +942,7 @@
   },
   "76:70": {
     "inputs": {
-      "strength": 0.2,
+      "strength": 0.5,
       "start_percent": 0,
       "end_percent": 1,
       "positive": [
@@ -1129,7 +1129,7 @@
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "normal",
-      "denoise": 0.8,
+      "denoise": 0.4,
       "model": [
         "77:66",
         0
@@ -1154,7 +1154,7 @@
   },
   "77:70": {
     "inputs": {
-      "strength": 0.2,
+      "strength": 0.5,
       "start_percent": 0,
       "end_percent": 1,
       "positive": [
@@ -1290,7 +1290,7 @@
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "normal",
-      "denoise": 0.8,
+      "denoise": 0.4,
       "model": [
         "78:66",
         0
@@ -1366,7 +1366,7 @@
   },
   "78:70": {
     "inputs": {
-      "strength": 0.2,
+      "strength": 0.5,
       "start_percent": 0,
       "end_percent": 1,
       "positive": [
@@ -1553,7 +1553,7 @@
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "normal",
-      "denoise": 0.8,
+      "denoise": 0.4,
       "model": [
         "79:66",
         0
@@ -1578,7 +1578,7 @@
   },
   "79:70": {
     "inputs": {
-      "strength": 0.2,
+      "strength": 0.5,
       "start_percent": 0,
       "end_percent": 1,
       "positive": [
@@ -1765,7 +1765,7 @@
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "normal",
-      "denoise": 0.8,
+      "denoise": 0.4,
       "model": [
         "80:66",
         0
@@ -1790,7 +1790,7 @@
   },
   "80:70": {
     "inputs": {
-      "strength": 0.2,
+      "strength": 0.5,
       "start_percent": 0,
       "end_percent": 1,
       "positive": [
@@ -1977,7 +1977,7 @@
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "normal",
-      "denoise": 0.8,
+      "denoise": 0.4,
       "model": [
         "81:66",
         0
@@ -2002,7 +2002,7 @@
   },
   "81:70": {
     "inputs": {
-      "strength": 0.2,
+      "strength": 0.5,
       "start_percent": 0,
       "end_percent": 1,
       "positive": [
