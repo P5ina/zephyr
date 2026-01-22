@@ -122,8 +122,6 @@ useTask((delta) => {
 			normalMap={normalMap}
 			roughnessMap={roughnessMap}
 			metalnessMap={metallicMap}
-			displacementMap={displacementMap}
-			displacementScale={displacementMap ? 0.1 : 0}
 			roughness={roughnessMap ? 1 : 0.5}
 			metalness={metallicMap ? 1 : 0}
 		/>
