@@ -86,8 +86,9 @@ useTask((delta) => {
 });
 </script>
 
-<T.PerspectiveCamera makeDefault position={[0, 0, 3]} fov={45} />
-<OrbitControls enableDamping dampingFactor={0.05} />
+<T.PerspectiveCamera makeDefault position={[0, 0, 3]} fov={45}>
+	<OrbitControls enableDamping dampingFactor={0.05} />
+</T.PerspectiveCamera>
 
 <Environment preset="studio" />
 
