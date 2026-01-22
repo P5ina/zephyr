@@ -31,6 +31,7 @@ let {
 }: Props = $props();
 
 const loader = new TextureLoader();
+loader.crossOrigin = 'anonymous';
 
 let basecolorMap = $state<Texture | null>(null);
 let normalMap = $state<Texture | null>(null);
@@ -48,10 +49,14 @@ function loadTexture(url: string | null | undefined): Promise<Texture | null> {
 			(texture) => {
 				texture.wrapS = RepeatWrapping;
 				texture.wrapT = RepeatWrapping;
+				texture.needsUpdate = true;
 				resolve(texture);
 			},
 			undefined,
-			() => resolve(null)
+			(err) => {
+				console.error('Failed to load texture:', url, err);
+				resolve(null);
+			}
 		);
 	});
 }
