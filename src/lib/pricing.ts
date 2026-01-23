@@ -1,36 +1,33 @@
 // Shared pricing config (client-safe)
-// Minimum $25 for crypto payment compatibility
+// Pay-as-you-go model with token packs
+
 export const PRICING = {
-	tiers: {
-		free: {
-			name: 'Free',
-			monthlyTokens: 25,
-			price: 0,
-		},
-		pro: {
-			name: 'Pro',
-			monthlyTokens: 2500,
-			price: 25,
-		},
+	freeTokens: 50, // Tokens given on signup
+
+	tokenCosts: {
+		sprite: 2,
+		texture: 5,
+		rotation: 8,
 	},
+
 	creditPacks: {
-		credits_500: {
-			name: '500 Tokens',
+		starter: {
+			name: 'Starter',
 			tokens: 500,
-			price: 25,
+			price: 10, // $0.02 per token
 		},
-		credits_1500: {
-			name: '1,500 Tokens',
-			tokens: 1500,
-			price: 50,
+		creator: {
+			name: 'Creator',
+			tokens: 2000,
+			price: 25, // $0.0125 per token - 37% off
+			popular: true,
 		},
-		credits_5000: {
-			name: '5,000 Tokens',
-			tokens: 5000,
-			price: 100,
+		studio: {
+			name: 'Studio',
+			tokens: 6000,
+			price: 50, // $0.0083 per token - 58% off
 		},
 	},
 } as const;
 
-export type TierType = keyof typeof PRICING.tiers;
 export type CreditPackType = keyof typeof PRICING.creditPacks;

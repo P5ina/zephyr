@@ -1,0 +1,1 @@
+ALTER TABLE "rotation_job" ADD COLUMN "elevation" integer DEFAULT 20 NOT NULL;

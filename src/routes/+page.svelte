@@ -2,10 +2,9 @@
 import {
 	ArrowRight,
 	Check,
-	Clock,
 	Github,
-	Image as ImageIcon,
 	Layers,
+	RotateCw,
 	Sparkles,
 	Zap,
 } from 'lucide-svelte';
@@ -61,15 +60,15 @@ let { data }: { data: PageData } = $props();
 		<div class="text-center">
 			<div class="inline-flex items-center gap-2 px-3 py-1 mb-6 rounded-full bg-yellow-500/10 border border-yellow-500/20">
 				<Zap class="w-3.5 h-3.5 text-yellow-400" />
-				<span class="text-xs font-medium text-yellow-300">Powered by Z-Image Turbo</span>
+				<span class="text-xs font-medium text-yellow-300">Powered by FLUX.1 + ComfyUI</span>
 			</div>
 			<h1 class="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight">
-				Create stunning images<br />
+				Create game-ready assets<br />
 				<span class="bg-linear-to-r from-yellow-300 via-amber-400 to-orange-400 bg-clip-text text-transparent">with AI magic</span>
 			</h1>
 			<p class="text-lg md:text-xl text-zinc-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-				Generate beautiful images in seconds with custom LoRA support.
-				Upload your own styles and create unique artwork that's truly yours.
+				Generate sprites and PBR textures in seconds.
+				Perfect for indie developers, game designers, and creative studios.
 			</p>
 			<div class="flex flex-col sm:flex-row items-center justify-center gap-4">
 				{#if data.user}
@@ -128,77 +127,81 @@ let { data }: { data: PageData } = $props();
 			</div>
 
 			<div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+				<!-- Game Sprites -->
 				<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors group">
 					<div class="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center mb-4 group-hover:bg-yellow-500/20 transition-colors">
-						<Zap class="w-6 h-6 text-yellow-400" />
+						<Sparkles class="w-6 h-6 text-yellow-400" />
 					</div>
-					<h3 class="text-lg font-semibold text-white mb-2">Lightning Fast</h3>
-					<p class="text-sm text-zinc-400">Generate images in seconds with Z-Image Turbo's optimized inference.</p>
+					<h3 class="text-lg font-semibold text-white mb-2">Game Sprites</h3>
+					<p class="text-sm text-zinc-400">Characters, items, UI elements with automatic background removal.</p>
 				</div>
 
+				<!-- 8-Direction Rotation -->
 				<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors group">
 					<div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-4 group-hover:bg-amber-500/20 transition-colors">
-						<Layers class="w-6 h-6 text-amber-400" />
+						<RotateCw class="w-6 h-6 text-amber-400" />
 					</div>
-					<h3 class="text-lg font-semibold text-white mb-2">Custom LoRAs</h3>
-					<p class="text-sm text-zinc-400">Upload your own LoRA files and combine up to 3 styles per generation.</p>
+					<h3 class="text-lg font-semibold text-white mb-2">8-Direction Rotation</h3>
+					<p class="text-sm text-zinc-400">Generate sprites in all 8 directions using 3D reconstruction.</p>
 				</div>
 
+				<!-- PBR Textures -->
 				<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors group">
 					<div class="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center mb-4 group-hover:bg-orange-500/20 transition-colors">
-						<ImageIcon class="w-6 h-6 text-orange-400" />
+						<Layers class="w-6 h-6 text-orange-400" />
 					</div>
-					<h3 class="text-lg font-semibold text-white mb-2">Multiple Outputs</h3>
-					<p class="text-sm text-zinc-400">Generate up to 4 images at once with various aspect ratios.</p>
+					<h3 class="text-lg font-semibold text-white mb-2">PBR Textures</h3>
+					<p class="text-sm text-zinc-400">Complete texture sets with Normal, Roughness, and Height maps.</p>
 				</div>
 
+				<!-- Fast Generation -->
 				<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors group">
 					<div class="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center mb-4 group-hover:bg-red-500/20 transition-colors">
-						<Clock class="w-6 h-6 text-red-400" />
+						<Zap class="w-6 h-6 text-red-400" />
 					</div>
-					<h3 class="text-lg font-semibold text-white mb-2">Full History</h3>
-					<p class="text-sm text-zinc-400">Never lose your creations. Access your entire generation history anytime.</p>
+					<h3 class="text-lg font-semibold text-white mb-2">Lightning Fast</h3>
+					<p class="text-sm text-zinc-400">Generate assets in seconds with optimized GPU inference.</p>
 				</div>
 			</div>
 
 			<!-- Additional features list -->
 			<div class="mt-16 grid md:grid-cols-2 gap-8">
 				<div class="space-y-4">
-					<h3 class="text-xl font-semibold text-white mb-6">Generation Features</h3>
+					<h3 class="text-xl font-semibold text-white mb-6">Asset Generation</h3>
 					<div class="flex items-start gap-3">
 						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-						<span class="text-zinc-300">Text rendering in English and Chinese</span>
+						<span class="text-zinc-300">Automatic background removal (BiRefNet)</span>
 					</div>
 					<div class="flex items-start gap-3">
 						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-						<span class="text-zinc-300">Adjustable inference steps (1-8)</span>
+						<span class="text-zinc-300">PBR maps: Normal, Roughness, Height</span>
 					</div>
 					<div class="flex items-start gap-3">
 						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-						<span class="text-zinc-300">Reproducible results with seed control</span>
+						<span class="text-zinc-300">Multiple sizes up to 1024x1024</span>
 					</div>
 					<div class="flex items-start gap-3">
 						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-						<span class="text-zinc-300">Multiple aspect ratio presets</span>
+						<span class="text-zinc-300">Seed control for reproducible results</span>
 					</div>
 				</div>
 				<div class="space-y-4">
-					<h3 class="text-xl font-semibold text-white mb-6">LoRA Management</h3>
+					<h3 class="text-xl font-semibold text-white mb-6">Game-Ready Output</h3>
 					<div class="flex items-start gap-3">
 						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-						<span class="text-zinc-300">Upload .safetensors files directly</span>
+						<span class="text-zinc-300">PNG with transparency for sprites</span>
 					</div>
 					<div class="flex items-start gap-3">
 						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-						<span class="text-zinc-300">Personal LoRA library</span>
+						<span class="text-zinc-300">Tileable textures for seamless patterns</span>
 					</div>
 					<div class="flex items-start gap-3">
 						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-						<span class="text-zinc-300">Adjustable LoRA scale per generation</span>
+						<span class="text-zinc-300">Direct download or cloud storage</span>
 					</div>
 					<div class="flex items-start gap-3">
 						<Check class="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
-						<span class="text-zinc-300">Stack multiple LoRAs together</span>
+						<span class="text-zinc-300">Full generation history</span>
 					</div>
 				</div>
 			</div>
@@ -209,128 +212,111 @@ let { data }: { data: PageData } = $props();
 	<section id="pricing" class="relative z-10 border-t border-zinc-800/50">
 		<div class="max-w-6xl mx-auto px-4 py-24">
 			<div class="text-center mb-16">
-				<h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Simple, transparent pricing</h2>
-				<p class="text-zinc-400 max-w-xl mx-auto">Start for free, upgrade when you need more. No hidden fees.</p>
+				<h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Pay only for what you use</h2>
+				<p class="text-zinc-400 max-w-xl mx-auto">No subscriptions. No monthly fees. Start with 50 free tokens and buy more when you need them.</p>
 			</div>
 
-			<div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-				<!-- Free Plan -->
-				<div class="p-8 rounded-2xl bg-zinc-900/50 border border-zinc-800 flex flex-col">
-					<div class="mb-6">
-						<h3 class="text-lg font-semibold text-white mb-2">Free</h3>
-						<p class="text-sm text-zinc-400">Perfect for trying out Zephyr</p>
+			<!-- Free Start Banner -->
+			<div class="max-w-2xl mx-auto mb-12 p-6 rounded-2xl bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border border-yellow-500/30 text-center">
+				<div class="inline-flex items-center gap-2 px-3 py-1 mb-3 rounded-full bg-yellow-500/20 border border-yellow-500/30">
+					<Sparkles class="w-3.5 h-3.5 text-yellow-400" />
+					<span class="text-xs font-medium text-yellow-300">Free to start</span>
+				</div>
+				<h3 class="text-2xl font-bold text-white mb-2">50 free tokens on signup</h3>
+				<p class="text-zinc-400 text-sm">That's ~25 sprites, ~10 textures, or ~6 rotations to try everything out.</p>
+			</div>
+
+			<!-- Token Packs -->
+			<div class="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+				<!-- Starter Pack -->
+				<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors">
+					<div class="mb-4">
+						<h3 class="text-lg font-semibold text-white">Starter</h3>
+						<p class="text-xs text-zinc-500 mt-1">~250 sprites</p>
 					</div>
-					<div class="mb-6">
-						<span class="text-4xl font-bold text-white">$0</span>
-						<span class="text-zinc-400">/month</span>
+					<div class="mb-4">
+						<span class="text-3xl font-bold text-white">$10</span>
+						<span class="text-zinc-500 text-sm ml-1">/ 500 tokens</span>
 					</div>
-					<ul class="space-y-3 mb-8 flex-grow">
-						<li class="flex items-center gap-3 text-sm text-zinc-300">
-							<Check class="w-4 h-4 text-green-400 shrink-0" />
-							25 tokens/month
-						</li>
-						<li class="flex items-center gap-3 text-sm text-zinc-300">
-							<Check class="w-4 h-4 text-green-400 shrink-0" />
-							Basic image generation
-						</li>
-						<li class="flex items-center gap-3 text-sm text-zinc-300">
-							<Check class="w-4 h-4 text-green-400 shrink-0" />
-							Up to 3 LoRA uploads
-						</li>
-						<li class="flex items-center gap-3 text-sm text-zinc-300">
-							<Check class="w-4 h-4 text-green-400 shrink-0" />
-							Generation history
-						</li>
-					</ul>
+					<p class="text-xs text-zinc-400 mb-4">$0.02 per token</p>
 					<a
-						href={data.user ? '/app' : '/login'}
-						class="block text-center px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-xl transition-colors"
+						href={data.user ? '/app/billing' : '/login'}
+						class="block text-center px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium rounded-xl transition-colors"
 					>
-						Get started
+						Buy tokens
 					</a>
 				</div>
 
-				<!-- Pro Plan -->
-				<div class="p-8 rounded-2xl bg-gradient-to-b from-yellow-500/10 to-amber-500/10 border border-yellow-500/30 flex flex-col relative">
-					<div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-yellow-500 to-amber-500 rounded-full text-xs font-medium text-zinc-900">
-						Most Popular
+				<!-- Popular Pack -->
+				<div class="p-6 rounded-2xl bg-gradient-to-b from-yellow-500/10 to-amber-500/10 border border-yellow-500/30 relative">
+					<div class="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-gradient-to-r from-yellow-500 to-amber-500 rounded-full text-xs font-medium text-zinc-900">
+						Best Value
 					</div>
-					<div class="mb-6">
-						<h3 class="text-lg font-semibold text-white mb-2">Pro</h3>
-						<p class="text-sm text-zinc-400">For creators who need more</p>
+					<div class="mb-4">
+						<h3 class="text-lg font-semibold text-white">Creator</h3>
+						<p class="text-xs text-zinc-500 mt-1">~1,000 sprites</p>
 					</div>
-					<div class="mb-6">
-						<span class="text-4xl font-bold text-white">$25</span>
-						<span class="text-zinc-400">/month</span>
+					<div class="mb-4">
+						<span class="text-3xl font-bold text-white">$25</span>
+						<span class="text-zinc-500 text-sm ml-1">/ 2,000 tokens</span>
 					</div>
-					<ul class="space-y-3 mb-8 flex-grow">
-						<li class="flex items-center gap-3 text-sm text-zinc-300">
-							<Check class="w-4 h-4 text-yellow-400 shrink-0" />
-							2,500 tokens/month
-						</li>
-						<li class="flex items-center gap-3 text-sm text-zinc-300">
-							<Check class="w-4 h-4 text-yellow-400 shrink-0" />
-							Priority generation queue
-						</li>
-						<li class="flex items-center gap-3 text-sm text-zinc-300">
-							<Check class="w-4 h-4 text-yellow-400 shrink-0" />
-							Unlimited LoRA uploads
-						</li>
-						<li class="flex items-center gap-3 text-sm text-zinc-300">
-							<Check class="w-4 h-4 text-yellow-400 shrink-0" />
-							NSFW content allowed
-						</li>
-					</ul>
+					<p class="text-xs text-yellow-400 mb-4">$0.0125 per token — 37% off</p>
 					<a
-						href={data.user ? '/app' : '/login'}
-						class="block text-center px-6 py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 font-medium rounded-xl transition-all shadow-lg shadow-yellow-500/25"
+						href={data.user ? '/app/billing' : '/login'}
+						class="block text-center px-4 py-2.5 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 text-sm font-medium rounded-xl transition-all shadow-lg shadow-yellow-500/25"
 					>
-						{data.user ? 'Upgrade in App' : 'Start Pro'}
+						Buy tokens
 					</a>
 				</div>
 
-				<!-- Token Packs -->
-				<div class="p-8 rounded-2xl bg-zinc-900/50 border border-zinc-800 flex flex-col">
-					<div class="mb-6">
-						<h3 class="text-lg font-semibold text-white mb-2">Token Packs</h3>
-						<p class="text-sm text-zinc-400">One-time purchase, never expire</p>
+				<!-- Studio Pack -->
+				<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors">
+					<div class="mb-4">
+						<h3 class="text-lg font-semibold text-white">Studio</h3>
+						<p class="text-xs text-zinc-500 mt-1">~3,000 sprites</p>
 					</div>
-					<div class="mb-6">
-						<span class="text-4xl font-bold text-white">$25+</span>
+					<div class="mb-4">
+						<span class="text-3xl font-bold text-white">$50</span>
+						<span class="text-zinc-500 text-sm ml-1">/ 6,000 tokens</span>
 					</div>
-					<ul class="space-y-3 mb-8 flex-grow">
-						<li class="flex items-center gap-3 text-sm text-zinc-300">
-							<Check class="w-4 h-4 text-green-400 shrink-0" />
-							500 tokens - $25
-						</li>
-						<li class="flex items-center gap-3 text-sm text-zinc-300">
-							<Check class="w-4 h-4 text-green-400 shrink-0" />
-							1,500 tokens - $50
-						</li>
-						<li class="flex items-center gap-3 text-sm text-zinc-300">
-							<Check class="w-4 h-4 text-green-400 shrink-0" />
-							5,000 tokens - $100
-						</li>
-						<li class="flex items-center gap-3 text-sm text-zinc-300">
-							<Check class="w-4 h-4 text-green-400 shrink-0" />
-							Pay with crypto
-						</li>
-					</ul>
+					<p class="text-xs text-green-400 mb-4">$0.0083 per token — 58% off</p>
 					<a
-						href={data.user ? '/app' : '/login'}
-						class="block text-center px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-xl transition-colors"
+						href={data.user ? '/app/billing' : '/login'}
+						class="block text-center px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium rounded-xl transition-colors"
 					>
-						{data.user ? 'Buy in App' : 'Get started'}
+						Buy tokens
 					</a>
 				</div>
 			</div>
 
-			<!-- Token explanation -->
-			<div class="mt-16 max-w-2xl mx-auto text-center">
-				<h3 class="text-lg font-semibold text-white mb-4">How tokens work</h3>
-				<p class="text-zinc-400 text-sm leading-relaxed">
-					Each image generation costs 1 token. Using LoRAs doesn't add extra cost.
-					Bonus tokens from packs are used first before your monthly allocation.
+			<!-- Token costs breakdown -->
+			<div class="mt-16 max-w-3xl mx-auto">
+				<h3 class="text-lg font-semibold text-white mb-6 text-center">What can you create?</h3>
+				<div class="grid grid-cols-3 gap-4 text-center">
+					<div class="p-4 rounded-xl bg-zinc-900/50 border border-zinc-800">
+						<div class="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center mx-auto mb-3">
+							<Sparkles class="w-5 h-5 text-yellow-400" />
+						</div>
+						<p class="text-2xl font-bold text-white mb-1">2</p>
+						<p class="text-xs text-zinc-400">tokens per sprite</p>
+					</div>
+					<div class="p-4 rounded-xl bg-zinc-900/50 border border-zinc-800">
+						<div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center mx-auto mb-3">
+							<Layers class="w-5 h-5 text-orange-400" />
+						</div>
+						<p class="text-2xl font-bold text-white mb-1">5</p>
+						<p class="text-xs text-zinc-400">tokens per texture set</p>
+					</div>
+					<div class="p-4 rounded-xl bg-zinc-900/50 border border-zinc-800">
+						<div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center mx-auto mb-3">
+							<RotateCw class="w-5 h-5 text-amber-400" />
+						</div>
+						<p class="text-2xl font-bold text-white mb-1">8</p>
+						<p class="text-xs text-zinc-400">tokens per 8-dir rotation</p>
+					</div>
+				</div>
+				<p class="text-xs text-zinc-500 text-center mt-6">
+					Tokens never expire. Failed generations are automatically refunded.
 				</p>
 			</div>
 		</div>

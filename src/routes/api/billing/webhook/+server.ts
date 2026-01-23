@@ -1,9 +1,8 @@
 import { json } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { verifyIPNSignature, parseOrderId, PRICING, type IPNPayload } from '$lib/server/nowpayments';
+import { verifyIPNSignature, type IPNPayload } from '$lib/server/nowpayments';
 import type { RequestHandler } from './$types';
 
 // NowPayments payment statuses:
@@ -107,58 +106,11 @@ async function handlePaymentCompleted(transaction: typeof table.transaction.$inf
 		.set({ status: 'completed' })
 		.where(eq(table.transaction.id, transaction.id));
 
-	const orderData = parseOrderId(transaction.orderId || '');
-	if (!orderData) {
-		console.error(`Invalid order_id format: ${transaction.orderId}`);
-		return;
-	}
-
-	if (transaction.type === 'credit_pack') {
-		// Add bonus tokens for credit pack purchase
-		await db
-			.update(table.user)
-			.set({
-				bonusTokens: sql`${table.user.bonusTokens} + ${transaction.tokensGranted}`,
-			})
-			.where(eq(table.user.id, transaction.userId));
-	} else if (transaction.type === 'subscription') {
-		// Handle subscription payment
-		const [existingSub] = await db
-			.select()
-			.from(table.subscription)
-			.where(eq(table.subscription.userId, transaction.userId));
-
-		const nextPeriodEnd = new Date();
-		nextPeriodEnd.setMonth(nextPeriodEnd.getMonth() + 1);
-
-		if (existingSub) {
-			// Update existing subscription
-			await db
-				.update(table.subscription)
-				.set({
-					tier: 'pro',
-					status: 'active',
-					currentPeriodEnd: nextPeriodEnd,
-					monthlyTokenAllocation: PRICING.tiers.pro.monthlyTokens,
-					updatedAt: new Date(),
-				})
-				.where(eq(table.subscription.id, existingSub.id));
-		} else {
-			// Create new subscription
-			await db.insert(table.subscription).values({
-				id: nanoid(),
-				userId: transaction.userId,
-				tier: 'pro',
-				status: 'active',
-				currentPeriodEnd: nextPeriodEnd,
-				monthlyTokenAllocation: PRICING.tiers.pro.monthlyTokens,
-			});
-		}
-
-		// Set tokens to Pro allocation
-		await db
-			.update(table.user)
-			.set({ tokens: PRICING.tiers.pro.monthlyTokens })
-			.where(eq(table.user.id, transaction.userId));
-	}
+	// Add tokens to user's balance (all purchases are now token packs)
+	await db
+		.update(table.user)
+		.set({
+			bonusTokens: sql`${table.user.bonusTokens} + ${transaction.tokensGranted}`,
+		})
+		.where(eq(table.user.id, transaction.userId));
 }

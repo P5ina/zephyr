@@ -1,46 +1,23 @@
 # Zephyr
 
-AI image generation platform using Z-Image Turbo with custom LoRA support.
+AI-powered game asset generation platform for sprites, textures, and 8-directional rotations.
 
 ## Stack
 
-- **Frontend/Backend**: SvelteKit 2 (TypeScript)
+- **Frontend/Backend**: SvelteKit 2, Svelte 5 (runes), TypeScript
 - **Database**: Vercel Postgres (Neon) + Drizzle ORM
-- **Image Generation**: fal.ai Z-Image Turbo
-- **File Storage**: fal.ai storage for LoRA files
+- **Image Generation**: ComfyUI workflows (Flux Schnell, SV3D, ControlNet)
+- **3D Preview**: Three.js + Threlte
+- **Payments**: NowPayments (crypto)
+- **File Storage**: Vercel Blob
 - **Deployment**: Vercel
 
 ## Core Features
 
-1. **Text-to-Image Generation** — Generate images using Z-Image Turbo via fal.ai
-2. **Custom LoRA Support** — Users can upload and apply their own LoRA files (.safetensors)
-3. **LoRA Library** — Users manage a personal library of uploaded LoRAs
-4. **Generation History** — Track past generations with prompts and settings
-
-## Key APIs
-
-### fal.ai Endpoints
-- `fal-ai/z-image/turbo` — Base text-to-image ($0.005/MP)
-- `fal-ai/z-image/turbo/lora` — Text-to-image with LoRA support ($0.0085/MP)
-- `fal.storage.upload(file)` — Upload files to fal.ai storage, returns URL
-
-### fal.ai LoRA Usage
-```typescript
-import { fal } from "@fal-ai/client";
-
-const result = await fal.subscribe("fal-ai/z-image/turbo/lora", {
-  input: {
-    prompt: "...",
-    loras: [
-      { path: "https://...", scale: 0.8 }  // max 3 LoRAs
-    ],
-    image_size: { width: 1024, height: 768 },
-    num_inference_steps: 8,  // 1-8, default 8
-    seed: 12345,  // optional, for reproducibility
-    num_images: 1  // 1-4
-  }
-});
-```
+1. **Sprite Generation** — Generate game sprites with transparent backgrounds (2 tokens)
+2. **8-Directional Rotation** — Generate sprites in 8 directions from an input image using SV3D (8 tokens)
+3. **PBR Texture Generation** — Generate complete texture sets with normal, roughness, metallic, height maps (5 tokens)
+4. **3D Material Preview** — Real-time Three.js preview for generated textures
 
 ## Project Structure
 
@@ -48,37 +25,117 @@ const result = await fal.subscribe("fal-ai/z-image/turbo/lora", {
 /src
   /lib
     /server
-      db.ts          — Drizzle client
-      schema.ts      — Database schema
-      fal.ts         — fal.ai client setup
-    /components      — Svelte components
+      /db
+        index.ts              — Drizzle client
+        schema.ts             — Database schema
+      auth.ts                 — Session management
+      oauth.ts                — GitHub OAuth
+      nowpayments.ts          — Crypto payments
+    /components
+      /three
+        MaterialPreview.svelte — 3D texture preview
+    pricing.ts                — Token costs and credit packs
   /routes
-    +page.svelte     — Main generation UI
-    +layout.svelte   — App layout
+    +page.svelte              — Landing page
+    /app
+      +page.svelte            — Sprite generation UI
+      /rotate
+        +page.svelte          — 8-directional rotation UI (image upload)
+      /textures
+        +page.svelte          — PBR texture generation UI
+      /billing
+        +page.svelte          — Token purchase
     /api
-      /generate/+server.ts   — Image generation endpoint
-      /loras/+server.ts      — LoRA CRUD operations
-      /upload/+server.ts     — LoRA file upload
+      /assets
+        generate/+server.ts   — POST: Create sprite
+        [id]/status/+server.ts — GET: Check generation status
+        [id]/cancel/+server.ts — POST: Cancel & refund
+      /rotate
+        generate/+server.ts   — POST: Start rotation job (accepts image upload or URL)
+        [id]/status/+server.ts — GET: Check rotation progress
+      /textures
+        generate/+server.ts   — POST: Generate PBR textures
+      /billing
+        buy-credits/+server.ts — Credit pack purchase
+        webhook/+server.ts    — Payment webhook
+    /login
+      /github                 — GitHub OAuth flow
+      /preview                — Demo mode for preview deployments
 ```
 
-## Database Schema (Drizzle)
+## Worker Repository
+
+Workflows and job processing are in a separate worker repo (`zephyr-worker`):
+- `workflows/sprite.json` — Sprite generation using Flux Schnell + RMBG
+- `workflows/rotate_regular.json` — SV3D rotation with ControlNet Tile + IPAdapter refinement
+
+**Rotation Pipeline (SV3D-based):**
+1. Upload input image
+2. Remove background (RMBG-2.0) with white fill
+3. Generate 21 frames with SV3D_Conditioning (configurable elevation angle)
+4. Extract 8 evenly-spaced frames for cardinal/ordinal directions
+5. 4x upscale with UltraSharp
+6. Refine with ControlNet Tile + IPAdapter for consistency
+7. Final background removal with alpha transparency
+
+## Database Schema
 
 ```typescript
-// Users (if adding auth later)
-users: id, email, createdAt
+// Users
+user: id, email, username, avatarUrl, githubId,
+      tokens (default: 50), bonusTokens (default: 0), createdAt
 
-// LoRAs
-loras: id visibleId, name, falUrl, userId, createdAt
+// Sessions
+session: id, userId, expiresAt
 
-// Generations
-generations: id visibleId, prompt, imageUrl, loraIds[], seed, userId, createdAt
+// Transactions
+transaction: id, userId, type ('credit_pack'),
+             amount, tokensGranted, status, payCurrency, payAmount
+
+// Asset Generations (sprites)
+assetGeneration: id, visibleId, userId, assetType ('sprite' | 'texture'),
+                 prompt, width, height, status, progress, currentStage,
+                 resultUrls (JSON), seed, tokenCost, createdAt
+
+// Texture Generations (PBR)
+textureGeneration: id, userId, prompt, status, progress, currentStage,
+                   basecolorUrl, normalUrl, roughnessUrl, metallicUrl, heightUrl,
+                   seed, tokenCost, createdAt
+
+// Rotation Jobs (8-directional)
+rotationJob: id, userId, status, progress, currentStage,
+             inputImageUrl, elevation (default: 20),
+             rotationN, rotationNE, rotationE, rotationSE, rotationS, rotationSW,
+             rotationW, rotationNW, tokenCost, createdAt
 ```
+
+## Token System (Pay-as-you-go)
+
+**Token Costs:**
+- Sprite: 2 tokens
+- Texture (PBR): 5 tokens
+- Rotation (8-dir): 8 tokens
+
+**Free Start:**
+- 50 tokens on signup (no credit card required)
+
+**Token Packs:**
+- Starter: 500 tokens / $10 ($0.02/token)
+- Creator: 2,000 tokens / $25 ($0.0125/token, 37% off)
+- Studio: 6,000 tokens / $50 ($0.0083/token, 58% off)
+
+Tokens never expire. Failed generations are automatically refunded.
 
 ## Environment Variables
 
 ```env
-FAL_KEY=                    # fal.ai API key
 POSTGRES_URL=               # Vercel Postgres connection string
+BLOB_READ_WRITE_TOKEN=     # Vercel Blob storage token
+GITHUB_CLIENT_ID=          # GitHub OAuth
+GITHUB_CLIENT_SECRET=
+NOWPAYMENTS_API_KEY=       # Crypto payments
+NOWPAYMENTS_IPN_SECRET=
+PREVIEW_LOGIN_SECRET=      # Secret for preview deployment login
 ```
 
 ## Development Commands
@@ -90,10 +147,12 @@ pnpm db:migrate            # Run migrations
 pnpm db:studio             # Open Drizzle Studio
 ```
 
-## Notes
+## Key Implementation Notes
 
-- LoRA files are .safetensors, typically 10-200MB
-- fal.ai storage URLs are temporary — consider if long-term storage needed
-- Z-Image Turbo supports English and Chinese text rendering in images
-- Max 3 LoRAs can be combined per generation
-- Image sizes: use standard aspects (1024x1024, 1024x768, 768x1024, etc.)
+- Tokens are deducted before generation starts, refunded on cancellation
+- All token purchases go to `bonusTokens` (never expire)
+- Rotation accepts image upload (drag/drop, file picker) or existing sprite URL
+- Elevation parameter controls camera angle for rotation (-90° to 90°, default 20°)
+- 3D preview uses Threlte (Svelte Three.js wrapper)
+- Status polling every 2 seconds for generation progress
+- Worker runs separately and polls for pending jobs
