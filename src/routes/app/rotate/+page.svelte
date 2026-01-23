@@ -8,12 +8,13 @@ import {
 	ArrowUp,
 	ArrowUpLeft,
 	ArrowUpRight,
-	Calendar,
-	Copy,
+	Check,
+	ChevronLeft,
+	ChevronRight,
 	Download,
-	History,
 	ImagePlus,
 	Loader2,
+	Plus,
 	RotateCw,
 	Sparkles,
 	Upload,
@@ -24,14 +25,16 @@ import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
 
-// svelte-ignore state_referenced_locally
 const initialJobs = data.rotationJobs;
 const sprites = data.sprites;
 
 let tokens = $state(data.user.tokens);
 let bonusTokens = $state(data.user.bonusTokens);
 
-// Input state
+// View mode: 'new' for creating new generation, or job ID for viewing existing
+let viewMode = $state<'new' | string>(initialJobs.length > 0 ? initialJobs[0].id : 'new');
+
+// Input state for new generation
 let selectedImageUrl = $state<string | null>(null);
 let uploadedFile = $state<File | null>(null);
 let uploadPreviewUrl = $state<string | null>(null);
@@ -39,34 +42,10 @@ let showSpriteSelector = $state(false);
 
 // Generation state
 let generating = $state(false);
-let status = $state<string | null>(null);
-let progress = $state(0);
-let estimatedTimeRemaining = $state<number | null>(null);
-
-// Results - 8 directions
-let rotations = $state<{
-	n: string | null;
-	ne: string | null;
-	e: string | null;
-	se: string | null;
-	s: string | null;
-	sw: string | null;
-	w: string | null;
-	nw: string | null;
-}>({
-	n: null,
-	ne: null,
-	e: null,
-	se: null,
-	s: null,
-	sw: null,
-	w: null,
-	nw: null,
-});
+let currentGeneratingId = $state<string | null>(null);
 
 // History
 let rotationJobs = $state<RotationJob[]>(initialJobs);
-let selectedJob = $state<RotationJob | null>(null);
 
 // Track polling
 const pollingSet = new Set<string>();
@@ -84,6 +63,27 @@ const directions = [
 	{ key: 's', label: 'S', icon: ArrowDown, angle: 180 },
 	{ key: 'se', label: 'SE', icon: ArrowDownRight, angle: 135 },
 ] as const;
+
+// Derived: currently selected job (if viewing existing)
+const selectedJob = $derived(viewMode !== 'new' ? rotationJobs.find(j => j.id === viewMode) : null);
+
+// Derived: rotations to display
+const displayRotations = $derived(selectedJob ? {
+	n: selectedJob.rotationN,
+	ne: selectedJob.rotationNE,
+	e: selectedJob.rotationE,
+	se: selectedJob.rotationSE,
+	s: selectedJob.rotationS,
+	sw: selectedJob.rotationSW,
+	w: selectedJob.rotationW,
+	nw: selectedJob.rotationNW,
+} : {
+	n: null, ne: null, e: null, se: null, s: null, sw: null, w: null, nw: null,
+});
+
+const hasAnyRotation = $derived(Object.values(displayRotations).some((v) => v !== null));
+const hasImageSelected = $derived(selectedImageUrl !== null || uploadedFile !== null);
+const previewUrl = $derived(uploadPreviewUrl || selectedImageUrl);
 
 // Start polling for any pending jobs on page load
 $effect(() => {
@@ -138,21 +138,14 @@ function clearSelection() {
 	uploadedFile = null;
 }
 
-function resetRotations() {
-	rotations = {
-		n: null,
-		ne: null,
-		e: null,
-		se: null,
-		s: null,
-		sw: null,
-		w: null,
-		nw: null,
-	};
+function startNewGeneration() {
+	viewMode = 'new';
+	clearSelection();
 }
 
-const hasImageSelected = $derived(selectedImageUrl !== null || uploadedFile !== null);
-const previewUrl = $derived(uploadPreviewUrl || selectedImageUrl);
+function selectJob(jobId: string) {
+	viewMode = jobId;
+}
 
 async function generate() {
 	if (!hasImageSelected || generating) return;
@@ -162,10 +155,6 @@ async function generate() {
 	}
 
 	generating = true;
-	status = 'Starting generation...';
-	progress = 0;
-	estimatedTimeRemaining = null;
-	resetRotations();
 
 	try {
 		const formData = new FormData();
@@ -184,6 +173,7 @@ async function generate() {
 		if (!res.ok) {
 			const error = await res.json();
 			alert(error.message || 'Failed to generate');
+			generating = false;
 			return;
 		}
 
@@ -192,78 +182,18 @@ async function generate() {
 		bonusTokens = result.bonusTokensRemaining ?? bonusTokens;
 
 		if (result.job) {
-			// Add new job to history
 			rotationJobs = [result.job, ...rotationJobs];
+			currentGeneratingId = result.job.id;
+			viewMode = result.job.id;
 			pollingSet.add(result.job.id);
-			await pollStatus(result.job.id);
-		} else if (result.id) {
-			await pollStatus(result.id);
-		} else if (result.rotations) {
-			rotations = result.rotations;
+			clearSelection();
+			pollJobStatus(result.job.id);
 		}
 	} catch (e) {
 		console.error('Generation error:', e);
 		alert('Failed to generate rotations');
-	} finally {
 		generating = false;
-		status = null;
-		progress = 0;
-		estimatedTimeRemaining = null;
 	}
-}
-
-async function pollStatus(id: string) {
-	const poll = async (): Promise<void> => {
-		try {
-			const res = await fetch(`/api/rotate/${id}/status`);
-			if (!res.ok) return;
-
-			const result = await res.json();
-			status = result.statusMessage || result.status;
-			progress = result.progress || 0;
-			estimatedTimeRemaining = result.estimatedTimeRemaining ?? null;
-
-			// Update job in history
-			rotationJobs = rotationJobs.map((j) =>
-				j.id === id
-					? {
-							...j,
-							status: result.status,
-							progress: result.progress,
-							currentStage: result.statusMessage,
-							rotationN: result.rotations?.n,
-							rotationNE: result.rotations?.ne,
-							rotationE: result.rotations?.e,
-							rotationSE: result.rotations?.se,
-							rotationS: result.rotations?.s,
-							rotationSW: result.rotations?.sw,
-							rotationW: result.rotations?.w,
-							rotationNW: result.rotations?.nw,
-						}
-					: j,
-			);
-
-			if (result.status === 'completed') {
-				rotations = result.rotations;
-				estimatedTimeRemaining = null;
-				pollingSet.delete(id);
-				return;
-			}
-
-			if (result.status === 'failed') {
-				alert(result.error || 'Generation failed');
-				estimatedTimeRemaining = null;
-				pollingSet.delete(id);
-				return;
-			}
-
-			await new Promise((r) => setTimeout(r, 2000));
-			return poll();
-		} catch {
-			// Ignore errors, continue polling
-		}
-	};
-	await poll();
 }
 
 async function pollJobStatus(id: string) {
@@ -274,7 +204,6 @@ async function pollJobStatus(id: string) {
 
 			const result = await res.json();
 
-			// Update job in history
 			rotationJobs = rotationJobs.map((j) =>
 				j.id === id
 					? {
@@ -296,6 +225,13 @@ async function pollJobStatus(id: string) {
 
 			if (result.status === 'completed' || result.status === 'failed') {
 				pollingSet.delete(id);
+				if (currentGeneratingId === id) {
+					generating = false;
+					currentGeneratingId = null;
+				}
+				if (result.status === 'failed') {
+					alert(result.error || 'Generation failed');
+				}
 				return;
 			}
 
@@ -309,7 +245,7 @@ async function pollJobStatus(id: string) {
 }
 
 function downloadRotation(direction: string) {
-	const url = rotations[direction as keyof typeof rotations];
+	const url = displayRotations[direction as keyof typeof displayRotations];
 	if (!url) return;
 
 	const a = document.createElement('a');
@@ -319,69 +255,27 @@ function downloadRotation(direction: string) {
 }
 
 function downloadAll() {
-	for (const dir of Object.keys(rotations) as (keyof typeof rotations)[]) {
-		if (rotations[dir]) {
+	for (const dir of Object.keys(displayRotations) as (keyof typeof displayRotations)[]) {
+		if (displayRotations[dir]) {
 			setTimeout(() => downloadRotation(dir), 100);
 		}
 	}
 }
 
-function downloadSpriteSheet() {
-	// TODO: Generate sprite sheet from all rotations
-	alert('Sprite sheet export coming soon!');
-}
-
-function openJobModal(job: RotationJob) {
-	selectedJob = job;
-}
-
-function closeModal() {
-	selectedJob = null;
-}
-
-function loadJobToPreview(job: RotationJob) {
-	rotations = {
-		n: job.rotationN,
-		ne: job.rotationNE,
-		e: job.rotationE,
-		se: job.rotationSE,
-		s: job.rotationS,
-		sw: job.rotationSW,
-		w: job.rotationW,
-		nw: job.rotationNW,
-	};
-	closeModal();
-}
-
-function copyPrompt(text: string) {
-	navigator.clipboard.writeText(text);
-}
-
 function formatDate(date: Date | string | null) {
-	if (!date) return 'N/A';
+	if (!date) return '';
 	const d = typeof date === 'string' ? new Date(date) : date;
-	return d.toLocaleDateString('en-US', {
-		month: 'short',
-		day: 'numeric',
-		year: 'numeric',
-		hour: '2-digit',
-		minute: '2-digit',
-	});
-}
+	const now = new Date();
+	const diff = now.getTime() - d.getTime();
+	const mins = Math.floor(diff / 60000);
+	const hours = Math.floor(diff / 3600000);
+	const days = Math.floor(diff / 86400000);
 
-function getStatusLabel(status: string) {
-	switch (status) {
-		case 'pending':
-			return 'Pending';
-		case 'processing':
-			return 'Processing';
-		case 'completed':
-			return 'Completed';
-		case 'failed':
-			return 'Failed';
-		default:
-			return status;
-	}
+	if (mins < 1) return 'Just now';
+	if (mins < 60) return `${mins}m ago`;
+	if (hours < 24) return `${hours}h ago`;
+	if (days < 7) return `${days}d ago`;
+	return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function getJobPreviewImage(job: RotationJob): string | null {
@@ -393,19 +287,100 @@ function getSpriteUrl(sprite: typeof sprites[number]): string | null {
 	return urls?.processed || urls?.raw || null;
 }
 
-const hasAnyRotation = $derived(Object.values(rotations).some((v) => v !== null));
+// History navigation
+let historyScrollContainer = $state<HTMLDivElement | null>(null);
+
+function scrollHistory(direction: 'left' | 'right') {
+	if (!historyScrollContainer) return;
+	const scrollAmount = 200;
+	historyScrollContainer.scrollBy({
+		left: direction === 'left' ? -scrollAmount : scrollAmount,
+		behavior: 'smooth',
+	});
+}
 </script>
 
-<div class="space-y-8">
-	<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-		<!-- Left: Image Upload & Settings -->
-		<div>
-			<!-- Image Input -->
-			<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 mb-4">
-				<h2 class="text-lg font-semibold text-white mb-4">Input Image</h2>
+<div class="flex flex-col h-full gap-4">
+	<!-- History Bar -->
+	<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-3">
+		<div class="flex items-center gap-2">
+			<!-- New Generation Button -->
+			<button
+				onclick={startNewGeneration}
+				class="flex-shrink-0 w-16 h-16 rounded-lg border-2 border-dashed {viewMode === 'new' ? 'border-yellow-500 bg-yellow-500/10' : 'border-zinc-700 hover:border-zinc-600'} flex items-center justify-center transition-colors"
+			>
+				<Plus class="w-6 h-6 {viewMode === 'new' ? 'text-yellow-400' : 'text-zinc-500'}" />
+			</button>
+
+			<!-- Scroll Left -->
+			{#if rotationJobs.length > 0}
+				<button
+					onclick={() => scrollHistory('left')}
+					class="flex-shrink-0 p-1.5 hover:bg-zinc-800 rounded-lg transition-colors"
+				>
+					<ChevronLeft class="w-4 h-4 text-zinc-400" />
+				</button>
+			{/if}
+
+			<!-- History Items -->
+			<div
+				bind:this={historyScrollContainer}
+				class="flex-1 flex gap-2 overflow-x-auto scrollbar-hide"
+				style="scrollbar-width: none; -ms-overflow-style: none;"
+			>
+				{#each rotationJobs as job (job.id)}
+					<button
+						onclick={() => selectJob(job.id)}
+						class="flex-shrink-0 relative w-16 h-16 rounded-lg overflow-hidden border-2 {viewMode === job.id ? 'border-yellow-500' : 'border-zinc-700 hover:border-zinc-600'} transition-colors"
+					>
+						{#if job.status === 'completed' && getJobPreviewImage(job)}
+							<img
+								src={getJobPreviewImage(job)}
+								alt="Rotation"
+								class="w-full h-full object-contain bg-zinc-800"
+							/>
+						{:else if job.status === 'failed'}
+							<div class="w-full h-full bg-zinc-800 flex items-center justify-center">
+								<X class="w-5 h-5 text-red-400" />
+							</div>
+						{:else}
+							<div class="w-full h-full bg-zinc-800 flex flex-col items-center justify-center">
+								<Loader2 class="w-5 h-5 animate-spin text-yellow-400" />
+								{#if job.progress > 0}
+									<span class="text-[9px] text-yellow-400 mt-0.5">{job.progress}%</span>
+								{/if}
+							</div>
+						{/if}
+						{#if viewMode === job.id}
+							<div class="absolute top-1 right-1 w-3 h-3 bg-yellow-500 rounded-full flex items-center justify-center">
+								<Check class="w-2 h-2 text-zinc-900" />
+							</div>
+						{/if}
+					</button>
+				{/each}
+			</div>
+
+			<!-- Scroll Right -->
+			{#if rotationJobs.length > 0}
+				<button
+					onclick={() => scrollHistory('right')}
+					class="flex-shrink-0 p-1.5 hover:bg-zinc-800 rounded-lg transition-colors"
+				>
+					<ChevronRight class="w-4 h-4 text-zinc-400" />
+				</button>
+			{/if}
+		</div>
+	</div>
+
+	<!-- Main Content -->
+	<div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6">
+		<!-- Left Panel -->
+		<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+			{#if viewMode === 'new'}
+				<!-- New Generation Mode -->
+				<h2 class="text-lg font-semibold text-white mb-4">New Rotation</h2>
 
 				{#if previewUrl}
-					<!-- Selected Image Preview -->
 					<div class="relative aspect-square bg-zinc-800/50 rounded-lg border border-zinc-700 overflow-hidden mb-4">
 						<img
 							src={previewUrl}
@@ -420,11 +395,10 @@ const hasAnyRotation = $derived(Object.values(rotations).some((v) => v !== null)
 						</button>
 					</div>
 				{:else}
-					<!-- Upload Area -->
 					<div
 						ondrop={handleDrop}
 						ondragover={handleDragOver}
-						class="aspect-square bg-zinc-800/30 border-2 border-dashed border-zinc-700 hover:border-zinc-600 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors mb-4"
+						class="relative aspect-square bg-zinc-800/30 border-2 border-dashed border-zinc-700 hover:border-zinc-600 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors mb-4"
 					>
 						<input
 							type="file"
@@ -436,33 +410,26 @@ const hasAnyRotation = $derived(Object.values(rotations).some((v) => v !== null)
 						<label for="file-input" class="flex flex-col items-center cursor-pointer p-8">
 							<Upload class="w-10 h-10 text-zinc-500 mb-3" />
 							<p class="text-sm text-zinc-400 text-center mb-1">
-								Drag & drop an image or click to upload
+								Drag & drop or click to upload
 							</p>
 							<p class="text-xs text-zinc-500">PNG, JPEG, WebP up to 10MB</p>
 						</label>
 					</div>
 				{/if}
 
-				<!-- Or select from sprites -->
 				{#if sprites.length > 0}
-					<div class="relative">
-						<div class="flex items-center gap-3 mb-3">
-							<div class="flex-1 h-px bg-zinc-800"></div>
-							<span class="text-xs text-zinc-500 uppercase tracking-wide">or</span>
-							<div class="flex-1 h-px bg-zinc-800"></div>
-						</div>
-
+					<div class="relative mb-4">
 						<button
 							onclick={() => showSpriteSelector = !showSpriteSelector}
-							class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-300 transition-colors"
+							class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-300 transition-colors"
 						>
 							<ImagePlus class="w-4 h-4" />
 							Select from your sprites
 						</button>
 
 						{#if showSpriteSelector}
-							<div class="absolute left-0 right-0 mt-2 p-3 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-10 max-h-64 overflow-y-auto">
-								<div class="grid grid-cols-4 gap-2">
+							<div class="absolute left-0 right-0 mt-2 p-3 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-10 max-h-48 overflow-y-auto">
+								<div class="grid grid-cols-5 gap-2">
 									{#each sprites as sprite (sprite.id)}
 										{@const url = getSpriteUrl(sprite)}
 										{#if url}
@@ -470,11 +437,7 @@ const hasAnyRotation = $derived(Object.values(rotations).some((v) => v !== null)
 												onclick={() => selectSprite(url)}
 												class="aspect-square bg-zinc-800 rounded-lg overflow-hidden border border-zinc-700 hover:border-yellow-500/50 transition-colors"
 											>
-												<img
-													src={url}
-													alt={sprite.prompt}
-													class="w-full h-full object-contain"
-												/>
+												<img src={url} alt={sprite.prompt} class="w-full h-full object-contain" />
 											</button>
 										{/if}
 									{/each}
@@ -484,331 +447,170 @@ const hasAnyRotation = $derived(Object.values(rotations).some((v) => v !== null)
 					</div>
 				{/if}
 
-				<p class="text-xs text-zinc-500 mt-4">
-					Upload a front-facing sprite or character image. The AI will generate 8-directional views using SV3D.
-				</p>
-			</div>
-
-			<!-- Generation Controls -->
-			<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-				<h3 class="text-sm font-medium text-white mb-4">Generation Settings</h3>
-
-				<div class="space-y-3 text-sm">
-					<div class="flex items-center justify-between">
-						<span class="text-zinc-400">Output directions</span>
-						<span class="text-white">8 (full rotation)</span>
-					</div>
-					<div class="flex items-center justify-between">
-						<span class="text-zinc-400">3D synthesis</span>
-						<span class="text-white">SV3D</span>
-					</div>
-					<div class="flex items-center justify-between">
-						<span class="text-zinc-400">Upscaling</span>
-						<span class="text-white">4x UltraSharp</span>
-					</div>
-					<div class="flex items-center justify-between">
-						<span class="text-zinc-400">Refinement</span>
-						<span class="text-white">ControlNet Tile + IPAdapter</span>
-					</div>
-				</div>
-
-				<!-- Status -->
-				{#if status}
-					<div class="mt-4 px-4 py-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-						<div class="flex items-center justify-between mb-2">
-							<div class="flex items-center gap-2">
-								<Loader2 class="w-4 h-4 animate-spin text-yellow-400" />
-								<span class="text-sm text-yellow-300">{status}</span>
-							</div>
-							<span class="text-sm text-yellow-400 font-medium">{progress}%</span>
-						</div>
-						<div class="h-2 bg-zinc-700 rounded-full overflow-hidden">
-							<div
-								class="h-full bg-gradient-to-r from-yellow-500 to-amber-400 transition-all duration-500 ease-out"
-								style="width: {progress}%"
-							></div>
-						</div>
-						{#if estimatedTimeRemaining !== null && estimatedTimeRemaining > 0}
-							<p class="text-xs text-zinc-400 mt-2">
-								~{Math.floor(estimatedTimeRemaining / 60)}:{(estimatedTimeRemaining % 60).toString().padStart(2, '0')} remaining
-							</p>
-						{/if}
-					</div>
-				{/if}
-
-				<!-- Generate Button -->
 				<button
 					onclick={generate}
 					disabled={!hasImageSelected || generating || tokens + bonusTokens < TOKEN_COST}
-					class="w-full mt-4 py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 disabled:from-zinc-700 disabled:to-zinc-700 disabled:cursor-not-allowed text-zinc-900 disabled:text-zinc-400 font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
+					class="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 disabled:from-zinc-700 disabled:to-zinc-700 disabled:cursor-not-allowed text-zinc-900 disabled:text-zinc-400 font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
 				>
 					{#if generating}
 						<Loader2 class="w-4 h-4 animate-spin" />
 						Generating...
 					{:else}
 						<Sparkles class="w-4 h-4" />
-						Generate 8 Rotations ({TOKEN_COST} tokens)
+						Generate ({TOKEN_COST} tokens)
 					{/if}
 				</button>
-			</div>
-		</div>
 
-		<!-- Right: 8-Direction Grid -->
-		<div>
-			<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+				<p class="text-xs text-zinc-500 mt-3 text-center">
+					Upload a front-facing image to generate 8-directional views
+				</p>
+			{:else if selectedJob}
+				<!-- Viewing Existing Job -->
 				<div class="flex items-center justify-between mb-4">
-					<h2 class="text-lg font-semibold text-white">8-Direction Output</h2>
-					{#if hasAnyRotation}
-						<div class="flex items-center gap-2">
-							<button
-								onclick={downloadAll}
-								class="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 text-xs font-medium rounded-lg transition-colors"
-							>
-								<Download class="w-3.5 h-3.5" />
-								Download All
-							</button>
-							<button
-								onclick={downloadSpriteSheet}
-								class="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 text-white text-xs font-medium rounded-lg transition-colors"
-							>
-								Sprite Sheet
-							</button>
+					<h2 class="text-lg font-semibold text-white">
+						{#if selectedJob.status === 'processing'}
+							Generating...
+						{:else if selectedJob.status === 'completed'}
+							Rotation Complete
+						{:else if selectedJob.status === 'failed'}
+							Generation Failed
+						{:else}
+							Queued
+						{/if}
+					</h2>
+					<span class="text-xs text-zinc-500">{formatDate(selectedJob.createdAt)}</span>
+				</div>
+
+				{#if selectedJob.status === 'processing' || selectedJob.status === 'pending'}
+					<!-- Progress View -->
+					<div class="aspect-square bg-zinc-800/30 rounded-lg border border-zinc-700 flex flex-col items-center justify-center mb-4">
+						<Loader2 class="w-12 h-12 animate-spin text-yellow-400 mb-4" />
+						<p class="text-sm text-zinc-300 mb-2">{selectedJob.currentStage || 'Processing...'}</p>
+						<div class="w-48 h-2 bg-zinc-700 rounded-full overflow-hidden">
+							<div
+								class="h-full bg-gradient-to-r from-yellow-500 to-amber-400 transition-all duration-500"
+								style="width: {selectedJob.progress}%"
+							></div>
+						</div>
+						<p class="text-xs text-zinc-500 mt-2">{selectedJob.progress}% complete</p>
+					</div>
+				{:else if selectedJob.status === 'failed'}
+					<!-- Error View -->
+					<div class="aspect-square bg-red-500/5 rounded-lg border border-red-500/20 flex flex-col items-center justify-center mb-4 p-6">
+						<X class="w-12 h-12 text-red-400 mb-4" />
+						<p class="text-sm text-red-300 text-center mb-2">Generation failed</p>
+						{#if selectedJob.errorMessage}
+							<p class="text-xs text-red-400/70 text-center">{selectedJob.errorMessage}</p>
+						{/if}
+					</div>
+					<button
+						onclick={startNewGeneration}
+						class="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+					>
+						<Plus class="w-4 h-4" />
+						Try Again
+					</button>
+				{:else if selectedJob.status === 'completed'}
+					<!-- Input Image Preview (if available) -->
+					{#if selectedJob.inputImageUrl}
+						<div class="mb-4">
+							<span class="text-xs text-zinc-500 mb-2 block">Input Image</span>
+							<div class="aspect-square bg-zinc-800/50 rounded-lg border border-zinc-700 overflow-hidden">
+								<img
+									src={selectedJob.inputImageUrl}
+									alt="Input"
+									class="w-full h-full object-contain"
+								/>
+							</div>
 						</div>
 					{/if}
-				</div>
 
-				<!-- 3x3 Grid -->
-				<div class="grid grid-cols-3 gap-2">
-					{#each directions as dir}
-						{#if dir.key === 'center'}
-							<!-- Center cell shows RotateCw icon -->
-							<div class="aspect-square bg-zinc-800/50 rounded-lg border border-zinc-600 flex items-center justify-center overflow-hidden">
-								<RotateCw class="w-8 h-8 text-zinc-600" />
-							</div>
-						{:else}
-							<div class="group relative aspect-square bg-zinc-800/50 rounded-lg border border-zinc-700 flex flex-col items-center justify-center overflow-hidden">
-								{#if rotations[dir.key as keyof typeof rotations]}
-									<img
-										src={rotations[dir.key as keyof typeof rotations]}
-										alt={dir.label}
-										class="w-full h-full object-contain"
-									/>
-									<button
-										onclick={() => downloadRotation(dir.key)}
-										class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-									>
-										<Download class="w-5 h-5 text-white" />
-									</button>
-								{:else}
-									<svelte:component this={dir.icon} class="w-6 h-6 text-zinc-600 mb-1" />
-									<span class="text-[10px] text-zinc-500">{dir.label}</span>
-									<span class="text-[9px] text-zinc-600">{dir.angle}°</span>
-								{/if}
-							</div>
-						{/if}
-					{/each}
-				</div>
-
-				<!-- Direction Legend -->
-				<div class="mt-4 pt-4 border-t border-zinc-800">
-					<p class="text-xs text-zinc-500 text-center">
-						N = Front • S = Back • E = Right • W = Left
-					</p>
-				</div>
-			</div>
-
-			<!-- Tips -->
-			<div class="mt-4 bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-				<h3 class="text-sm font-medium text-white mb-2">Tips for best results</h3>
-				<ul class="text-xs text-zinc-400 space-y-1">
-					<li>• Use front-facing images with a clear subject</li>
-					<li>• Images with white or transparent backgrounds work best</li>
-					<li>• Avoid complex scenes or multiple subjects</li>
-					<li>• Higher resolution inputs produce better results</li>
-				</ul>
-			</div>
-		</div>
-	</div>
-
-	<!-- History Section -->
-	<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-		<div class="flex items-center gap-2 mb-4">
-			<History class="w-5 h-5 text-zinc-400" />
-			<h2 class="text-lg font-semibold text-white">Generation History</h2>
+					<!-- Actions -->
+					<div class="flex gap-2">
+						<button
+							onclick={downloadAll}
+							class="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+						>
+							<Download class="w-4 h-4" />
+							Download All
+						</button>
+						<button
+							onclick={startNewGeneration}
+							class="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors"
+						>
+							<Plus class="w-4 h-4" />
+						</button>
+					</div>
+				{/if}
+			{/if}
 		</div>
 
-		{#if rotationJobs.length === 0}
-			<div class="text-center py-8 text-zinc-500">
-				<RotateCw class="w-12 h-12 mx-auto mb-3 opacity-50" />
-				<p>No rotations yet. Create your first one!</p>
-			</div>
-		{:else}
-			<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-				{#each rotationJobs as job (job.id)}
+		<!-- Right Panel: 8-Direction Grid -->
+		<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+			<div class="flex items-center justify-between mb-4">
+				<h2 class="text-lg font-semibold text-white">8-Direction Output</h2>
+				{#if hasAnyRotation}
 					<button
-						onclick={() => openJobModal(job)}
-						class="group relative aspect-square bg-zinc-800/50 rounded-lg overflow-hidden border border-zinc-700 hover:border-zinc-600 transition-colors text-left"
+						onclick={downloadAll}
+						class="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-medium rounded-lg transition-colors"
 					>
-						{#if job.status === 'completed' && getJobPreviewImage(job)}
-							<img
-								src={getJobPreviewImage(job)}
-								alt={job.prompt || 'Rotation'}
-								class="w-full h-full object-contain"
-							/>
-						{:else if job.status === 'failed'}
-							<div class="w-full h-full flex items-center justify-center text-red-400">
-								<div class="text-center">
-									<X class="w-6 h-6 mx-auto mb-1" />
-									<p class="text-[10px]">Failed</p>
-								</div>
-							</div>
-						{:else}
-							<div class="w-full h-full flex flex-col items-center justify-center p-2">
-								<Loader2 class="w-6 h-6 animate-spin text-yellow-400 mb-1" />
-								<p class="text-[10px] text-zinc-400 text-center">{job.currentStage || getStatusLabel(job.status)}</p>
-								{#if job.progress > 0}
-									<div class="w-full h-1 bg-zinc-700 rounded-full overflow-hidden mt-1">
-										<div
-											class="h-full bg-yellow-500 transition-all"
-											style="width: {job.progress}%"
-										></div>
-									</div>
-								{/if}
-							</div>
-						{/if}
-						<div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
-							<p class="text-[10px] text-white truncate">{job.prompt || 'Image upload'}</p>
-						</div>
-					</button>
-				{/each}
-			</div>
-		{/if}
-	</div>
-</div>
-
-<!-- Detail Modal -->
-{#if selectedJob}
-	<div
-		class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-		onclick={closeModal}
-		onkeydown={(e) => e.key === 'Escape' && closeModal()}
-		role="dialog"
-		tabindex="-1"
-	>
-		<div
-			class="bg-zinc-900 border border-zinc-700 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
-			onclick={(e) => e.stopPropagation()}
-			role="document"
-		>
-			<!-- Header -->
-			<div class="flex items-center justify-between p-4 border-b border-zinc-800">
-				<h3 class="text-lg font-semibold text-white">Rotation Details</h3>
-				<button
-					onclick={closeModal}
-					class="p-1 hover:bg-zinc-800 rounded-lg transition-colors"
-				>
-					<X class="w-5 h-5 text-zinc-400" />
-				</button>
-			</div>
-
-			<!-- Content -->
-			<div class="p-4 overflow-y-auto max-h-[calc(90vh-120px)]">
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-					<!-- 3x3 Preview Grid -->
-					<div>
-						<h4 class="text-sm font-medium text-zinc-400 mb-3">8 Directions</h4>
-						<div class="grid grid-cols-3 gap-1.5">
-							{#each directions as dir}
-								{#if dir.key === 'center'}
-									<div class="aspect-square bg-zinc-800/50 rounded-lg border border-zinc-600 flex items-center justify-center">
-										<RotateCw class="w-5 h-5 text-zinc-600" />
-									</div>
-								{:else}
-									{@const url = selectedJob[`rotation${dir.label}` as keyof RotationJob] as string | null}
-									<div class="aspect-square bg-zinc-800/50 rounded-lg border border-zinc-700 overflow-hidden">
-										{#if url}
-											<img src={url} alt={dir.label} class="w-full h-full object-contain" />
-										{:else}
-											<div class="w-full h-full flex items-center justify-center">
-												<svelte:component this={dir.icon} class="w-4 h-4 text-zinc-600" />
-											</div>
-										{/if}
-									</div>
-								{/if}
-							{/each}
-						</div>
-					</div>
-
-					<!-- Details -->
-					<div class="space-y-4">
-						<!-- Prompt -->
-						{#if selectedJob.prompt}
-							<div>
-								<div class="flex items-center justify-between mb-1">
-									<span class="text-xs text-zinc-500 uppercase tracking-wide">Prompt</span>
-									<button
-										onclick={() => copyPrompt(selectedJob?.prompt || '')}
-										class="p-1 hover:bg-zinc-800 rounded transition-colors"
-										title="Copy prompt"
-									>
-										<Copy class="w-3.5 h-3.5 text-zinc-500" />
-									</button>
-								</div>
-								<p class="text-sm text-white bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
-									{selectedJob.prompt}
-								</p>
-							</div>
-						{/if}
-
-						<!-- Metadata Grid -->
-						<div class="grid grid-cols-2 gap-3">
-							<div class="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
-								<span class="text-xs text-zinc-500 block mb-1">Status</span>
-								<span class="text-sm {selectedJob.status === 'completed' ? 'text-green-400' : selectedJob.status === 'failed' ? 'text-red-400' : 'text-yellow-400'}">
-									{getStatusLabel(selectedJob.status)}
-								</span>
-							</div>
-							<div class="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
-								<span class="text-xs text-zinc-500 block mb-1">Tokens</span>
-								<span class="text-sm text-white">{selectedJob.tokenCost}</span>
-							</div>
-						</div>
-
-						<!-- Dates -->
-						<div class="flex items-center gap-2 text-xs text-zinc-500">
-							<Calendar class="w-3.5 h-3.5" />
-							<span>Created {formatDate(selectedJob.createdAt)}</span>
-						</div>
-
-						<!-- Error Message -->
-						{#if selectedJob.errorMessage}
-							<div class="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-								<span class="text-xs text-red-400 uppercase tracking-wide block mb-1">Error</span>
-								<p class="text-sm text-red-300">{selectedJob.errorMessage}</p>
-							</div>
-						{/if}
-					</div>
-				</div>
-			</div>
-
-			<!-- Footer -->
-			<div class="p-4 border-t border-zinc-800 flex justify-end gap-2">
-				{#if selectedJob.status === 'completed'}
-					<button
-						onclick={() => loadJobToPreview(selectedJob!)}
-						class="flex items-center gap-2 px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition-colors"
-					>
-						<RotateCw class="w-4 h-4" />
-						Load to Preview
+						<Download class="w-3.5 h-3.5" />
+						Download
 					</button>
 				{/if}
-				<button
-					onclick={closeModal}
-					class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors"
-				>
-					Close
-				</button>
 			</div>
+
+			<!-- 3x3 Grid -->
+			<div class="grid grid-cols-3 gap-2">
+				{#each directions as dir}
+					{#if dir.key === 'center'}
+						<div class="aspect-square bg-zinc-800/50 rounded-lg border border-zinc-600 flex items-center justify-center overflow-hidden">
+							<RotateCw class="w-8 h-8 text-zinc-600" />
+						</div>
+					{:else}
+						{@const url = displayRotations[dir.key as keyof typeof displayRotations]}
+						<div class="group relative aspect-square bg-zinc-800/50 rounded-lg border border-zinc-700 flex flex-col items-center justify-center overflow-hidden">
+							{#if url}
+								<img
+									src={url}
+									alt={dir.label}
+									class="w-full h-full object-contain"
+								/>
+								<button
+									onclick={() => downloadRotation(dir.key)}
+									class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+								>
+									<Download class="w-5 h-5 text-white" />
+								</button>
+							{:else if selectedJob?.status === 'processing'}
+								<Loader2 class="w-5 h-5 animate-spin text-zinc-600" />
+							{:else}
+								<svelte:component this={dir.icon} class="w-6 h-6 text-zinc-600 mb-1" />
+								<span class="text-[10px] text-zinc-500">{dir.label}</span>
+							{/if}
+						</div>
+					{/if}
+				{/each}
+			</div>
+
+			<!-- Legend -->
+			<div class="mt-4 pt-4 border-t border-zinc-800">
+				<p class="text-xs text-zinc-500 text-center">
+					N = Front • S = Back • E = Right • W = Left
+				</p>
+			</div>
+
+			<!-- Tips (only show when creating new) -->
+			{#if viewMode === 'new'}
+				<div class="mt-4 pt-4 border-t border-zinc-800">
+					<p class="text-xs text-zinc-400 mb-2">Tips for best results:</p>
+					<ul class="text-xs text-zinc-500 space-y-1">
+						<li>• Use front-facing images with clear subjects</li>
+						<li>• White or transparent backgrounds work best</li>
+						<li>• Higher resolution inputs = better results</li>
+					</ul>
+				</div>
+			{/if}
 		</div>
 	</div>
-{/if}
+</div>
