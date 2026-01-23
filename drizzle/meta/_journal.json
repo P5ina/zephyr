@@ -127,6 +127,13 @@
       "when": 1769130446253,
       "tag": "0017_natural_medusa",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1769131464582,
+      "tag": "0018_rare_shinko_yamashiro",
+      "breakpoints": true
     }
   ]
 }
