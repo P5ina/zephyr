@@ -20,15 +20,16 @@ interface Props {
 	autoRotate?: boolean;
 }
 
-let {
-	basecolorUrl = null,
-	normalUrl = null,
-	roughnessUrl = null,
-	metallicUrl = null,
-	heightUrl = null,
-	shape = 'sphere',
-	autoRotate = true,
-}: Props = $props();
+const props: Props = $props();
+
+// Derive reactive values from props
+const basecolorUrl = $derived(props.basecolorUrl ?? null);
+const normalUrl = $derived(props.normalUrl ?? null);
+const roughnessUrl = $derived(props.roughnessUrl ?? null);
+const metallicUrl = $derived(props.metallicUrl ?? null);
+const heightUrl = $derived(props.heightUrl ?? null);
+const shape = $derived(props.shape ?? 'sphere');
+const autoRotate = $derived(props.autoRotate ?? true);
 
 const loader = new TextureLoader();
 loader.crossOrigin = 'anonymous';
@@ -62,26 +63,31 @@ function loadTexture(url: string | null | undefined): Promise<Texture | null> {
 }
 
 $effect(() => {
-	loadTexture(basecolorUrl).then((t) => {
+	const url = basecolorUrl;
+	loadTexture(url).then((t) => {
 		if (t) t.colorSpace = SRGBColorSpace;
 		basecolorMap = t;
 	});
 });
 
 $effect(() => {
-	loadTexture(normalUrl).then((t) => (normalMap = t));
+	const url = normalUrl;
+	loadTexture(url).then((t) => (normalMap = t));
 });
 
 $effect(() => {
-	loadTexture(roughnessUrl).then((t) => (roughnessMap = t));
+	const url = roughnessUrl;
+	loadTexture(url).then((t) => (roughnessMap = t));
 });
 
 $effect(() => {
-	loadTexture(metallicUrl).then((t) => (metallicMap = t));
+	const url = metallicUrl;
+	loadTexture(url).then((t) => (metallicMap = t));
 });
 
 $effect(() => {
-	loadTexture(heightUrl).then((t) => (displacementMap = t));
+	const url = heightUrl;
+	loadTexture(url).then((t) => (displacementMap = t));
 });
 
 useTask((delta) => {
@@ -89,6 +95,13 @@ useTask((delta) => {
 		meshRotation.y += delta * 0.3;
 	}
 });
+
+// Key to force material recreation when textures load
+const materialKey = $derived(
+	[basecolorMap?.uuid, normalMap?.uuid, roughnessMap?.uuid, metallicMap?.uuid, displacementMap?.uuid]
+		.filter(Boolean)
+		.join('-') || 'empty'
+);
 </script>
 
 <T.PerspectiveCamera makeDefault position={[0, 0, 3]} fov={45}>
@@ -100,44 +113,46 @@ useTask((delta) => {
 <T.AmbientLight intensity={0.3} />
 <T.DirectionalLight position={[5, 5, 5]} intensity={1} />
 
-{#if shape === 'sphere'}
-	<T.Mesh rotation.y={meshRotation.y}>
-		<T.SphereGeometry args={[1, 64, 64]} />
-		<T.MeshStandardMaterial
-			map={basecolorMap}
-			normalMap={normalMap}
-			roughnessMap={roughnessMap}
-			metalnessMap={metallicMap}
-			displacementMap={displacementMap}
-			displacementScale={displacementMap ? 0.1 : 0}
-			roughness={roughnessMap ? 1 : 0.5}
-			metalness={metallicMap ? 1 : 0}
-		/>
-	</T.Mesh>
-{:else if shape === 'cube'}
-	<T.Mesh rotation.y={meshRotation.y} rotation.x={0.3}>
-		<T.BoxGeometry args={[1.5, 1.5, 1.5]} />
-		<T.MeshStandardMaterial
-			map={basecolorMap}
-			normalMap={normalMap}
-			roughnessMap={roughnessMap}
-			metalnessMap={metallicMap}
-			roughness={roughnessMap ? 1 : 0.5}
-			metalness={metallicMap ? 1 : 0}
-		/>
-	</T.Mesh>
-{:else}
-	<T.Mesh rotation.x={-Math.PI / 2} rotation.z={meshRotation.y}>
-		<T.PlaneGeometry args={[2.5, 2.5, 64, 64]} />
-		<T.MeshStandardMaterial
-			map={basecolorMap}
-			normalMap={normalMap}
-			roughnessMap={roughnessMap}
-			metalnessMap={metallicMap}
-			displacementMap={displacementMap}
-			displacementScale={displacementMap ? 0.2 : 0}
-			roughness={roughnessMap ? 1 : 0.5}
-			metalness={metallicMap ? 1 : 0}
-		/>
-	</T.Mesh>
-{/if}
+{#key materialKey}
+	{#if shape === 'sphere'}
+		<T.Mesh rotation.y={meshRotation.y}>
+			<T.SphereGeometry args={[1, 64, 64]} />
+			<T.MeshStandardMaterial
+				map={basecolorMap}
+				normalMap={normalMap}
+				roughnessMap={roughnessMap}
+				metalnessMap={metallicMap}
+				displacementMap={displacementMap}
+				displacementScale={displacementMap ? 0.1 : 0}
+				roughness={roughnessMap ? 1 : 0.5}
+				metalness={metallicMap ? 1 : 0}
+			/>
+		</T.Mesh>
+	{:else if shape === 'cube'}
+		<T.Mesh rotation.y={meshRotation.y} rotation.x={0.3}>
+			<T.BoxGeometry args={[1.5, 1.5, 1.5]} />
+			<T.MeshStandardMaterial
+				map={basecolorMap}
+				normalMap={normalMap}
+				roughnessMap={roughnessMap}
+				metalnessMap={metallicMap}
+				roughness={roughnessMap ? 1 : 0.5}
+				metalness={metallicMap ? 1 : 0}
+			/>
+		</T.Mesh>
+	{:else}
+		<T.Mesh rotation.x={-Math.PI / 2} rotation.z={meshRotation.y}>
+			<T.PlaneGeometry args={[2.5, 2.5, 64, 64]} />
+			<T.MeshStandardMaterial
+				map={basecolorMap}
+				normalMap={normalMap}
+				roughnessMap={roughnessMap}
+				metalnessMap={metallicMap}
+				displacementMap={displacementMap}
+				displacementScale={displacementMap ? 0.2 : 0}
+				roughness={roughnessMap ? 1 : 0.5}
+				metalness={metallicMap ? 1 : 0}
+			/>
+		</T.Mesh>
+	{/if}
+{/key}
