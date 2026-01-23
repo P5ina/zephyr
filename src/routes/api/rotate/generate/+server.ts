@@ -101,6 +101,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			userId: locals.user.id,
 			status: 'pending',
 			tokenCost: TOKEN_COST,
+			bonusTokenCost: bonusDeduct,
 			prompt: prompt?.trim() || null,
 			inputImageUrl,
 			elevation,

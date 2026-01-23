@@ -54,6 +54,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			prompt: body.prompt.trim(),
 			status: 'pending',
 			tokenCost: TOKEN_COST,
+			bonusTokenCost: bonusDeduct,
 			currentStage: 'Queued for processing...',
 		})
 		.returning();

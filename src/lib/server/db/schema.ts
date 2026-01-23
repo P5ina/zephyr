@@ -153,6 +153,7 @@ export const assetGeneration = pgTable('asset_generation', {
 	// Metadata
 	seed: integer('seed'),
 	tokenCost: integer('token_cost').notNull(),
+	bonusTokenCost: integer('bonus_token_cost').notNull().default(0),
 	errorMessage: text('error_message'),
 	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
 		.notNull()
@@ -190,6 +191,7 @@ export const textureGeneration = pgTable('texture_generation', {
 	// Metadata
 	seed: integer('seed'),
 	tokenCost: integer('token_cost').notNull(),
+	bonusTokenCost: integer('bonus_token_cost').notNull().default(0),
 	errorMessage: text('error_message'),
 	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
 		.notNull()
@@ -232,6 +234,7 @@ export const rotationJob = pgTable('rotation_job', {
 
 	// Metadata
 	tokenCost: integer('token_cost').notNull(),
+	bonusTokenCost: integer('bonus_token_cost').notNull().default(0),
 	errorMessage: text('error_message'),
 	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
 		.notNull()

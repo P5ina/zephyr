@@ -32,15 +32,20 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 		})
 		.where(eq(table.assetGeneration.id, asset.id));
 
+	// Refund both regular and bonus tokens correctly
+	const regularTokens = asset.tokenCost - asset.bonusTokenCost;
 	await db
 		.update(table.user)
 		.set({
-			tokens: sql`${table.user.tokens} + ${asset.tokenCost}`,
+			tokens: sql`${table.user.tokens} + ${regularTokens}`,
+			bonusTokens: sql`${table.user.bonusTokens} + ${asset.bonusTokenCost}`,
 		})
 		.where(eq(table.user.id, asset.userId));
 
 	return json({
 		success: true,
 		tokensRefunded: asset.tokenCost,
+		regularTokensRefunded: regularTokens,
+		bonusTokensRefunded: asset.bonusTokenCost,
 	});
 };

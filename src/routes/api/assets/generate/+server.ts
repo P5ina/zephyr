@@ -75,6 +75,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			height,
 			status: 'pending',
 			tokenCost: cost,
+			bonusTokenCost: bonusDeduct,
 			currentStage: 'Queued for processing...',
 		})
 		.returning();

@@ -134,6 +134,13 @@
       "when": 1769131464582,
       "tag": "0018_rare_shinko_yamashiro",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1769132624855,
+      "tag": "0019_tearful_boomerang",
+      "breakpoints": true
     }
   ]
 }
