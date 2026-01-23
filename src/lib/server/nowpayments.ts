@@ -1,9 +1,9 @@
 import { env } from '$env/dynamic/private';
 import crypto from 'crypto';
-import { PRICING, type TierType, type CreditPackType } from '$lib/pricing';
+import { PRICING, type CreditPackType } from '$lib/pricing';
 
 export { PRICING };
-export type { TierType, CreditPackType };
+export type { CreditPackType };
 
 if (!env.NOWPAYMENTS_API_KEY) {
 	throw new Error('NOWPAYMENTS_API_KEY is not set');

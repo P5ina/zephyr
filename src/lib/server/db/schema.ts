@@ -14,7 +14,7 @@ export const user = pgTable('user', {
 	username: text('username'),
 	avatarUrl: text('avatar_url'),
 	githubId: integer('github_id').unique(),
-	tokens: integer('tokens').notNull().default(25),
+	tokens: integer('tokens').notNull().default(50),
 	bonusTokens: integer('bonus_tokens').notNull().default(0),
 	nsfwEnabled: boolean('nsfw_enabled').notNull().default(true),
 	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })

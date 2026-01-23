@@ -4,9 +4,7 @@ import {
 	Coins,
 	Layers,
 	RotateCw,
-	Settings,
 	Sparkles,
-	X,
 } from 'lucide-svelte';
 import type { LayoutData } from './$types';
 
@@ -18,26 +16,6 @@ const initialUser = data.user;
 
 let tokens = $state(initialUser.tokens);
 let bonusTokens = $state(initialUser.bonusTokens);
-let nsfwEnabled = $state(initialUser.nsfwEnabled);
-let settingsOpen = $state(false);
-let savingSettings = $state(false);
-
-async function toggleNsfw() {
-	savingSettings = true;
-	const newValue = !nsfwEnabled;
-	try {
-		const res = await fetch('/api/settings', {
-			method: 'PATCH',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ nsfwEnabled: newValue }),
-		});
-		if (res.ok) {
-			nsfwEnabled = newValue;
-		}
-	} finally {
-		savingSettings = false;
-	}
-}
 
 const tabs = [
 	{ href: '/app', label: 'Sprites', icon: Sparkles },
@@ -76,52 +54,11 @@ function isActive(href: string) {
 				<a
 					href="/app/billing"
 					class="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
-					title="Monthly: {tokens}, Bonus: {bonusTokens}"
+					title="Tokens available"
 				>
 					<Coins class="w-4 h-4 text-yellow-500" />
 					<span class="text-sm font-medium text-white">{tokens + bonusTokens}</span>
 				</a>
-				<div class="relative">
-					<button
-						onclick={() => (settingsOpen = !settingsOpen)}
-						class="p-2 text-zinc-400 hover:text-white transition-colors"
-					>
-						<Settings class="w-5 h-5" />
-					</button>
-					{#if settingsOpen}
-						<div class="absolute right-0 top-full mt-2 w-72 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl z-50">
-							<div class="flex items-center justify-between p-3 border-b border-zinc-800">
-								<span class="text-sm font-medium text-white">Settings</span>
-								<button
-									onclick={() => (settingsOpen = false)}
-									class="text-zinc-400 hover:text-white"
-								>
-									<X class="w-4 h-4" />
-								</button>
-							</div>
-							<div class="p-3">
-								<div class="flex items-center justify-between cursor-pointer">
-									<span class="text-sm text-zinc-300">Allow NSFW content</span>
-									<button
-										onclick={toggleNsfw}
-										disabled={savingSettings}
-										aria-label="Toggle NSFW content"
-										aria-pressed={nsfwEnabled}
-										class="relative w-11 h-6 rounded-full transition-colors {nsfwEnabled
-											? 'bg-yellow-500'
-											: 'bg-zinc-700'}"
-									>
-										<span
-											class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform {nsfwEnabled
-												? 'translate-x-5'
-												: 'translate-x-0'}"
-										></span>
-									</button>
-								</div>
-							</div>
-						</div>
-					{/if}
-				</div>
 				{#if data.user.avatarUrl}
 					<img
 						src={data.user.avatarUrl}
