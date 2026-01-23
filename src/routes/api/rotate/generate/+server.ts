@@ -18,6 +18,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	let inputImageUrl: string | undefined;
 	let prompt: string | undefined;
+	let elevation: number = 20;
 
 	if (contentType.includes('multipart/form-data')) {
 		// Handle file upload
@@ -25,6 +26,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const file = formData.get('image') as File | null;
 		const imageUrl = formData.get('imageUrl') as string | null;
 		prompt = formData.get('prompt') as string | null || undefined;
+		const elevationStr = formData.get('elevation') as string | null;
+		if (elevationStr) {
+			const parsed = parseInt(elevationStr, 10);
+			if (!isNaN(parsed) && parsed >= -90 && parsed <= 90) {
+				elevation = parsed;
+			}
+		}
 
 		if (imageUrl) {
 			// Using existing image URL (e.g., from a previous sprite generation)
@@ -56,6 +64,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const body = await request.json();
 		inputImageUrl = body.imageUrl as string | undefined;
 		prompt = body.prompt as string | undefined;
+		if (typeof body.elevation === 'number' && body.elevation >= -90 && body.elevation <= 90) {
+			elevation = body.elevation;
+		}
 	}
 
 	if (!inputImageUrl) {
@@ -92,6 +103,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			tokenCost: TOKEN_COST,
 			prompt: prompt?.trim() || null,
 			inputImageUrl,
+			elevation,
 			currentStage: 'Queued for processing...',
 		})
 		.returning();

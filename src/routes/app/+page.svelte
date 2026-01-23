@@ -3,7 +3,6 @@ import {
 	Calendar,
 	Copy,
 	Download,
-	Grid,
 	Info,
 	Loader2,
 	Sparkles,
@@ -22,8 +21,6 @@ let bonusTokens = $state(data.user.bonusTokens);
 
 // Generation form
 let prompt = $state('');
-let negativePrompt = $state('');
-let assetType = $state<'sprite' | 'pixel_art'>('sprite');
 let generating = $state(false);
 
 // Modal state
@@ -39,10 +36,7 @@ let nextCursor = $state<string | null>(
 		: null,
 );
 
-const TOKEN_COSTS = {
-	sprite: 2,
-	pixel_art: 2,
-};
+const TOKEN_COST = 2;
 
 // Track which generations we're already polling
 const pollingSet = new Set<string>();
@@ -66,9 +60,8 @@ async function generate() {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
-				assetType,
+				assetType: 'sprite',
 				prompt: prompt.trim(),
-				negativePrompt: negativePrompt.trim() || undefined,
 			}),
 		});
 
@@ -195,8 +188,6 @@ function getAssetTypeLabel(type: string) {
 	switch (type) {
 		case 'sprite':
 			return 'Sprite';
-		case 'pixel_art':
-			return 'Pixel Art';
 		case 'texture':
 			return 'Texture';
 		default:
@@ -211,33 +202,6 @@ function getAssetTypeLabel(type: string) {
 		<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 sticky top-8">
 			<h2 class="text-lg font-semibold text-white mb-4">Generate Sprite</h2>
 
-			<!-- Asset Type -->
-			<div class="mb-4">
-				<span class="block text-sm font-medium text-zinc-400 mb-2">Type</span>
-				<div class="grid grid-cols-2 gap-2">
-					<button
-						onclick={() => (assetType = 'sprite')}
-						class="flex flex-col items-center gap-1 p-3 rounded-lg border transition-colors {assetType === 'sprite'
-							? 'bg-yellow-500/10 border-yellow-500/50 text-yellow-400'
-							: 'bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600'}"
-					>
-						<Sparkles class="w-5 h-5" />
-						<span class="text-xs">Sprite</span>
-						<span class="text-[10px] opacity-60">{TOKEN_COSTS.sprite} tokens</span>
-					</button>
-					<button
-						onclick={() => (assetType = 'pixel_art')}
-						class="flex flex-col items-center gap-1 p-3 rounded-lg border transition-colors {assetType === 'pixel_art'
-							? 'bg-yellow-500/10 border-yellow-500/50 text-yellow-400'
-							: 'bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600'}"
-					>
-						<Grid class="w-5 h-5" />
-						<span class="text-xs">Pixel Art</span>
-						<span class="text-[10px] opacity-60">{TOKEN_COSTS.pixel_art} tokens</span>
-					</button>
-				</div>
-			</div>
-
 			<!-- Prompt -->
 			<div class="mb-4">
 				<label for="prompt" class="block text-sm font-medium text-zinc-400 mb-2">Prompt</label>
@@ -250,24 +214,10 @@ function getAssetTypeLabel(type: string) {
 				></textarea>
 			</div>
 
-			<!-- Negative Prompt -->
-			<div class="mb-4">
-				<label for="negativePrompt" class="block text-sm font-medium text-zinc-400 mb-2">
-					Negative Prompt <span class="text-zinc-500">(optional)</span>
-				</label>
-				<textarea
-					id="negativePrompt"
-					bind:value={negativePrompt}
-					placeholder="What to avoid..."
-					rows="2"
-					class="w-full px-3 py-2 bg-zinc-800/50 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 resize-none"
-				></textarea>
-			</div>
-
 			<!-- Generate Button -->
 			<button
 				onclick={generate}
-				disabled={!prompt.trim() || generating || tokens + bonusTokens < TOKEN_COSTS[assetType]}
+				disabled={!prompt.trim() || generating || tokens + bonusTokens < TOKEN_COST}
 				class="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 disabled:from-zinc-700 disabled:to-zinc-700 disabled:cursor-not-allowed text-zinc-900 disabled:text-zinc-400 font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
 			>
 				{#if generating}
@@ -275,7 +225,7 @@ function getAssetTypeLabel(type: string) {
 					Generating...
 				{:else}
 					<Sparkles class="w-4 h-4" />
-					Generate ({TOKEN_COSTS[assetType]} tokens)
+					Generate ({TOKEN_COST} tokens)
 				{/if}
 			</button>
 		</div>
@@ -444,16 +394,6 @@ function getAssetTypeLabel(type: string) {
 								{selectedGeneration.prompt}
 							</p>
 						</div>
-
-						<!-- Negative Prompt -->
-						{#if selectedGeneration.negativePrompt}
-							<div>
-								<span class="text-xs text-zinc-500 uppercase tracking-wide block mb-1">Negative Prompt</span>
-								<p class="text-sm text-zinc-400 bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
-									{selectedGeneration.negativePrompt}
-								</p>
-							</div>
-						{/if}
 
 						<!-- Metadata Grid -->
 						<div class="grid grid-cols-2 gap-3">

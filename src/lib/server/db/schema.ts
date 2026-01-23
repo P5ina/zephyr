@@ -218,6 +218,7 @@ export const rotationJob = pgTable('rotation_job', {
 	// Input
 	prompt: text('prompt'),
 	inputImageUrl: text('input_image_url'),
+	elevation: integer('elevation').notNull().default(20),
 
 	// Results - 8 directions
 	rotationN: text('rotation_n'),

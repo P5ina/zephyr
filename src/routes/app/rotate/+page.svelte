@@ -39,6 +39,7 @@ let selectedImageUrl = $state<string | null>(null);
 let uploadedFile = $state<File | null>(null);
 let uploadPreviewUrl = $state<string | null>(null);
 let showSpriteSelector = $state(false);
+let elevation = $state(20);
 
 // Generation state
 let generating = $state(false);
@@ -164,6 +165,7 @@ async function generate() {
 		} else if (selectedImageUrl) {
 			formData.append('imageUrl', selectedImageUrl);
 		}
+		formData.append('elevation', elevation.toString());
 
 		const res = await fetch('/api/rotate/generate', {
 			method: 'POST',
@@ -447,6 +449,28 @@ function scrollHistory(direction: 'left' | 'right') {
 					</div>
 				{/if}
 
+				<!-- Elevation Slider -->
+				<div class="mb-4">
+					<div class="flex items-center justify-between mb-2">
+						<label for="elevation" class="text-sm text-zinc-400">Camera Elevation</label>
+						<span class="text-sm text-zinc-300 font-medium">{elevation}°</span>
+					</div>
+					<input
+						type="range"
+						id="elevation"
+						bind:value={elevation}
+						min="-90"
+						max="90"
+						step="5"
+						class="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
+					/>
+					<div class="flex justify-between text-xs text-zinc-500 mt-1">
+						<span>-90° (below)</span>
+						<span>0° (level)</span>
+						<span>90° (above)</span>
+					</div>
+				</div>
+
 				<button
 					onclick={generate}
 					disabled={!hasImageSelected || generating || tokens + bonusTokens < TOKEN_COST}
@@ -524,6 +548,14 @@ function scrollHistory(direction: 'left' | 'right') {
 							</div>
 						</div>
 					{/if}
+
+					<!-- Job Info -->
+					<div class="mb-4 p-3 bg-zinc-800/30 rounded-lg border border-zinc-700">
+						<div class="flex items-center justify-between text-sm">
+							<span class="text-zinc-400">Camera Elevation</span>
+							<span class="text-white font-medium">{selectedJob.elevation ?? 20}°</span>
+						</div>
+					</div>
 
 					<!-- Actions -->
 					<div class="flex gap-2">

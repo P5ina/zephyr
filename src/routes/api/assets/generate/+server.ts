@@ -7,14 +7,12 @@ import type { RequestHandler } from './$types';
 
 const TOKEN_COSTS: Record<string, number> = {
 	sprite: 2,
-	pixel_art: 2,
 	texture: 3,
 };
 
 interface AssetGenerateRequest {
-	assetType?: 'sprite' | 'pixel_art' | 'texture';
+	assetType?: 'sprite' | 'texture';
 	prompt: string;
-	negativePrompt?: string;
 	width?: number;
 	height?: number;
 	seed?: number;
@@ -73,7 +71,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			userId: locals.user.id,
 			assetType,
 			prompt: body.prompt,
-			negativePrompt: body.negativePrompt,
 			width,
 			height,
 			status: 'pending',
