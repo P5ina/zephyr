@@ -1,6 +1,8 @@
 import { error, json } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { put } from '@vercel/blob';
+import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import type { RequestHandler } from './$types';
@@ -12,18 +14,52 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		error(401, 'Unauthorized');
 	}
 
-	const body = await request.json();
-	const prompt = body.prompt as string | undefined;
-	const mode = (body.mode as string) || 'regular';
-	const pixelResolution = body.pixelResolution as number | undefined;
-	const colorCount = body.colorCount as number | undefined;
+	const contentType = request.headers.get('content-type') || '';
 
-	if (!prompt || prompt.trim().length === 0) {
-		error(400, 'Prompt is required');
+	let inputImageUrl: string | undefined;
+	let prompt: string | undefined;
+
+	if (contentType.includes('multipart/form-data')) {
+		// Handle file upload
+		const formData = await request.formData();
+		const file = formData.get('image') as File | null;
+		const imageUrl = formData.get('imageUrl') as string | null;
+		prompt = formData.get('prompt') as string | null || undefined;
+
+		if (imageUrl) {
+			// Using existing image URL (e.g., from a previous sprite generation)
+			inputImageUrl = imageUrl;
+		} else if (file && file.size > 0) {
+			// Upload new image to Vercel Blob
+			if (file.size > 10 * 1024 * 1024) {
+				error(400, 'Image must be less than 10MB');
+			}
+
+			const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+			if (!allowedTypes.includes(file.type)) {
+				error(400, 'Image must be PNG, JPEG, or WebP');
+			}
+
+			if (!env.BLOB_READ_WRITE_TOKEN) {
+				error(500, 'Image upload not configured. Please use an existing sprite or contact support.');
+			}
+
+			const blob = await put(`rotations/${locals.user.id}/${nanoid()}.png`, file, {
+				access: 'public',
+				contentType: file.type,
+				token: env.BLOB_READ_WRITE_TOKEN,
+			});
+			inputImageUrl = blob.url;
+		}
+	} else {
+		// Handle JSON body
+		const body = await request.json();
+		inputImageUrl = body.imageUrl as string | undefined;
+		prompt = body.prompt as string | undefined;
 	}
 
-	if (prompt.length > 500) {
-		error(400, 'Prompt must be less than 500 characters');
+	if (!inputImageUrl) {
+		error(400, 'Image is required. Upload an image or provide an image URL.');
 	}
 
 	const total = locals.user.tokens + locals.user.bonusTokens;
@@ -54,10 +90,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			userId: locals.user.id,
 			status: 'pending',
 			tokenCost: TOKEN_COST,
-			prompt: prompt.trim(),
-			mode: mode === 'pixel_art' ? 'pixel_art' : 'regular',
-			pixelResolution,
-			colorCount,
+			prompt: prompt?.trim() || null,
+			inputImageUrl,
 			currentStage: 'Queued for processing...',
 		})
 		.returning();

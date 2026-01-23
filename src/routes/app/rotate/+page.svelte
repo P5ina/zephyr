@@ -11,12 +11,12 @@ import {
 	Calendar,
 	Copy,
 	Download,
-	Grid,
 	History,
-	Image,
+	ImagePlus,
 	Loader2,
 	RotateCw,
 	Sparkles,
+	Upload,
 	X,
 } from 'lucide-svelte';
 import type { RotationJob } from '$lib/server/db/schema';
@@ -26,17 +26,16 @@ let { data }: { data: PageData } = $props();
 
 // svelte-ignore state_referenced_locally
 const initialJobs = data.rotationJobs;
+const sprites = data.sprites;
 
 let tokens = $state(data.user.tokens);
 let bonusTokens = $state(data.user.bonusTokens);
 
-// Prompt input
-let prompt = $state('');
-
-// Mode settings
-let mode = $state<'regular' | 'pixel_art'>('regular');
-let pixelResolution = $state<32 | 64 | 128>(64);
-let colorCount = $state<8 | 16 | 32 | 64>(16);
+// Input state
+let selectedImageUrl = $state<string | null>(null);
+let uploadedFile = $state<File | null>(null);
+let uploadPreviewUrl = $state<string | null>(null);
+let showSpriteSelector = $state(false);
 
 // Generation state
 let generating = $state(false);
@@ -86,14 +85,6 @@ const directions = [
 	{ key: 'se', label: 'SE', icon: ArrowDownRight, angle: 135 },
 ] as const;
 
-const examplePrompts = [
-	'medieval knight with sword and shield, full body',
-	'pixel art wizard casting spell, fantasy RPG style',
-	'cyberpunk robot warrior, neon glow',
-	'cute slime monster, game character',
-	'armored space marine, sci-fi soldier',
-];
-
 // Start polling for any pending jobs on page load
 $effect(() => {
 	for (const job of initialJobs) {
@@ -104,8 +95,47 @@ $effect(() => {
 	}
 });
 
-function useExample(example: string) {
-	prompt = example;
+// Clean up preview URL when file changes
+$effect(() => {
+	if (uploadedFile) {
+		const url = URL.createObjectURL(uploadedFile);
+		uploadPreviewUrl = url;
+		selectedImageUrl = null;
+		return () => URL.revokeObjectURL(url);
+	} else {
+		uploadPreviewUrl = null;
+	}
+});
+
+function handleFileSelect(event: Event) {
+	const input = event.target as HTMLInputElement;
+	const file = input.files?.[0];
+	if (file) {
+		uploadedFile = file;
+	}
+}
+
+function handleDrop(event: DragEvent) {
+	event.preventDefault();
+	const file = event.dataTransfer?.files[0];
+	if (file && file.type.startsWith('image/')) {
+		uploadedFile = file;
+	}
+}
+
+function handleDragOver(event: DragEvent) {
+	event.preventDefault();
+}
+
+function selectSprite(url: string) {
+	selectedImageUrl = url;
+	uploadedFile = null;
+	showSpriteSelector = false;
+}
+
+function clearSelection() {
+	selectedImageUrl = null;
+	uploadedFile = null;
 }
 
 function resetRotations() {
@@ -121,8 +151,11 @@ function resetRotations() {
 	};
 }
 
+const hasImageSelected = $derived(selectedImageUrl !== null || uploadedFile !== null);
+const previewUrl = $derived(uploadPreviewUrl || selectedImageUrl);
+
 async function generate() {
-	if (!prompt.trim() || generating) return;
+	if (!hasImageSelected || generating) return;
 	if (tokens + bonusTokens < TOKEN_COST) {
 		alert('Not enough tokens');
 		return;
@@ -135,20 +168,17 @@ async function generate() {
 	resetRotations();
 
 	try {
-		const body: Record<string, unknown> = {
-			prompt: prompt.trim(),
-			mode,
-		};
+		const formData = new FormData();
 
-		if (mode === 'pixel_art') {
-			body.pixelResolution = pixelResolution;
-			body.colorCount = colorCount;
+		if (uploadedFile) {
+			formData.append('image', uploadedFile);
+		} else if (selectedImageUrl) {
+			formData.append('imageUrl', selectedImageUrl);
 		}
 
 		const res = await fetch('/api/rotate/generate', {
 			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(body),
+			body: formData,
 		});
 
 		if (!res.ok) {
@@ -358,112 +388,110 @@ function getJobPreviewImage(job: RotationJob): string | null {
 	return job.rotationS || job.rotationN || job.rotationE || job.rotationW || null;
 }
 
+function getSpriteUrl(sprite: typeof sprites[number]): string | null {
+	const urls = sprite.resultUrls as { processed?: string; raw?: string } | null;
+	return urls?.processed || urls?.raw || null;
+}
+
 const hasAnyRotation = $derived(Object.values(rotations).some((v) => v !== null));
 </script>
 
 <div class="space-y-8">
 	<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-		<!-- Left: Prompt & Settings -->
+		<!-- Left: Image Upload & Settings -->
 		<div>
-			<!-- Prompt Input -->
+			<!-- Image Input -->
 			<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 mb-4">
-				<h2 class="text-lg font-semibold text-white mb-4">Describe Your Sprite</h2>
+				<h2 class="text-lg font-semibold text-white mb-4">Input Image</h2>
 
-				<div class="space-y-4">
-					<div>
-						<textarea
-							bind:value={prompt}
-							placeholder="Describe the character or object you want to generate..."
-							rows="3"
-							class="w-full px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 resize-none"
-						></textarea>
-						<p class="text-xs text-zinc-500 mt-2">
-							The AI will generate a front-facing sprite, then create 8-directional rotations using 3D reconstruction.
-						</p>
+				{#if previewUrl}
+					<!-- Selected Image Preview -->
+					<div class="relative aspect-square bg-zinc-800/50 rounded-lg border border-zinc-700 overflow-hidden mb-4">
+						<img
+							src={previewUrl}
+							alt="Selected image"
+							class="w-full h-full object-contain"
+						/>
+						<button
+							onclick={clearSelection}
+							class="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-lg transition-colors"
+						>
+							<X class="w-4 h-4 text-white" />
+						</button>
 					</div>
+				{:else}
+					<!-- Upload Area -->
+					<div
+						ondrop={handleDrop}
+						ondragover={handleDragOver}
+						class="aspect-square bg-zinc-800/30 border-2 border-dashed border-zinc-700 hover:border-zinc-600 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors mb-4"
+					>
+						<input
+							type="file"
+							accept="image/png,image/jpeg,image/webp"
+							onchange={handleFileSelect}
+							class="absolute inset-0 opacity-0 cursor-pointer"
+							id="file-input"
+						/>
+						<label for="file-input" class="flex flex-col items-center cursor-pointer p-8">
+							<Upload class="w-10 h-10 text-zinc-500 mb-3" />
+							<p class="text-sm text-zinc-400 text-center mb-1">
+								Drag & drop an image or click to upload
+							</p>
+							<p class="text-xs text-zinc-500">PNG, JPEG, WebP up to 10MB</p>
+						</label>
+					</div>
+				{/if}
 
-					<!-- Example Prompts -->
-					<div>
-						<span class="text-xs text-zinc-400 mb-2 block">Try an example:</span>
-						<div class="flex flex-wrap gap-2">
-							{#each examplePrompts.slice(0, 3) as example}
-								<button
-									onclick={() => useExample(example)}
-									class="px-3 py-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg border border-zinc-700 hover:border-zinc-600 transition-colors truncate max-w-[200px]"
-									title={example}
-								>
-									{example.length > 30 ? example.slice(0, 30) + '...' : example}
-								</button>
-							{/each}
+				<!-- Or select from sprites -->
+				{#if sprites.length > 0}
+					<div class="relative">
+						<div class="flex items-center gap-3 mb-3">
+							<div class="flex-1 h-px bg-zinc-800"></div>
+							<span class="text-xs text-zinc-500 uppercase tracking-wide">or</span>
+							<div class="flex-1 h-px bg-zinc-800"></div>
 						</div>
+
+						<button
+							onclick={() => showSpriteSelector = !showSpriteSelector}
+							class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-300 transition-colors"
+						>
+							<ImagePlus class="w-4 h-4" />
+							Select from your sprites
+						</button>
+
+						{#if showSpriteSelector}
+							<div class="absolute left-0 right-0 mt-2 p-3 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-10 max-h-64 overflow-y-auto">
+								<div class="grid grid-cols-4 gap-2">
+									{#each sprites as sprite (sprite.id)}
+										{@const url = getSpriteUrl(sprite)}
+										{#if url}
+											<button
+												onclick={() => selectSprite(url)}
+												class="aspect-square bg-zinc-800 rounded-lg overflow-hidden border border-zinc-700 hover:border-yellow-500/50 transition-colors"
+											>
+												<img
+													src={url}
+													alt={sprite.prompt}
+													class="w-full h-full object-contain"
+												/>
+											</button>
+										{/if}
+									{/each}
+								</div>
+							</div>
+						{/if}
 					</div>
-				</div>
+				{/if}
+
+				<p class="text-xs text-zinc-500 mt-4">
+					Upload a front-facing sprite or character image. The AI will generate 8-directional views using SV3D.
+				</p>
 			</div>
 
 			<!-- Generation Controls -->
 			<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
 				<h3 class="text-sm font-medium text-white mb-4">Generation Settings</h3>
-
-				<!-- Mode Selector -->
-				<div class="mb-4">
-					<span class="block text-xs text-zinc-400 mb-2">Output Mode</span>
-					<div class="grid grid-cols-2 gap-2">
-						<button
-							onclick={() => (mode = 'regular')}
-							class="flex items-center justify-center gap-2 p-3 rounded-lg border transition-colors {mode === 'regular'
-								? 'bg-yellow-500/10 border-yellow-500/50 text-yellow-400'
-								: 'bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600'}"
-						>
-							<Image class="w-4 h-4" />
-							<span class="text-sm">Regular</span>
-						</button>
-						<button
-							onclick={() => (mode = 'pixel_art')}
-							class="flex items-center justify-center gap-2 p-3 rounded-lg border transition-colors {mode === 'pixel_art'
-								? 'bg-yellow-500/10 border-yellow-500/50 text-yellow-400'
-								: 'bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600'}"
-						>
-							<Grid class="w-4 h-4" />
-							<span class="text-sm">Pixel Art</span>
-						</button>
-					</div>
-				</div>
-
-				<!-- Pixel Art Settings -->
-				{#if mode === 'pixel_art'}
-					<div class="mb-4 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700 space-y-3">
-						<div>
-							<span class="block text-xs text-zinc-400 mb-2">Output Resolution</span>
-							<div class="grid grid-cols-3 gap-2">
-								{#each [32, 64, 128] as res}
-									<button
-										onclick={() => (pixelResolution = res as 32 | 64 | 128)}
-										class="py-2 text-xs rounded border transition-colors {pixelResolution === res
-											? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400'
-											: 'bg-zinc-800 border-zinc-600 text-zinc-400 hover:border-zinc-500'}"
-									>
-										{res}x{res}
-									</button>
-								{/each}
-							</div>
-						</div>
-						<div>
-							<span class="block text-xs text-zinc-400 mb-2">Color Palette</span>
-							<div class="grid grid-cols-4 gap-2">
-								{#each [8, 16, 32, 64] as colors}
-									<button
-										onclick={() => (colorCount = colors as 8 | 16 | 32 | 64)}
-										class="py-2 text-xs rounded border transition-colors {colorCount === colors
-											? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400'
-											: 'bg-zinc-800 border-zinc-600 text-zinc-400 hover:border-zinc-500'}"
-									>
-										{colors}
-									</button>
-								{/each}
-							</div>
-						</div>
-					</div>
-				{/if}
 
 				<div class="space-y-3 text-sm">
 					<div class="flex items-center justify-between">
@@ -471,16 +499,16 @@ const hasAnyRotation = $derived(Object.values(rotations).some((v) => v !== null)
 						<span class="text-white">8 (full rotation)</span>
 					</div>
 					<div class="flex items-center justify-between">
-						<span class="text-zinc-400">Image generation</span>
-						<span class="text-white">Flux Schnell</span>
+						<span class="text-zinc-400">3D synthesis</span>
+						<span class="text-white">SV3D</span>
 					</div>
 					<div class="flex items-center justify-between">
-						<span class="text-zinc-400">3D reconstruction</span>
-						<span class="text-white">TripoSR</span>
+						<span class="text-zinc-400">Upscaling</span>
+						<span class="text-white">4x UltraSharp</span>
 					</div>
 					<div class="flex items-center justify-between">
 						<span class="text-zinc-400">Refinement</span>
-						<span class="text-white">ControlNet Canny</span>
+						<span class="text-white">ControlNet Tile + IPAdapter</span>
 					</div>
 				</div>
 
@@ -511,7 +539,7 @@ const hasAnyRotation = $derived(Object.values(rotations).some((v) => v !== null)
 				<!-- Generate Button -->
 				<button
 					onclick={generate}
-					disabled={!prompt.trim() || generating || tokens + bonusTokens < TOKEN_COST}
+					disabled={!hasImageSelected || generating || tokens + bonusTokens < TOKEN_COST}
 					class="w-full mt-4 py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 disabled:from-zinc-700 disabled:to-zinc-700 disabled:cursor-not-allowed text-zinc-900 disabled:text-zinc-400 font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
 				>
 					{#if generating}
@@ -593,10 +621,10 @@ const hasAnyRotation = $derived(Object.values(rotations).some((v) => v !== null)
 			<div class="mt-4 bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
 				<h3 class="text-sm font-medium text-white mb-2">Tips for best results</h3>
 				<ul class="text-xs text-zinc-400 space-y-1">
-					<li>• Describe a single character or object, not a scene</li>
-					<li>• Include "full body" for complete character views</li>
-					<li>• Add style hints like "game character", "pixel art", "fantasy RPG"</li>
-					<li>• Simple, clear descriptions work better than complex ones</li>
+					<li>• Use front-facing images with a clear subject</li>
+					<li>• Images with white or transparent backgrounds work best</li>
+					<li>• Avoid complex scenes or multiple subjects</li>
+					<li>• Higher resolution inputs produce better results</li>
 				</ul>
 			</div>
 		</div>
@@ -649,7 +677,7 @@ const hasAnyRotation = $derived(Object.values(rotations).some((v) => v !== null)
 							</div>
 						{/if}
 						<div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
-							<p class="text-[10px] text-white truncate">{job.prompt || 'No prompt'}</p>
+							<p class="text-[10px] text-white truncate">{job.prompt || 'Image upload'}</p>
 						</div>
 					</button>
 				{/each}
@@ -714,28 +742,26 @@ const hasAnyRotation = $derived(Object.values(rotations).some((v) => v !== null)
 					<!-- Details -->
 					<div class="space-y-4">
 						<!-- Prompt -->
-						<div>
-							<div class="flex items-center justify-between mb-1">
-								<span class="text-xs text-zinc-500 uppercase tracking-wide">Prompt</span>
-								<button
-									onclick={() => copyPrompt(selectedJob?.prompt || '')}
-									class="p-1 hover:bg-zinc-800 rounded transition-colors"
-									title="Copy prompt"
-								>
-									<Copy class="w-3.5 h-3.5 text-zinc-500" />
-								</button>
+						{#if selectedJob.prompt}
+							<div>
+								<div class="flex items-center justify-between mb-1">
+									<span class="text-xs text-zinc-500 uppercase tracking-wide">Prompt</span>
+									<button
+										onclick={() => copyPrompt(selectedJob?.prompt || '')}
+										class="p-1 hover:bg-zinc-800 rounded transition-colors"
+										title="Copy prompt"
+									>
+										<Copy class="w-3.5 h-3.5 text-zinc-500" />
+									</button>
+								</div>
+								<p class="text-sm text-white bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
+									{selectedJob.prompt}
+								</p>
 							</div>
-							<p class="text-sm text-white bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
-								{selectedJob.prompt || 'No prompt'}
-							</p>
-						</div>
+						{/if}
 
 						<!-- Metadata Grid -->
 						<div class="grid grid-cols-2 gap-3">
-							<div class="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
-								<span class="text-xs text-zinc-500 block mb-1">Mode</span>
-								<span class="text-sm text-white capitalize">{selectedJob.mode?.replace('_', ' ') || 'Regular'}</span>
-							</div>
 							<div class="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
 								<span class="text-xs text-zinc-500 block mb-1">Status</span>
 								<span class="text-sm {selectedJob.status === 'completed' ? 'text-green-400' : selectedJob.status === 'failed' ? 'text-red-400' : 'text-yellow-400'}">
@@ -746,12 +772,6 @@ const hasAnyRotation = $derived(Object.values(rotations).some((v) => v !== null)
 								<span class="text-xs text-zinc-500 block mb-1">Tokens</span>
 								<span class="text-sm text-white">{selectedJob.tokenCost}</span>
 							</div>
-							{#if selectedJob.mode === 'pixel_art'}
-								<div class="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
-									<span class="text-xs text-zinc-500 block mb-1">Resolution</span>
-									<span class="text-sm text-white">{selectedJob.pixelResolution || 64}x{selectedJob.pixelResolution || 64}</span>
-								</div>
-							{/if}
 						</div>
 
 						<!-- Dates -->

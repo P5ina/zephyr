@@ -119,7 +119,7 @@ export const assetGeneration = pgTable('asset_generation', {
 		.references(() => user.id),
 
 	// Configuration
-	assetType: text('asset_type', { enum: ['sprite', 'pixel_art', 'texture'] }).notNull(),
+	assetType: text('asset_type', { enum: ['sprite', 'texture'] }).notNull(),
 	prompt: text('prompt').notNull(),
 	negativePrompt: text('negative_prompt'),
 	width: integer('width').notNull().default(512),
@@ -217,11 +217,7 @@ export const rotationJob = pgTable('rotation_job', {
 
 	// Input
 	prompt: text('prompt'),
-
-	// Mode settings
-	mode: text('mode', { enum: ['regular', 'pixel_art'] }).notNull().default('regular'),
-	pixelResolution: integer('pixel_resolution'),
-	colorCount: integer('color_count'),
+	inputImageUrl: text('input_image_url'),
 
 	// Results - 8 directions
 	rotationN: text('rotation_n'),
