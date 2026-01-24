@@ -11,7 +11,69 @@ import {
 import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
+
+const title = 'Zephyr - AI Game Asset Generator | Sprites, Textures & 8-Direction Rotation';
+const description = 'Generate game-ready sprites, PBR textures, and 8-directional character rotations with AI. Powered by FLUX.1 and ComfyUI. Start free with 50 tokens.';
+const url = 'https://zephyr.p5ina.dev';
+const image = 'https://zephyr.p5ina.dev/og-image.png';
+
+const jsonLd = {
+	'@context': 'https://schema.org',
+	'@graph': [
+		{
+			'@type': 'WebApplication',
+			name: 'Zephyr',
+			url,
+			description,
+			applicationCategory: 'DesignApplication',
+			operatingSystem: 'Web',
+			offers: {
+				'@type': 'Offer',
+				price: '0',
+				priceCurrency: 'USD',
+				description: '50 free tokens on signup'
+			},
+			featureList: [
+				'AI Sprite Generation',
+				'PBR Texture Generation',
+				'8-Direction Character Rotation',
+				'Automatic Background Removal',
+				'Normal, Roughness, Height Maps'
+			]
+		},
+		{
+			'@type': 'Organization',
+			name: 'Zephyr',
+			url,
+			logo: 'https://zephyr.p5ina.dev/favicon.svg'
+		}
+	]
+};
 </script>
+
+<svelte:head>
+	<title>{title}</title>
+	<meta name="description" content={description} />
+	<meta name="keywords" content="AI game assets, sprite generator, texture generator, PBR textures, game development, indie game dev, 8-direction sprites, character rotation, ComfyUI, FLUX" />
+
+	<!-- Open Graph -->
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content={url} />
+	<meta property="og:title" content={title} />
+	<meta property="og:description" content={description} />
+	<meta property="og:image" content={image} />
+	<meta property="og:site_name" content="Zephyr" />
+
+	<!-- Twitter Card -->
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:url" content={url} />
+	<meta name="twitter:title" content={title} />
+	<meta name="twitter:description" content={description} />
+	<meta name="twitter:image" content={image} />
+
+	<!-- Structured Data -->
+	{@html `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>`}
+</svelte:head>
 
 <div class="min-h-screen bg-zinc-950 overflow-hidden">
 	<!-- Animated background gradient -->

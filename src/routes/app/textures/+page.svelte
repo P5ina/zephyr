@@ -21,9 +21,12 @@ import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
 
+// svelte-ignore state_referenced_locally
 const initialGenerations = data.textureGenerations;
 
+// svelte-ignore state_referenced_locally
 let tokens = $state(data.user.tokens);
+// svelte-ignore state_referenced_locally
 let bonusTokens = $state(data.user.bonusTokens);
 
 // View mode: 'new' for creating new generation, or generation ID for viewing existing

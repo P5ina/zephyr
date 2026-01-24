@@ -108,7 +108,7 @@ const materialKey = $derived(
 	<OrbitControls enableDamping dampingFactor={0.05} />
 </T.PerspectiveCamera>
 
-<Environment preset="studio" />
+<Environment />
 
 <T.AmbientLight intensity={0.3} />
 <T.DirectionalLight position={[5, 5, 5]} intensity={1} />

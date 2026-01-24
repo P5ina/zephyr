@@ -16,7 +16,9 @@ let { data }: { data: PageData } = $props();
 // svelte-ignore state_referenced_locally
 const initialGenerations = data.assetGenerations;
 
+// svelte-ignore state_referenced_locally
 let tokens = $state(data.user.tokens);
+// svelte-ignore state_referenced_locally
 let bonusTokens = $state(data.user.bonusTokens);
 
 // Generation form
@@ -286,12 +288,16 @@ function getAssetTypeLabel(type: string) {
 											<p class="text-[10px] text-zinc-500">{gen.progress}%</p>
 										{/if}
 									</div>
-									<button
-										onclick={() => cancelGeneration(gen.id)}
-										class="mt-2 px-3 py-1 text-xs bg-zinc-700/50 hover:bg-red-500/20 hover:text-red-400 text-zinc-400 rounded transition-colors"
+									<!-- svelte-ignore a11y_no_static_element_interactions -->
+									<span
+										onclick={(e) => { e.stopPropagation(); cancelGeneration(gen.id); }}
+										onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); cancelGeneration(gen.id); } }}
+										role="button"
+										tabindex="0"
+										class="mt-2 px-3 py-1 text-xs bg-zinc-700/50 hover:bg-red-500/20 hover:text-red-400 text-zinc-400 rounded transition-colors cursor-pointer inline-block"
 									>
 										Cancel
-									</button>
+									</span>
 								</div>
 							{/if}
 							<div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
@@ -322,17 +328,21 @@ function getAssetTypeLabel(type: string) {
 
 <!-- Detail Modal -->
 {#if selectedGeneration}
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<div
 		class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
 		onclick={closeModal}
 		onkeydown={(e) => e.key === 'Escape' && closeModal()}
 		role="dialog"
 		tabindex="-1"
+		aria-modal="true"
+		aria-label="Generation details"
 	>
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="bg-zinc-900 border border-zinc-700 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
 			onclick={(e) => e.stopPropagation()}
-			role="document"
+			onkeydown={(e) => e.stopPropagation()}
 		>
 			<!-- Header -->
 			<div class="flex items-center justify-between p-4 border-b border-zinc-800">

@@ -15,6 +15,7 @@ export const PRICING = {
 			name: 'Starter',
 			tokens: 500,
 			price: 10, // $0.02 per token
+			popular: false,
 		},
 		creator: {
 			name: 'Creator',
@@ -26,6 +27,7 @@ export const PRICING = {
 			name: 'Studio',
 			tokens: 6000,
 			price: 50, // $0.0083 per token - 58% off
+			popular: false,
 		},
 	},
 } as const;

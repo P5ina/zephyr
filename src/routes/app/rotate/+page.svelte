@@ -25,10 +25,14 @@ import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
 
+// svelte-ignore state_referenced_locally
 const initialJobs = data.rotationJobs;
+// svelte-ignore state_referenced_locally
 const sprites = data.sprites;
 
+// svelte-ignore state_referenced_locally
 let tokens = $state(data.user.tokens);
+// svelte-ignore state_referenced_locally
 let bonusTokens = $state(data.user.bonusTokens);
 
 // View mode: 'new' for creating new generation, or job ID for viewing existing
@@ -386,7 +390,7 @@ function scrollHistory(direction: 'left' | 'right') {
 					<div class="relative aspect-square bg-zinc-800/50 rounded-lg border border-zinc-700 overflow-hidden mb-4">
 						<img
 							src={previewUrl}
-							alt="Selected image"
+							alt="Selected sprite for rotation"
 							class="w-full h-full object-contain"
 						/>
 						<button
@@ -397,9 +401,14 @@ function scrollHistory(direction: 'left' | 'right') {
 						</button>
 					</div>
 				{:else}
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div
 						ondrop={handleDrop}
 						ondragover={handleDragOver}
+						ondragleave={(e) => e.preventDefault()}
+						role="button"
+						tabindex="0"
+						aria-label="Drop zone for image upload"
 						class="relative aspect-square bg-zinc-800/30 border-2 border-dashed border-zinc-700 hover:border-zinc-600 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors mb-4"
 					>
 						<input
@@ -617,7 +626,8 @@ function scrollHistory(direction: 'left' | 'right') {
 							{:else if selectedJob?.status === 'processing'}
 								<Loader2 class="w-5 h-5 animate-spin text-zinc-600" />
 							{:else}
-								<svelte:component this={dir.icon} class="w-6 h-6 text-zinc-600 mb-1" />
+								{@const Icon = dir.icon}
+								<Icon class="w-6 h-6 text-zinc-600 mb-1" />
 								<span class="text-[10px] text-zinc-500">{dir.label}</span>
 							{/if}
 						</div>

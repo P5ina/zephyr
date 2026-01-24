@@ -86,7 +86,7 @@ function getPerTokenPrice(price: number, tokens: number) {
 	return (price / tokens).toFixed(4);
 }
 
-function getDiscount(pack: typeof PRICING.creditPacks.starter) {
+function getDiscount(pack: (typeof PRICING.creditPacks)[keyof typeof PRICING.creditPacks]) {
 	const baseRate = PRICING.creditPacks.starter.price / PRICING.creditPacks.starter.tokens;
 	const packRate = pack.price / pack.tokens;
 	const discount = Math.round((1 - packRate / baseRate) * 100);

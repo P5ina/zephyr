@@ -4,6 +4,12 @@ import type { PageData } from './$types';
 let { data }: { data: PageData } = $props();
 </script>
 
+<svelte:head>
+	<title>Sign In | Zephyr - AI Game Asset Generator</title>
+	<meta name="description" content="Sign in to Zephyr to generate AI-powered game sprites, PBR textures, and 8-directional character rotations. Start free with 50 tokens." />
+	<meta name="robots" content="noindex" />
+</svelte:head>
+
 <div class="min-h-screen flex items-center justify-center bg-zinc-950">
 	<div class="w-full max-w-md p-8">
 		<h1 class="text-3xl font-bold text-white text-center mb-2">Zephyr</h1>
