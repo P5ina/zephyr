@@ -395,6 +395,9 @@ const jsonLd = {
 					<span class="text-sm font-semibold text-white">Zephyr</span>
 				</div>
 				<div class="flex items-center gap-6 text-sm text-zinc-400">
+					<a href="/terms" class="hover:text-white transition-colors">Terms</a>
+					<a href="/privacy" class="hover:text-white transition-colors">Privacy</a>
+					<a href="/refund" class="hover:text-white transition-colors">Refunds</a>
 					<a href="https://github.com" target="_blank" rel="noopener" class="hover:text-white transition-colors">
 						<Github class="w-5 h-5" />
 					</a>
