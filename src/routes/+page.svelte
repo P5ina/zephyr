@@ -2,13 +2,13 @@
 import {
 	ArrowRight,
 	Check,
-	Github,
 	Layers,
 	RotateCw,
 	Sparkles,
 	Zap,
 } from 'lucide-svelte';
-import logo from '$lib/assets/favicon.png';
+import Header from '$lib/components/Header.svelte';
+import Footer from '$lib/components/Footer.svelte';
 import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
@@ -83,38 +83,7 @@ const jsonLd = {
 		<div class="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-amber-500/20 via-transparent to-transparent rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
 	</div>
 
-	<!-- Navigation -->
-	<nav class="relative z-10 border-b border-zinc-800/50 backdrop-blur-sm">
-		<div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-			<div class="flex items-center gap-2">
-				<img src={logo} alt="GenSprite" class="w-8 h-8 rounded-lg" />
-				<span class="text-xl font-bold text-white">GenSprite</span>
-			</div>
-			<div class="flex items-center gap-6">
-				<a href="#features" class="text-sm text-zinc-400 hover:text-white transition-colors">
-					Features
-				</a>
-				<a href="/pricing" class="text-sm text-zinc-400 hover:text-white transition-colors">
-					Pricing
-				</a>
-				{#if data.user}
-					<a
-						href="/app"
-						class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 text-sm font-medium rounded-lg transition-colors"
-					>
-						Go to App
-					</a>
-				{:else}
-					<a
-						href="/login"
-						class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg transition-colors backdrop-blur-sm border border-white/10"
-					>
-						Sign in
-					</a>
-				{/if}
-			</div>
-		</div>
-	</nav>
+	<Header user={data.user} />
 
 	<!-- Hero Section -->
 	<section class="relative z-10 max-w-6xl mx-auto px-4 pt-20 pb-32">
@@ -383,24 +352,5 @@ const jsonLd = {
 		</div>
 	</section>
 
-	<!-- Footer -->
-	<footer class="relative z-10 border-t border-zinc-800/50">
-		<div class="max-w-6xl mx-auto px-4 py-12">
-			<div class="flex flex-col md:flex-row items-center justify-between gap-6">
-				<div class="flex items-center gap-2">
-					<img src={logo} alt="GenSprite" class="w-6 h-6 rounded-md" />
-					<span class="text-sm font-semibold text-white">GenSprite</span>
-				</div>
-				<div class="flex items-center gap-6 text-sm text-zinc-400">
-					<a href="/terms" class="hover:text-white transition-colors">Terms</a>
-					<a href="/privacy" class="hover:text-white transition-colors">Privacy</a>
-					<a href="/refund" class="hover:text-white transition-colors">Refunds</a>
-					<a href="https://github.com" target="_blank" rel="noopener" class="hover:text-white transition-colors">
-						<Github class="w-5 h-5" />
-					</a>
-				</div>
-				<p class="text-sm text-zinc-500">© 2025 GenSprite. All rights reserved.</p>
-			</div>
-		</div>
-	</footer>
+	<Footer />
 </div>

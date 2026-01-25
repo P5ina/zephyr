@@ -1,6 +1,6 @@
 <script lang="ts">
-import { ArrowLeft } from 'lucide-svelte';
-import logo from '$lib/assets/favicon.png';
+import Header from '$lib/components/Header.svelte';
+import Footer from '$lib/components/Footer.svelte';
 </script>
 
 <svelte:head>
@@ -9,17 +9,7 @@ import logo from '$lib/assets/favicon.png';
 </svelte:head>
 
 <div class="min-h-screen bg-zinc-950">
-	<nav class="border-b border-zinc-800/50">
-		<div class="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
-			<a href="/" class="p-2 text-zinc-400 hover:text-white transition-colors">
-				<ArrowLeft class="w-5 h-5" />
-			</a>
-			<div class="flex items-center gap-2">
-				<img src={logo} alt="GenSprite" class="w-8 h-8 rounded-lg" />
-				<span class="text-xl font-bold text-white">GenSprite</span>
-			</div>
-		</div>
-	</nav>
+	<Header variant="simple" showBack showAuth={false} maxWidth="4xl" />
 
 	<main class="max-w-4xl mx-auto px-4 py-12">
 		<h1 class="text-3xl font-bold text-white mb-2">Privacy Policy</h1>
@@ -171,13 +161,5 @@ import logo from '$lib/assets/favicon.png';
 		</div>
 	</main>
 
-	<footer class="border-t border-zinc-800/50 mt-12">
-		<div class="max-w-4xl mx-auto px-4 py-8">
-			<div class="flex flex-wrap items-center justify-center gap-6 text-sm text-zinc-500">
-				<a href="/terms" class="hover:text-white transition-colors">Terms of Service</a>
-				<a href="/privacy" class="hover:text-white transition-colors">Privacy Policy</a>
-				<a href="/refund" class="hover:text-white transition-colors">Refund Policy</a>
-			</div>
-		</div>
-	</footer>
+	<Footer variant="simple" maxWidth="4xl" />
 </div>

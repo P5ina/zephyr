@@ -1,12 +1,12 @@
 <script lang="ts">
 import {
-	ArrowLeft,
 	Check,
 	Layers,
 	RotateCw,
 	Sparkles,
 } from 'lucide-svelte';
-import logo from '$lib/assets/favicon.png';
+import Header from '$lib/components/Header.svelte';
+import Footer from '$lib/components/Footer.svelte';
 import { PRICING } from '$lib/pricing';
 import type { PageData } from './$types';
 
@@ -30,34 +30,7 @@ function getDiscount(pack: (typeof PRICING.creditPacks)[keyof typeof PRICING.cre
 </svelte:head>
 
 <div class="min-h-screen bg-zinc-950">
-	<nav class="border-b border-zinc-800/50">
-		<div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-			<div class="flex items-center gap-4">
-				<a href="/" class="p-2 text-zinc-400 hover:text-white transition-colors">
-					<ArrowLeft class="w-5 h-5" />
-				</a>
-				<div class="flex items-center gap-2">
-					<img src={logo} alt="GenSprite" class="w-8 h-8 rounded-lg" />
-					<span class="text-xl font-bold text-white">GenSprite</span>
-				</div>
-			</div>
-			{#if data.user}
-				<a
-					href="/app/billing"
-					class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 text-sm font-medium rounded-lg transition-colors"
-				>
-					Buy Tokens
-				</a>
-			{:else}
-				<a
-					href="/login"
-					class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg transition-colors backdrop-blur-sm border border-white/10"
-				>
-					Sign in
-				</a>
-			{/if}
-		</div>
-	</nav>
+	<Header variant="simple" showBack user={data.user} ctaText="Buy Tokens" ctaHref="/app/billing" maxWidth="4xl" />
 
 	<main class="max-w-4xl mx-auto px-4 py-12">
 		<div class="text-center mb-12">
@@ -269,13 +242,5 @@ function getDiscount(pack: (typeof PRICING.creditPacks)[keyof typeof PRICING.cre
 		</div>
 	</main>
 
-	<footer class="border-t border-zinc-800/50 mt-12">
-		<div class="max-w-4xl mx-auto px-4 py-8">
-			<div class="flex flex-wrap items-center justify-center gap-6 text-sm text-zinc-500">
-				<a href="/terms" class="hover:text-white transition-colors">Terms of Service</a>
-				<a href="/privacy" class="hover:text-white transition-colors">Privacy Policy</a>
-				<a href="/refund" class="hover:text-white transition-colors">Refund Policy</a>
-			</div>
-		</div>
-	</footer>
+	<Footer variant="simple" maxWidth="4xl" />
 </div>
