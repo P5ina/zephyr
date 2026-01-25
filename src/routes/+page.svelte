@@ -8,6 +8,7 @@ import {
 	Sparkles,
 	Zap,
 } from 'lucide-svelte';
+import logo from '$lib/assets/favicon.png';
 import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
@@ -86,9 +87,7 @@ const jsonLd = {
 	<nav class="relative z-10 border-b border-zinc-800/50 backdrop-blur-sm">
 		<div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
 			<div class="flex items-center gap-2">
-				<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
-					<Sparkles class="w-4 h-4 text-zinc-900" />
-				</div>
+				<img src={logo} alt="GenSprite" class="w-8 h-8 rounded-lg" />
 				<span class="text-xl font-bold text-white">GenSprite</span>
 			</div>
 			<div class="flex items-center gap-6">
@@ -389,9 +388,7 @@ const jsonLd = {
 		<div class="max-w-6xl mx-auto px-4 py-12">
 			<div class="flex flex-col md:flex-row items-center justify-between gap-6">
 				<div class="flex items-center gap-2">
-					<div class="w-6 h-6 rounded-md bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
-						<Sparkles class="w-3 h-3 text-zinc-900" />
-					</div>
+					<img src={logo} alt="GenSprite" class="w-6 h-6 rounded-md" />
 					<span class="text-sm font-semibold text-white">GenSprite</span>
 				</div>
 				<div class="flex items-center gap-6 text-sm text-zinc-400">

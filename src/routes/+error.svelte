@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { ArrowLeft, Sparkles } from 'lucide-svelte';
+	import { ArrowLeft } from 'lucide-svelte';
+	import logo from '$lib/assets/favicon.png';
 </script>
 
 <div class="min-h-screen bg-zinc-950 flex flex-col">
@@ -20,11 +21,7 @@
 		<div class="text-center">
 			<!-- Logo -->
 			<div class="flex items-center justify-center gap-2 mb-8">
-				<div
-					class="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center"
-				>
-					<Sparkles class="w-5 h-5 text-zinc-900" />
-				</div>
+				<img src={logo} alt="GenSprite" class="w-10 h-10 rounded-xl" />
 				<span class="text-2xl font-bold text-white">GenSprite</span>
 			</div>
 

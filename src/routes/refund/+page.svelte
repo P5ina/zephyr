@@ -1,5 +1,6 @@
 <script lang="ts">
-import { ArrowLeft, Sparkles } from 'lucide-svelte';
+import { ArrowLeft } from 'lucide-svelte';
+import logo from '$lib/assets/favicon.png';
 </script>
 
 <svelte:head>
@@ -14,9 +15,7 @@ import { ArrowLeft, Sparkles } from 'lucide-svelte';
 				<ArrowLeft class="w-5 h-5" />
 			</a>
 			<div class="flex items-center gap-2">
-				<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
-					<Sparkles class="w-4 h-4 text-zinc-900" />
-				</div>
+				<img src={logo} alt="GenSprite" class="w-8 h-8 rounded-lg" />
 				<span class="text-xl font-bold text-white">GenSprite</span>
 			</div>
 		</div>
