@@ -2,31 +2,46 @@ import { json } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { verifyIPNSignature, type IPNPayload } from '$lib/server/nowpayments';
+import { verifyWebhookSignature, verifyWebhookIP, type WebhookPayload } from '$lib/server/cryptomus';
 import type { RequestHandler } from './$types';
 
-// NowPayments payment statuses:
-// waiting, confirming, confirmed, sending, partially_paid, finished, failed, refunded, expired
+// Cryptomus payment statuses:
+// confirm_check - waiting for confirmations
+// paid - paid successfully
+// paid_over - overpaid
+// fail - payment failed
+// wrong_amount - wrong amount sent
+// cancel - cancelled
+// system_fail - system error
+// refund_process - refund in progress
+// refund_fail - refund failed
+// refund_paid - refunded
 
-export const POST: RequestHandler = async ({ request }) => {
-	const body = await request.text();
-	const signature = request.headers.get('x-nowpayments-sig');
-
-	// Verify signature
-	if (!verifyIPNSignature(body, signature || '')) {
-		return json({ error: 'Invalid signature' }, { status: 400 });
+export const POST: RequestHandler = async ({ request, getClientAddress }) => {
+	// Verify webhook IP (optional but recommended)
+	const clientIP = request.headers.get('x-forwarded-for') || getClientAddress();
+	if (!verifyWebhookIP(clientIP)) {
+		console.warn(`Webhook received from unauthorized IP: ${clientIP}`);
+		// Don't reject immediately - IP might be different in some setups
+		// But log it for monitoring
 	}
 
-	let payload: IPNPayload;
+	let payload: WebhookPayload;
 	try {
-		payload = JSON.parse(body);
+		payload = await request.json();
 	} catch {
 		return json({ error: 'Invalid JSON' }, { status: 400 });
 	}
 
-	const { payment_id, payment_status, order_id, pay_currency, pay_amount, actually_paid } = payload;
+	// Verify signature
+	if (!verifyWebhookSignature(payload)) {
+		console.error('Invalid webhook signature');
+		return json({ error: 'Invalid signature' }, { status: 400 });
+	}
 
-	// Find the transaction by order_id
+	const { uuid, status, order_id, payer_currency, payer_amount, is_final } = payload;
+
+	// Find the transaction by order_id or uuid
 	const [transaction] = await db
 		.select()
 		.from(table.transaction)
@@ -41,52 +56,53 @@ export const POST: RequestHandler = async ({ request }) => {
 	await db
 		.update(table.transaction)
 		.set({
-			nowpaymentsPaymentId: payment_id,
-			payCurrency: pay_currency,
-			payAmount: pay_amount?.toString(),
+			cryptomusUuid: uuid,
+			payCurrency: payer_currency,
+			payAmount: payer_amount,
 		})
 		.where(eq(table.transaction.id, transaction.id));
 
 	// Handle different payment statuses
-	switch (payment_status) {
-		case 'confirming':
+	switch (status) {
+		case 'confirm_check':
+			// Payment received, waiting for blockchain confirmations
 			await db
 				.update(table.transaction)
 				.set({ status: 'confirmed' })
 				.where(eq(table.transaction.id, transaction.id));
 			break;
 
-		case 'confirmed':
-		case 'sending':
-			// Payment confirmed but not yet finished
-			await db
-				.update(table.transaction)
-				.set({ status: 'confirmed' })
-				.where(eq(table.transaction.id, transaction.id));
-			break;
-
-		case 'finished':
+		case 'paid':
+		case 'paid_over':
 			// Payment completed successfully
 			await handlePaymentCompleted(transaction);
 			break;
 
-		case 'partially_paid':
-			// Partial payment - could handle differently, but for now mark as pending
-			console.warn(`Partial payment received for order ${order_id}: ${actually_paid}`);
-			break;
-
-		case 'failed':
-		case 'refunded':
+		case 'wrong_amount':
+			// Wrong amount sent - mark as failed
+			console.warn(`Wrong amount for order ${order_id}`);
 			await db
 				.update(table.transaction)
 				.set({ status: 'failed' })
 				.where(eq(table.transaction.id, transaction.id));
 			break;
 
-		case 'expired':
+		case 'fail':
+		case 'cancel':
+		case 'system_fail':
 			await db
 				.update(table.transaction)
-				.set({ status: 'expired' })
+				.set({ status: 'failed' })
+				.where(eq(table.transaction.id, transaction.id));
+			break;
+
+		case 'refund_process':
+		case 'refund_fail':
+		case 'refund_paid':
+			// Handle refunds - mark as failed/refunded
+			await db
+				.update(table.transaction)
+				.set({ status: 'failed' })
 				.where(eq(table.transaction.id, transaction.id));
 			break;
 	}
@@ -113,4 +129,6 @@ async function handlePaymentCompleted(transaction: typeof table.transaction.$inf
 			bonusTokens: sql`${table.user.bonusTokens} + ${transaction.tokensGranted}`,
 		})
 		.where(eq(table.user.id, transaction.userId));
+
+	console.log(`Payment completed for user ${transaction.userId}: +${transaction.tokensGranted} tokens`);
 }

@@ -65,8 +65,7 @@ export const transaction = pgTable('transaction', {
 	userId: text('user_id')
 		.notNull()
 		.references(() => user.id),
-	nowpaymentsPaymentId: bigint('nowpayments_payment_id', { mode: 'number' }).unique(),
-	nowpaymentsInvoiceId: bigint('nowpayments_invoice_id', { mode: 'number' }),
+	cryptomusUuid: text('cryptomus_uuid').unique(),
 	orderId: text('order_id'),
 	type: text('type', { enum: ['subscription', 'credit_pack'] }).notNull(),
 	amount: integer('amount').notNull(),

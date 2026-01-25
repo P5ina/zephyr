@@ -141,6 +141,13 @@
       "when": 1769132624855,
       "tag": "0019_tearful_boomerang",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1769370000000,
+      "tag": "0020_replace_nowpayments_with_cryptomus",
+      "breakpoints": true
     }
   ]
 }

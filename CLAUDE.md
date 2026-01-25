@@ -8,7 +8,7 @@ AI-powered game asset generation platform for sprites, textures, and 8-direction
 - **Database**: Vercel Postgres (Neon) + Drizzle ORM
 - **Image Generation**: ComfyUI workflows (Flux Schnell, SV3D, ControlNet)
 - **3D Preview**: Three.js + Threlte
-- **Payments**: Paddle (planned)
+- **Payments**: Cryptomus (crypto)
 - **File Storage**: Vercel Blob
 - **Deployment**: Vercel
 
@@ -136,8 +136,8 @@ POSTGRES_URL=               # Vercel Postgres connection string
 BLOB_READ_WRITE_TOKEN=     # Vercel Blob storage token
 GITHUB_CLIENT_ID=          # GitHub OAuth
 GITHUB_CLIENT_SECRET=
-PADDLE_API_KEY=            # Paddle payments (planned)
-PADDLE_WEBHOOK_SECRET=
+CRYPTOMUS_MERCHANT_ID=     # Cryptomus crypto payments
+CRYPTOMUS_API_KEY=
 PREVIEW_LOGIN_SECRET=      # Secret for preview deployment login
 ```
 

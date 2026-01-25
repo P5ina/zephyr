@@ -2,7 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import { nanoid } from 'nanoid';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { createInvoice, createOrderId, PRICING, type CreditPackType } from '$lib/server/nowpayments';
+import { createPayment, createOrderId, PRICING, type CreditPackType } from '$lib/server/cryptomus';
 import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 
@@ -26,21 +26,22 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 	const orderId = createOrderId('credit_pack', locals.user.id, body.pack);
 
 	try {
-		const invoice = await createInvoice({
-			priceAmount: pack.price,
-			priceCurrency: 'usd',
+		const payment = await createPayment({
+			amount: pack.price,
+			currency: 'USD',
 			orderId,
 			orderDescription: `GenSprite ${pack.name}`,
 			callbackUrl: `${baseUrl}/api/billing/webhook`,
-			successUrl: `${baseUrl}/?checkout=success`,
-			cancelUrl: `${baseUrl}/?checkout=canceled`,
+			successUrl: `${baseUrl}/app/billing?checkout=success`,
+			cancelUrl: `${baseUrl}/app/billing?checkout=canceled`,
+			lifetime: 3600, // 1 hour
 		});
 
 		// Create pending transaction
 		await db.insert(table.transaction).values({
 			id: nanoid(),
 			userId: locals.user.id,
-			nowpaymentsInvoiceId: Number(invoice.id),
+			cryptomusUuid: payment.uuid,
 			orderId,
 			type: 'credit_pack',
 			amount: pack.price * 100, // Store in cents
@@ -48,8 +49,9 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 			status: 'pending',
 		});
 
-		return json({ url: invoice.invoice_url });
+		return json({ url: payment.url });
 	} catch (err) {
+		console.error('Cryptomus payment creation error:', err);
 		const message = err instanceof Error ? err.message : 'Failed to create payment';
 		error(500, message);
 	}
