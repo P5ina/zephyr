@@ -8,14 +8,16 @@ import {
 	Sparkles,
 	Zap,
 } from 'lucide-svelte';
-import Header from '$lib/components/Header.svelte';
 import Footer from '$lib/components/Footer.svelte';
+import Header from '$lib/components/Header.svelte';
 import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
 
-const title = 'GenSprite - AI Game Asset Generator | Sprites, Textures & 8-Direction Rotation';
-const description = 'Generate game-ready sprites, PBR textures, and 8-directional character rotations with AI. Powered by FLUX.1 and ComfyUI. Start free with 50 tokens.';
+const title =
+	'GenSprite - AI Game Asset Generator | Sprites, Textures & 8-Direction Rotation';
+const description =
+	'Generate game-ready sprites, PBR textures, and 8-directional character rotations with AI. Powered by FLUX.1 and ComfyUI. Start free with 50 tokens.';
 const url = 'https://gensprite.p5ina.dev';
 const image = 'https://gensprite.p5ina.dev/og-image.png';
 
@@ -33,23 +35,23 @@ const jsonLd = {
 				'@type': 'Offer',
 				price: '0',
 				priceCurrency: 'USD',
-				description: '50 free tokens on signup'
+				description: '50 free tokens on signup',
 			},
 			featureList: [
 				'AI Sprite Generation',
 				'PBR Texture Generation',
 				'8-Direction Character Rotation',
 				'Automatic Background Removal',
-				'Normal, Roughness, Height Maps'
-			]
+				'Normal, Roughness, Height Maps',
+			],
 		},
 		{
 			'@type': 'Organization',
 			name: 'GenSprite',
 			url,
-			logo: 'https://gensprite.p5ina.dev/icon-512.png'
-		}
-	]
+			logo: 'https://gensprite.p5ina.dev/icon-512.png',
+		},
+	],
 };
 </script>
 

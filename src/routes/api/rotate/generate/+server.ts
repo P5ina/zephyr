@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
+import { put } from '@vercel/blob';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { put } from '@vercel/blob';
 import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
@@ -25,11 +25,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const formData = await request.formData();
 		const file = formData.get('image') as File | null;
 		const imageUrl = formData.get('imageUrl') as string | null;
-		prompt = formData.get('prompt') as string | null || undefined;
+		prompt = (formData.get('prompt') as string | null) || undefined;
 		const elevationStr = formData.get('elevation') as string | null;
 		if (elevationStr) {
 			const parsed = parseInt(elevationStr, 10);
-			if (!isNaN(parsed) && parsed >= -90 && parsed <= 90) {
+			if (!Number.isNaN(parsed) && parsed >= -90 && parsed <= 90) {
 				elevation = parsed;
 			}
 		}
@@ -49,14 +49,21 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			}
 
 			if (!env.BLOB_READ_WRITE_TOKEN) {
-				error(500, 'Image upload not configured. Please use an existing sprite or contact support.');
+				error(
+					500,
+					'Image upload not configured. Please use an existing sprite or contact support.',
+				);
 			}
 
-			const blob = await put(`rotations/${locals.user.id}/${nanoid()}.png`, file, {
-				access: 'public',
-				contentType: file.type,
-				token: env.BLOB_READ_WRITE_TOKEN,
-			});
+			const blob = await put(
+				`rotations/${locals.user.id}/${nanoid()}.png`,
+				file,
+				{
+					access: 'public',
+					contentType: file.type,
+					token: env.BLOB_READ_WRITE_TOKEN,
+				},
+			);
 			inputImageUrl = blob.url;
 		}
 	} else {
@@ -64,7 +71,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const body = await request.json();
 		inputImageUrl = body.imageUrl as string | undefined;
 		prompt = body.prompt as string | undefined;
-		if (typeof body.elevation === 'number' && body.elevation >= -90 && body.elevation <= 90) {
+		if (
+			typeof body.elevation === 'number' &&
+			body.elevation >= -90 &&
+			body.elevation <= 90
+		) {
 			elevation = body.elevation;
 		}
 	}
@@ -75,7 +86,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	const total = locals.user.tokens + locals.user.bonusTokens;
 	if (total < TOKEN_COST) {
-		error(402, `Not enough tokens. Required: ${TOKEN_COST}, available: ${total}`);
+		error(
+			402,
+			`Not enough tokens. Required: ${TOKEN_COST}, available: ${total}`,
+		);
 	}
 
 	// Deduct tokens
@@ -116,4 +130,4 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		tokensRemaining: locals.user.tokens - regularDeduct,
 		bonusTokensRemaining: locals.user.bonusTokens - bonusDeduct,
 	});
-}
+};

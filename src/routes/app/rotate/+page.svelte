@@ -24,9 +24,9 @@ import {
 	Upload,
 	X,
 } from 'lucide-svelte';
+import { PRICING } from '$lib/pricing';
 import type { RotationJob } from '$lib/server/db/schema';
 import type { PageData } from './$types';
-import { PRICING } from '$lib/pricing';
 
 let { data }: { data: PageData } = $props();
 
@@ -41,7 +41,9 @@ let tokens = $state(data.user.tokens);
 let bonusTokens = $state(data.user.bonusTokens);
 
 // View mode: 'new' for creating new generation, or job ID for viewing existing
-let viewMode = $state<'new' | string>(initialJobs.length > 0 ? initialJobs[0].id : 'new');
+let viewMode = $state<'new' | string>(
+	initialJobs.length > 0 ? initialJobs[0].id : 'new',
+);
 
 // Input state for new generation
 let selectedImageUrl = $state<string | null>(null);
@@ -85,30 +87,51 @@ const directions = [
 ] as const;
 
 // Derived: currently selected job (if viewing existing)
-const selectedJob = $derived(viewMode !== 'new' ? rotationJobs.find(j => j.id === viewMode) : null);
+const selectedJob = $derived(
+	viewMode !== 'new' ? rotationJobs.find((j) => j.id === viewMode) : null,
+);
 
 // Derived: rotations to display
-const displayRotations = $derived(selectedJob ? {
-	n: selectedJob.rotationN,
-	ne: selectedJob.rotationNE,
-	e: selectedJob.rotationE,
-	se: selectedJob.rotationSE,
-	s: selectedJob.rotationS,
-	sw: selectedJob.rotationSW,
-	w: selectedJob.rotationW,
-	nw: selectedJob.rotationNW,
-} : {
-	n: null, ne: null, e: null, se: null, s: null, sw: null, w: null, nw: null,
-});
+const displayRotations = $derived(
+	selectedJob
+		? {
+				n: selectedJob.rotationN,
+				ne: selectedJob.rotationNE,
+				e: selectedJob.rotationE,
+				se: selectedJob.rotationSE,
+				s: selectedJob.rotationS,
+				sw: selectedJob.rotationSW,
+				w: selectedJob.rotationW,
+				nw: selectedJob.rotationNW,
+			}
+		: {
+				n: null,
+				ne: null,
+				e: null,
+				se: null,
+				s: null,
+				sw: null,
+				w: null,
+				nw: null,
+			},
+);
 
-const hasAnyRotation = $derived(Object.values(displayRotations).some((v) => v !== null));
-const hasImageSelected = $derived(selectedImageUrl !== null || uploadedFile !== null);
+const hasAnyRotation = $derived(
+	Object.values(displayRotations).some((v) => v !== null),
+);
+const hasImageSelected = $derived(
+	selectedImageUrl !== null || uploadedFile !== null,
+);
 const previewUrl = $derived(uploadPreviewUrl || selectedImageUrl);
 
 // Start polling for any pending jobs on page load
 $effect(() => {
 	for (const job of initialJobs) {
-		if (job.status !== 'completed' && job.status !== 'failed' && !pollingSet.has(job.id)) {
+		if (
+			job.status !== 'completed' &&
+			job.status !== 'failed' &&
+			!pollingSet.has(job.id)
+		) {
 			pollingSet.add(job.id);
 			pollJobStatus(job.id);
 		}
@@ -138,7 +161,7 @@ function handleFileSelect(event: Event) {
 function handleDrop(event: DragEvent) {
 	event.preventDefault();
 	const file = event.dataTransfer?.files[0];
-	if (file && file.type.startsWith('image/')) {
+	if (file?.type.startsWith('image/')) {
 		uploadedFile = file;
 	}
 }
@@ -276,7 +299,9 @@ function downloadRotation(direction: string) {
 }
 
 function downloadAll() {
-	for (const dir of Object.keys(displayRotations) as (keyof typeof displayRotations)[]) {
+	for (const dir of Object.keys(
+		displayRotations,
+	) as (keyof typeof displayRotations)[]) {
 		if (displayRotations[dir]) {
 			setTimeout(() => downloadRotation(dir), 100);
 		}
@@ -300,7 +325,9 @@ function formatDate(date: Date | string | null) {
 }
 
 function getJobPreviewImage(job: RotationJob): string | null {
-	return job.rotationS || job.rotationN || job.rotationE || job.rotationW || null;
+	return (
+		job.rotationS || job.rotationN || job.rotationE || job.rotationW || null
+	);
 }
 
 // Viewer functions
@@ -320,7 +347,8 @@ function nextDirection() {
 }
 
 function prevDirection() {
-	viewerDirection = (viewerDirection - 1 + animationOrder.length) % animationOrder.length;
+	viewerDirection =
+		(viewerDirection - 1 + animationOrder.length) % animationOrder.length;
 }
 
 function togglePlay() {
@@ -367,9 +395,13 @@ $effect(() => {
 
 // Get current viewer image
 const currentViewerImage = $derived(
-	displayRotations[animationOrder[viewerDirection] as keyof typeof displayRotations]
+	displayRotations[
+		animationOrder[viewerDirection] as keyof typeof displayRotations
+	],
 );
-const currentViewerLabel = $derived(animationOrder[viewerDirection].toUpperCase());
+const currentViewerLabel = $derived(
+	animationOrder[viewerDirection].toUpperCase(),
+);
 
 // Export spritesheet
 async function exportSpritesheet() {
@@ -427,7 +459,7 @@ async function exportSpritesheet() {
 	}
 }
 
-function getSpriteUrl(sprite: typeof sprites[number]): string | null {
+function getSpriteUrl(sprite: (typeof sprites)[number]): string | null {
 	const urls = sprite.resultUrls as { processed?: string; raw?: string } | null;
 	return urls?.processed || urls?.raw || null;
 }

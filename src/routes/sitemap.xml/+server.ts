@@ -11,7 +11,7 @@ ${pages
     <loc>https://gensprite.p5ina.dev${page}</loc>
     <changefreq>${page === '' ? 'weekly' : 'monthly'}</changefreq>
     <priority>${page === '' ? '1.0' : '0.8'}</priority>
-  </url>`
+  </url>`,
 	)
 	.join('\n')}
 </urlset>`;
@@ -19,7 +19,7 @@ ${pages
 	return new Response(sitemap, {
 		headers: {
 			'Content-Type': 'application/xml',
-			'Cache-Control': 'max-age=3600'
-		}
+			'Cache-Control': 'max-age=3600',
+		},
 	});
 }

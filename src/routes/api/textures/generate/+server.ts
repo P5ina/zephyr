@@ -28,7 +28,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	const total = locals.user.tokens + locals.user.bonusTokens;
 	if (total < TOKEN_COST) {
-		error(402, `Not enough tokens. Required: ${TOKEN_COST}, available: ${total}`);
+		error(
+			402,
+			`Not enough tokens. Required: ${TOKEN_COST}, available: ${total}`,
+		);
 	}
 
 	// Deduct tokens

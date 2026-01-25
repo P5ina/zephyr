@@ -4,8 +4,11 @@ import sharp from 'sharp';
 // PBR Generation via Sharp (Sobel operator)
 export async function generatePBRMaps(buffer: Buffer) {
 	const metadata = await sharp(buffer).metadata();
-	const width = metadata.width!;
-	const height = metadata.height!;
+	const width = metadata.width ?? 0;
+	const height = metadata.height ?? 0;
+	if (!width || !height) {
+		throw new Error('Could not determine image dimensions');
+	}
 
 	const sobelX = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
 	const sobelY = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
@@ -37,13 +40,25 @@ export async function generatePBRMaps(buffer: Buffer) {
 	})
 		.png()
 		.toBuffer();
-	const roughness = await sharp(buffer).grayscale().negate().normalise().png().toBuffer();
-	const heightMap = await sharp(buffer).grayscale().normalise().png().toBuffer();
+	const roughness = await sharp(buffer)
+		.grayscale()
+		.negate()
+		.normalise()
+		.png()
+		.toBuffer();
+	const heightMap = await sharp(buffer)
+		.grayscale()
+		.normalise()
+		.png()
+		.toBuffer();
 
 	return { normal, roughness, height: heightMap };
 }
 
 export async function uploadToBlob(data: Buffer, path: string) {
-	const blob = await put(path, data, { access: 'public', contentType: 'image/png' });
+	const blob = await put(path, data, {
+		access: 'public',
+		contentType: 'image/png',
+	});
 	return blob.url;
 }

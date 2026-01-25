@@ -1,9 +1,14 @@
 import { error, json } from '@sveltejs/kit';
 import { nanoid } from 'nanoid';
+import { env } from '$env/dynamic/private';
+import {
+	type CreditPackType,
+	createOrderId,
+	createPayment,
+	PRICING,
+} from '$lib/server/cryptomus';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { createPayment, createOrderId, PRICING, type CreditPackType } from '$lib/server/cryptomus';
-import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 
 interface BuyCreditsRequest {
@@ -56,7 +61,8 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 		return json({ url: payment.url });
 	} catch (err) {
 		console.error('Cryptomus payment creation error:', err);
-		const message = err instanceof Error ? err.message : 'Failed to create payment';
+		const message =
+			err instanceof Error ? err.message : 'Failed to create payment';
 		error(500, message);
 	}
 };

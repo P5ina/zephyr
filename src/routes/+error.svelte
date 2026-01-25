@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { page } from '$app/stores';
-	import { ArrowLeft } from 'lucide-svelte';
-	import logo from '$lib/assets/favicon.png';
+import { ArrowLeft } from 'lucide-svelte';
+import { page } from '$app/stores';
+import logo from '$lib/assets/favicon.png';
 </script>
 
 <div class="min-h-screen bg-zinc-950 flex flex-col">

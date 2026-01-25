@@ -16,9 +16,9 @@ import {
 	X,
 } from 'lucide-svelte';
 import MaterialPreview from '$lib/components/three/MaterialPreview.svelte';
+import { PRICING } from '$lib/pricing';
 import type { TextureGeneration } from '$lib/server/db/schema';
 import type { PageData } from './$types';
-import { PRICING } from '$lib/pricing';
 
 let { data }: { data: PageData } = $props();
 
@@ -31,7 +31,9 @@ let tokens = $state(data.user.tokens);
 let bonusTokens = $state(data.user.bonusTokens);
 
 // View mode: 'new' for creating new generation, or generation ID for viewing existing
-let viewMode = $state<'new' | string>(initialGenerations.length > 0 ? initialGenerations[0].id : 'new');
+let viewMode = $state<'new' | string>(
+	initialGenerations.length > 0 ? initialGenerations[0].id : 'new',
+);
 
 // Generation form
 let prompt = $state('');
@@ -54,29 +56,41 @@ let status = $state<string | null>(null);
 const TOKEN_COST = PRICING.tokenCosts.texture;
 
 // Derived: currently selected generation (if viewing existing)
-const selectedGeneration = $derived(viewMode !== 'new' ? textureGenerations.find(g => g.id === viewMode) : null);
+const selectedGeneration = $derived(
+	viewMode !== 'new' ? textureGenerations.find((g) => g.id === viewMode) : null,
+);
 
 // Derived: textures to display
-const displayTextures = $derived(selectedGeneration ? {
-	basecolor: selectedGeneration.basecolorUrl,
-	normal: selectedGeneration.normalUrl,
-	roughness: selectedGeneration.roughnessUrl,
-	metallic: selectedGeneration.metallicUrl,
-	height: selectedGeneration.heightUrl,
-} : {
-	basecolor: null,
-	normal: null,
-	roughness: null,
-	metallic: null,
-	height: null,
-});
+const displayTextures = $derived(
+	selectedGeneration
+		? {
+				basecolor: selectedGeneration.basecolorUrl,
+				normal: selectedGeneration.normalUrl,
+				roughness: selectedGeneration.roughnessUrl,
+				metallic: selectedGeneration.metallicUrl,
+				height: selectedGeneration.heightUrl,
+			}
+		: {
+				basecolor: null,
+				normal: null,
+				roughness: null,
+				metallic: null,
+				height: null,
+			},
+);
 
-const hasAnyTexture = $derived(Object.values(displayTextures).some((v) => v !== null));
+const hasAnyTexture = $derived(
+	Object.values(displayTextures).some((v) => v !== null),
+);
 
 // Start polling for any pending generations on page load
 $effect(() => {
 	for (const gen of initialGenerations) {
-		if (gen.status !== 'completed' && gen.status !== 'failed' && !pollingSet.has(gen.id)) {
+		if (
+			gen.status !== 'completed' &&
+			gen.status !== 'failed' &&
+			!pollingSet.has(gen.id)
+		) {
 			pollingSet.add(gen.id);
 			pollStatus(gen.id);
 		}
@@ -229,7 +243,9 @@ function downloadTexture(type: keyof typeof displayTextures) {
 }
 
 function downloadAll() {
-	for (const type of Object.keys(displayTextures) as (keyof typeof displayTextures)[]) {
+	for (const type of Object.keys(
+		displayTextures,
+	) as (keyof typeof displayTextures)[]) {
 		if (displayTextures[type]) {
 			setTimeout(() => downloadTexture(type), 100);
 		}

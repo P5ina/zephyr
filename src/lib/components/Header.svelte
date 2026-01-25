@@ -12,7 +12,15 @@ interface Props {
 	maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | '6xl';
 }
 
-let { user = null, variant = 'full', showBack = false, showAuth = true, ctaText, ctaHref, maxWidth = '6xl' }: Props = $props();
+let {
+	user = null,
+	variant = 'full',
+	showBack = false,
+	showAuth = true,
+	ctaText,
+	ctaHref,
+	maxWidth = '6xl',
+}: Props = $props();
 
 const maxWidthClass = {
 	sm: 'max-w-sm',

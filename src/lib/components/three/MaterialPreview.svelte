@@ -1,13 +1,13 @@
 <script lang="ts">
 import { T, useTask } from '@threlte/core';
-import { OrbitControls, Environment } from '@threlte/extras';
+import { Environment, OrbitControls } from '@threlte/extras';
 import {
-	SphereGeometry,
 	MeshStandardMaterial,
-	TextureLoader,
 	RepeatWrapping,
+	SphereGeometry,
 	SRGBColorSpace,
 	type Texture,
+	TextureLoader,
 } from 'three';
 
 interface Props {
@@ -57,7 +57,7 @@ function loadTexture(url: string | null | undefined): Promise<Texture | null> {
 			(err) => {
 				console.error('Failed to load texture:', url, err);
 				resolve(null);
-			}
+			},
 		);
 	});
 }
@@ -72,22 +72,30 @@ $effect(() => {
 
 $effect(() => {
 	const url = normalUrl;
-	loadTexture(url).then((t) => (normalMap = t));
+	loadTexture(url).then((t) => {
+		normalMap = t;
+	});
 });
 
 $effect(() => {
 	const url = roughnessUrl;
-	loadTexture(url).then((t) => (roughnessMap = t));
+	loadTexture(url).then((t) => {
+		roughnessMap = t;
+	});
 });
 
 $effect(() => {
 	const url = metallicUrl;
-	loadTexture(url).then((t) => (metallicMap = t));
+	loadTexture(url).then((t) => {
+		metallicMap = t;
+	});
 });
 
 $effect(() => {
 	const url = heightUrl;
-	loadTexture(url).then((t) => (displacementMap = t));
+	loadTexture(url).then((t) => {
+		displacementMap = t;
+	});
 });
 
 useTask((delta) => {
@@ -98,9 +106,15 @@ useTask((delta) => {
 
 // Key to force material recreation when textures load
 const materialKey = $derived(
-	[basecolorMap?.uuid, normalMap?.uuid, roughnessMap?.uuid, metallicMap?.uuid, displacementMap?.uuid]
+	[
+		basecolorMap?.uuid,
+		normalMap?.uuid,
+		roughnessMap?.uuid,
+		metallicMap?.uuid,
+		displacementMap?.uuid,
+	]
 		.filter(Boolean)
-		.join('-') || 'empty'
+		.join('-') || 'empty',
 );
 </script>
 

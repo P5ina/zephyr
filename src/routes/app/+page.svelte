@@ -8,9 +8,9 @@ import {
 	Sparkles,
 	X,
 } from 'lucide-svelte';
+import { PRICING } from '$lib/pricing';
 import type { AssetGeneration } from '$lib/server/db/schema';
 import type { PageData } from './$types';
-import { PRICING } from '$lib/pricing';
 
 let { data }: { data: PageData } = $props();
 
@@ -47,7 +47,11 @@ const pollingSet = new Set<string>();
 // Start polling for any pending generations on page load
 $effect(() => {
 	for (const gen of initialGenerations) {
-		if (gen.status !== 'completed' && gen.status !== 'failed' && !pollingSet.has(gen.id)) {
+		if (
+			gen.status !== 'completed' &&
+			gen.status !== 'failed' &&
+			!pollingSet.has(gen.id)
+		) {
 			pollingSet.add(gen.id);
 			pollStatus(gen.id);
 		}
@@ -151,7 +155,9 @@ async function cancelGeneration(id: string) {
 		if (res.ok) {
 			const result = await res.json();
 			generations = generations.map((g) =>
-				g.id === id ? { ...g, status: 'failed', errorMessage: 'Cancelled by user' } : g,
+				g.id === id
+					? { ...g, status: 'failed', errorMessage: 'Cancelled by user' }
+					: g,
 			);
 			tokens = tokens + result.tokensRefunded;
 		} else {

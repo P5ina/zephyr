@@ -1,6 +1,6 @@
+import crypto from 'node:crypto';
 import { env } from '$env/dynamic/private';
-import crypto from 'crypto';
-import { PRICING, type CreditPackType } from '$lib/pricing';
+import { type CreditPackType, PRICING } from '$lib/pricing';
 
 export { PRICING };
 export type { CreditPackType };
@@ -91,20 +91,20 @@ export interface WebhookPayload {
 function generateSignature(data: object): string {
 	const jsonString = JSON.stringify(data, null, 0);
 	const base64 = Buffer.from(jsonString).toString('base64');
-	return crypto.createHash('md5').update(base64 + env.CRYPTOMUS_API_KEY).digest('hex');
+	return crypto
+		.createHash('md5')
+		.update(base64 + env.CRYPTOMUS_API_KEY)
+		.digest('hex');
 }
 
-async function apiRequest<T>(
-	endpoint: string,
-	data: object
-): Promise<T> {
+async function apiRequest<T>(endpoint: string, data: object): Promise<T> {
 	const sign = generateSignature(data);
 
 	const response = await fetch(`${API_BASE}${endpoint}`, {
 		method: 'POST',
 		headers: {
-			'merchant': env.CRYPTOMUS_MERCHANT_ID!,
-			'sign': sign,
+			merchant: env.CRYPTOMUS_MERCHANT_ID,
+			sign: sign,
 			'Content-Type': 'application/json',
 		},
 		body: JSON.stringify(data),
@@ -118,10 +118,14 @@ async function apiRequest<T>(
 		console.error('Request data:', JSON.stringify(data, null, 2));
 
 		// Extract detailed error message
-		let errorMessage = result.message || `Cryptomus API error: ${response.status}`;
+		let errorMessage =
+			result.message || `Cryptomus API error: ${response.status}`;
 		if (result.errors) {
 			const errorDetails = Object.entries(result.errors)
-				.map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(', ') : val}`)
+				.map(
+					([key, val]) =>
+						`${key}: ${Array.isArray(val) ? val.join(', ') : val}`,
+				)
 				.join('; ');
 			errorMessage += ` - ${errorDetails}`;
 		}
@@ -132,7 +136,7 @@ async function apiRequest<T>(
 }
 
 export async function createPayment(
-	params: CreatePaymentParams
+	params: CreatePaymentParams,
 ): Promise<CryptomusPaymentResponse> {
 	const data: Record<string, unknown> = {
 		amount: params.amount.toString(),
@@ -155,7 +159,9 @@ export async function createPayment(
 	return apiRequest<CryptomusPaymentResponse>('/payment', data);
 }
 
-export async function getPaymentInfo(uuid: string): Promise<CryptomusPaymentResponse> {
+export async function getPaymentInfo(
+	uuid: string,
+): Promise<CryptomusPaymentResponse> {
 	return apiRequest<CryptomusPaymentResponse>('/payment/info', { uuid });
 }
 
@@ -165,7 +171,10 @@ export function verifyWebhookSignature(payload: WebhookPayload): boolean {
 	// Cryptomus signature: MD5(base64(JSON body without sign) + API_KEY)
 	const jsonString = JSON.stringify(data, null, 0);
 	const base64 = Buffer.from(jsonString).toString('base64');
-	const calculatedSign = crypto.createHash('md5').update(base64 + env.CRYPTOMUS_API_KEY).digest('hex');
+	const calculatedSign = crypto
+		.createHash('md5')
+		.update(base64 + env.CRYPTOMUS_API_KEY)
+		.digest('hex');
 
 	return calculatedSign === sign;
 }
@@ -214,7 +223,7 @@ export function parseOrderId(orderId: string): {
 export function createOrderId(
 	type: 'subscription' | 'credit_pack',
 	userId: string,
-	pack?: CreditPackType
+	pack?: CreditPackType,
 ): string {
 	const timestamp = Date.now();
 	if (type === 'credit_pack' && pack) {

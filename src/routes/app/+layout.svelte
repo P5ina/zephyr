@@ -1,14 +1,10 @@
 <script lang="ts">
+import { Coins, Layers, RotateCw, Sparkles } from 'lucide-svelte';
+import type { Snippet } from 'svelte';
 import { page } from '$app/state';
-import {
-	Coins,
-	Layers,
-	RotateCw,
-	Sparkles,
-} from 'lucide-svelte';
 import type { LayoutData } from './$types';
 
-let { data, children }: { data: LayoutData; children: any } = $props();
+let { data, children }: { data: LayoutData; children: Snippet } = $props();
 
 // Capture initial values for local state management
 // svelte-ignore state_referenced_locally

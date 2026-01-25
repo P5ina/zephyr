@@ -1,4 +1,4 @@
-import { redirect, error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import * as auth from '$lib/server/auth';
 import { getOrCreatePreviewUser } from '$lib/server/preview-auth';

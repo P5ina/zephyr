@@ -1,5 +1,4 @@
 import {
-	bigint,
 	boolean,
 	integer,
 	json,
@@ -39,7 +38,9 @@ export const subscription = pgTable('subscription', {
 		.notNull()
 		.references(() => user.id)
 		.unique(),
-	tier: text('tier', { enum: ['free', 'pro'] }).notNull().default('free'),
+	tier: text('tier', { enum: ['free', 'pro'] })
+		.notNull()
+		.default('free'),
 	status: text('status', {
 		enum: ['active', 'canceled', 'past_due', 'incomplete'],
 	})
@@ -72,7 +73,9 @@ export const transaction = pgTable('transaction', {
 	payCurrency: text('pay_currency'),
 	payAmount: text('pay_amount'),
 	tokensGranted: integer('tokens_granted').notNull(),
-	status: text('status', { enum: ['pending', 'confirmed', 'completed', 'failed', 'expired'] })
+	status: text('status', {
+		enum: ['pending', 'confirmed', 'completed', 'failed', 'expired'],
+	})
 		.notNull()
 		.default('pending'),
 	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
@@ -88,7 +91,15 @@ export type Transaction = typeof transaction.$inferSelect;
 export const vastInstance = pgTable('vast_instance', {
 	id: text('id').primaryKey(), // Vast.ai instance ID as string
 	status: text('status', {
-		enum: ['creating', 'starting', 'ready', 'busy', 'stopping', 'stopped', 'failed'],
+		enum: [
+			'creating',
+			'starting',
+			'ready',
+			'busy',
+			'stopping',
+			'stopped',
+			'failed',
+		],
 	})
 		.notNull()
 		.default('creating'),
@@ -103,8 +114,13 @@ export const vastInstance = pgTable('vast_instance', {
 
 	// Tracking
 	currentJobId: text('current_job_id'),
-	lastActivityAt: timestamp('last_activity_at', { withTimezone: true, mode: 'date' }),
-	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+	lastActivityAt: timestamp('last_activity_at', {
+		withTimezone: true,
+		mode: 'date',
+	}),
+	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
+		.notNull()
+		.defaultNow(),
 	errorMessage: text('error_message'),
 });
 
@@ -126,7 +142,14 @@ export const assetGeneration = pgTable('asset_generation', {
 
 	// Status
 	status: text('status', {
-		enum: ['pending', 'queued', 'processing', 'post_processing', 'completed', 'failed'],
+		enum: [
+			'pending',
+			'queued',
+			'processing',
+			'post_processing',
+			'completed',
+			'failed',
+		],
 	})
 		.notNull()
 		.default('pending'),

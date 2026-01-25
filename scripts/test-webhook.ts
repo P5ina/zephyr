@@ -8,89 +8,104 @@
  *   source .env && npx tsx scripts/test-webhook.ts
  */
 
-import crypto from 'crypto';
-import { readFileSync, existsSync } from 'fs';
+import crypto from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
 
 // Try to load .env file manually
 if (existsSync('.env')) {
-  const envContent = readFileSync('.env', 'utf-8');
-  envContent.split('\n').forEach(line => {
-    const [key, ...valueParts] = line.split('=');
-    if (key && valueParts.length > 0) {
-      const value = valueParts.join('=').trim().replace(/^["']|["']$/g, '');
-      if (!process.env[key.trim()]) {
-        process.env[key.trim()] = value;
-      }
-    }
-  });
+	const envContent = readFileSync('.env', 'utf-8');
+	envContent.split('\n').forEach((line) => {
+		const [key, ...valueParts] = line.split('=');
+		if (key && valueParts.length > 0) {
+			const value = valueParts
+				.join('=')
+				.trim()
+				.replace(/^["']|["']$/g, '');
+			if (!process.env[key.trim()]) {
+				process.env[key.trim()] = value;
+			}
+		}
+	});
 }
 
 const MERCHANT_ID = process.env.CRYPTOMUS_MERCHANT_ID;
 const API_KEY = process.env.CRYPTOMUS_API_KEY;
 const CALLBACK_URL = process.env.PUBLIC_BASE_URL
-  ? `${process.env.PUBLIC_BASE_URL}/api/billing/webhook`
-  : 'https://gensprite.p5ina.dev/api/billing/webhook';
+	? `${process.env.PUBLIC_BASE_URL}/api/billing/webhook`
+	: 'https://gensprite.p5ina.dev/api/billing/webhook';
 
 if (!MERCHANT_ID || !API_KEY) {
-  console.error('Missing CRYPTOMUS_MERCHANT_ID or CRYPTOMUS_API_KEY in .env');
-  process.exit(1);
+	console.error('Missing CRYPTOMUS_MERCHANT_ID or CRYPTOMUS_API_KEY in .env');
+	process.exit(1);
 }
 
 function generateSignature(data: object): string {
-  const jsonString = JSON.stringify(data);
-  const base64 = Buffer.from(jsonString).toString('base64');
-  return crypto.createHash('md5').update(base64 + API_KEY).digest('hex');
+	const jsonString = JSON.stringify(data);
+	const base64 = Buffer.from(jsonString).toString('base64');
+	return crypto
+		.createHash('md5')
+		.update(base64 + API_KEY)
+		.digest('hex');
 }
 
 // Pass order_id as argument: npx tsx scripts/test-webhook.ts credit_pack_xxx_starter_123
 const ORDER_ID = process.argv[2];
 
 async function testWebhook() {
-  if (!ORDER_ID) {
-    console.log('Usage: npx tsx scripts/test-webhook.ts <order_id>');
-    console.log('Example: npx tsx scripts/test-webhook.ts credit_pack_abc123_starter_1234567890');
-    console.log('\nGet the order_id from Vercel logs after creating a payment.');
-    process.exit(1);
-  }
+	if (!ORDER_ID) {
+		console.log('Usage: npx tsx scripts/test-webhook.ts <order_id>');
+		console.log(
+			'Example: npx tsx scripts/test-webhook.ts credit_pack_abc123_starter_1234567890',
+		);
+		console.log(
+			'\nGet the order_id from Vercel logs after creating a payment.',
+		);
+		process.exit(1);
+	}
 
-  const data = {
-    url_callback: CALLBACK_URL,
-    currency: 'USDT',
-    network: 'tron',
-    status: 'paid',
-    order_id: ORDER_ID,
-  };
+	const data = {
+		url_callback: CALLBACK_URL,
+		currency: 'USDT',
+		network: 'tron',
+		status: 'paid',
+		order_id: ORDER_ID,
+	};
 
-  const sign = generateSignature(data);
+	const sign = generateSignature(data);
 
-  console.log('Testing webhook...');
-  console.log('Callback URL:', CALLBACK_URL);
-  console.log('Request data:', JSON.stringify(data, null, 2));
+	console.log('Testing webhook...');
+	console.log('Callback URL:', CALLBACK_URL);
+	console.log('Request data:', JSON.stringify(data, null, 2));
 
-  try {
-    const response = await fetch('https://api.cryptomus.com/v1/test-webhook/payment', {
-      method: 'POST',
-      headers: {
-        'merchant': MERCHANT_ID!,
-        'sign': sign,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
+	try {
+		const response = await fetch(
+			'https://api.cryptomus.com/v1/test-webhook/payment',
+			{
+				method: 'POST',
+				headers: {
+					merchant: MERCHANT_ID,
+					sign: sign,
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(data),
+			},
+		);
 
-    const result = await response.json();
+		const result = await response.json();
 
-    if (response.ok && result.state === 0) {
-      console.log('\n✅ Test webhook sent successfully!');
-      console.log('Response:', JSON.stringify(result, null, 2));
-      console.log('\nCheck your server logs to see if the webhook was received.');
-    } else {
-      console.error('\n❌ Failed to send test webhook');
-      console.error('Response:', JSON.stringify(result, null, 2));
-    }
-  } catch (error) {
-    console.error('\n❌ Error:', error);
-  }
+		if (response.ok && result.state === 0) {
+			console.log('\n✅ Test webhook sent successfully!');
+			console.log('Response:', JSON.stringify(result, null, 2));
+			console.log(
+				'\nCheck your server logs to see if the webhook was received.',
+			);
+		} else {
+			console.error('\n❌ Failed to send test webhook');
+			console.error('Response:', JSON.stringify(result, null, 2));
+		}
+	} catch (error) {
+		console.error('\n❌ Error:', error);
+	}
 }
 
 testWebhook();

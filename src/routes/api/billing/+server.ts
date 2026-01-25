@@ -1,8 +1,8 @@
 import { error, json } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
+import { PRICING } from '$lib/pricing';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { PRICING } from '$lib/pricing';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ locals }) => {

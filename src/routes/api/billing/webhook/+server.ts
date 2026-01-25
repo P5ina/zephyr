@@ -1,8 +1,12 @@
 import { json } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
+import {
+	verifyWebhookIP,
+	verifyWebhookSignature,
+	type WebhookPayload,
+} from '$lib/server/cryptomus';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { verifyWebhookSignature, verifyWebhookIP, type WebhookPayload } from '$lib/server/cryptomus';
 import type { RequestHandler } from './$types';
 
 // Cryptomus payment statuses:
@@ -39,7 +43,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 		return json({ error: 'Invalid signature' }, { status: 400 });
 	}
 
-	const { uuid, status, order_id, payer_currency, payer_amount, is_final } = payload;
+	const { uuid, status, order_id, payer_currency, payer_amount } = payload;
 
 	// Find the transaction by order_id or uuid
 	const [transaction] = await db
@@ -110,7 +114,9 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 	return json({ received: true });
 };
 
-async function handlePaymentCompleted(transaction: typeof table.transaction.$inferSelect) {
+async function handlePaymentCompleted(
+	transaction: typeof table.transaction.$inferSelect,
+) {
 	// Skip if already completed
 	if (transaction.status === 'completed') {
 		return;
@@ -130,5 +136,7 @@ async function handlePaymentCompleted(transaction: typeof table.transaction.$inf
 		})
 		.where(eq(table.user.id, transaction.userId));
 
-	console.log(`Payment completed for user ${transaction.userId}: +${transaction.tokensGranted} tokens`);
+	console.log(
+		`Payment completed for user ${transaction.userId}: +${transaction.tokensGranted} tokens`,
+	);
 }

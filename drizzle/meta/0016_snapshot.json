@@ -1,878 +1,840 @@
 {
-  "id": "4b50f1a6-22c7-4a89-a48f-5184b8dc6ebc",
-  "prevId": "843f8d58-fb90-4345-bf37-209f526b8ad7",
-  "version": "7",
-  "dialect": "postgresql",
-  "tables": {
-    "public.asset_generation": {
-      "name": "asset_generation",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "visible_id": {
-          "name": "visible_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "asset_type": {
-          "name": "asset_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "prompt": {
-          "name": "prompt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "negative_prompt": {
-          "name": "negative_prompt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "width": {
-          "name": "width",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 512
-        },
-        "height": {
-          "name": "height",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 512
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "progress": {
-          "name": "progress",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "current_stage": {
-          "name": "current_stage",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "vast_instance_id": {
-          "name": "vast_instance_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "comfyui_prompt_id": {
-          "name": "comfyui_prompt_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "retry_count": {
-          "name": "retry_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "result_urls": {
-          "name": "result_urls",
-          "type": "json",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "pbr_urls": {
-          "name": "pbr_urls",
-          "type": "json",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "seed": {
-          "name": "seed",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "token_cost": {
-          "name": "token_cost",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "error_message": {
-          "name": "error_message",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "completed_at": {
-          "name": "completed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "asset_generation_user_id_user_id_fk": {
-          "name": "asset_generation_user_id_user_id_fk",
-          "tableFrom": "asset_generation",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "asset_generation_vast_instance_id_vast_instance_id_fk": {
-          "name": "asset_generation_vast_instance_id_vast_instance_id_fk",
-          "tableFrom": "asset_generation",
-          "tableTo": "vast_instance",
-          "columnsFrom": [
-            "vast_instance_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "asset_generation_visible_id_unique": {
-          "name": "asset_generation_visible_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "visible_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.rotation_job": {
-      "name": "rotation_job",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "progress": {
-          "name": "progress",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "current_stage": {
-          "name": "current_stage",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "started_at": {
-          "name": "started_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "prompt": {
-          "name": "prompt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "input_image_url": {
-          "name": "input_image_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rotation_n": {
-          "name": "rotation_n",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rotation_ne": {
-          "name": "rotation_ne",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rotation_e": {
-          "name": "rotation_e",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rotation_se": {
-          "name": "rotation_se",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rotation_s": {
-          "name": "rotation_s",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rotation_sw": {
-          "name": "rotation_sw",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rotation_w": {
-          "name": "rotation_w",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rotation_nw": {
-          "name": "rotation_nw",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "token_cost": {
-          "name": "token_cost",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "error_message": {
-          "name": "error_message",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "completed_at": {
-          "name": "completed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "rotation_job_user_id_user_id_fk": {
-          "name": "rotation_job_user_id_user_id_fk",
-          "tableFrom": "rotation_job",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.session": {
-      "name": "session",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "session_user_id_user_id_fk": {
-          "name": "session_user_id_user_id_fk",
-          "tableFrom": "session",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.subscription": {
-      "name": "subscription",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tier": {
-          "name": "tier",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'free'"
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'active'"
-        },
-        "current_period_end": {
-          "name": "current_period_end",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "monthly_token_allocation": {
-          "name": "monthly_token_allocation",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 25
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "subscription_user_id_user_id_fk": {
-          "name": "subscription_user_id_user_id_fk",
-          "tableFrom": "subscription",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "subscription_user_id_unique": {
-          "name": "subscription_user_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "user_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.texture_generation": {
-      "name": "texture_generation",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "prompt": {
-          "name": "prompt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "progress": {
-          "name": "progress",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "current_stage": {
-          "name": "current_stage",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "basecolor_url": {
-          "name": "basecolor_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "normal_url": {
-          "name": "normal_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "roughness_url": {
-          "name": "roughness_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "metallic_url": {
-          "name": "metallic_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "height_url": {
-          "name": "height_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "seed": {
-          "name": "seed",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "token_cost": {
-          "name": "token_cost",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "error_message": {
-          "name": "error_message",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "completed_at": {
-          "name": "completed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "texture_generation_user_id_user_id_fk": {
-          "name": "texture_generation_user_id_user_id_fk",
-          "tableFrom": "texture_generation",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.transaction": {
-      "name": "transaction",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nowpayments_payment_id": {
-          "name": "nowpayments_payment_id",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "nowpayments_invoice_id": {
-          "name": "nowpayments_invoice_id",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "order_id": {
-          "name": "order_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "type": {
-          "name": "type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "amount": {
-          "name": "amount",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "pay_currency": {
-          "name": "pay_currency",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "pay_amount": {
-          "name": "pay_amount",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "tokens_granted": {
-          "name": "tokens_granted",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "transaction_user_id_user_id_fk": {
-          "name": "transaction_user_id_user_id_fk",
-          "tableFrom": "transaction",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "transaction_nowpayments_payment_id_unique": {
-          "name": "transaction_nowpayments_payment_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "nowpayments_payment_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.user": {
-      "name": "user",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "username": {
-          "name": "username",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "avatar_url": {
-          "name": "avatar_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "github_id": {
-          "name": "github_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "tokens": {
-          "name": "tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 25
-        },
-        "bonus_tokens": {
-          "name": "bonus_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "nsfw_enabled": {
-          "name": "nsfw_enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "user_email_unique": {
-          "name": "user_email_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
-        },
-        "user_github_id_unique": {
-          "name": "user_github_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "github_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.vast_instance": {
-      "name": "vast_instance",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'creating'"
-        },
-        "http_host": {
-          "name": "http_host",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "http_port": {
-          "name": "http_port",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "gpu_name": {
-          "name": "gpu_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cost_per_hour": {
-          "name": "cost_per_hour",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "current_job_id": {
-          "name": "current_job_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_activity_at": {
-          "name": "last_activity_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "error_message": {
-          "name": "error_message",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    }
-  },
-  "enums": {},
-  "schemas": {},
-  "sequences": {},
-  "roles": {},
-  "policies": {},
-  "views": {},
-  "_meta": {
-    "columns": {},
-    "schemas": {},
-    "tables": {}
-  }
+	"id": "4b50f1a6-22c7-4a89-a48f-5184b8dc6ebc",
+	"prevId": "843f8d58-fb90-4345-bf37-209f526b8ad7",
+	"version": "7",
+	"dialect": "postgresql",
+	"tables": {
+		"public.asset_generation": {
+			"name": "asset_generation",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"visible_id": {
+					"name": "visible_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"user_id": {
+					"name": "user_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"asset_type": {
+					"name": "asset_type",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"prompt": {
+					"name": "prompt",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"negative_prompt": {
+					"name": "negative_prompt",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"width": {
+					"name": "width",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"default": 512
+				},
+				"height": {
+					"name": "height",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"default": 512
+				},
+				"status": {
+					"name": "status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "'pending'"
+				},
+				"progress": {
+					"name": "progress",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"default": 0
+				},
+				"current_stage": {
+					"name": "current_stage",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"vast_instance_id": {
+					"name": "vast_instance_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"comfyui_prompt_id": {
+					"name": "comfyui_prompt_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"retry_count": {
+					"name": "retry_count",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"default": 0
+				},
+				"result_urls": {
+					"name": "result_urls",
+					"type": "json",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"pbr_urls": {
+					"name": "pbr_urls",
+					"type": "json",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"seed": {
+					"name": "seed",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"token_cost": {
+					"name": "token_cost",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"error_message": {
+					"name": "error_message",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"completed_at": {
+					"name": "completed_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {
+				"asset_generation_user_id_user_id_fk": {
+					"name": "asset_generation_user_id_user_id_fk",
+					"tableFrom": "asset_generation",
+					"tableTo": "user",
+					"columnsFrom": ["user_id"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				},
+				"asset_generation_vast_instance_id_vast_instance_id_fk": {
+					"name": "asset_generation_vast_instance_id_vast_instance_id_fk",
+					"tableFrom": "asset_generation",
+					"tableTo": "vast_instance",
+					"columnsFrom": ["vast_instance_id"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {
+				"asset_generation_visible_id_unique": {
+					"name": "asset_generation_visible_id_unique",
+					"nullsNotDistinct": false,
+					"columns": ["visible_id"]
+				}
+			},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.rotation_job": {
+			"name": "rotation_job",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"user_id": {
+					"name": "user_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"status": {
+					"name": "status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "'pending'"
+				},
+				"progress": {
+					"name": "progress",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"default": 0
+				},
+				"current_stage": {
+					"name": "current_stage",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"started_at": {
+					"name": "started_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"prompt": {
+					"name": "prompt",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"input_image_url": {
+					"name": "input_image_url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"rotation_n": {
+					"name": "rotation_n",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"rotation_ne": {
+					"name": "rotation_ne",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"rotation_e": {
+					"name": "rotation_e",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"rotation_se": {
+					"name": "rotation_se",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"rotation_s": {
+					"name": "rotation_s",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"rotation_sw": {
+					"name": "rotation_sw",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"rotation_w": {
+					"name": "rotation_w",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"rotation_nw": {
+					"name": "rotation_nw",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"token_cost": {
+					"name": "token_cost",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"error_message": {
+					"name": "error_message",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"completed_at": {
+					"name": "completed_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {
+				"rotation_job_user_id_user_id_fk": {
+					"name": "rotation_job_user_id_user_id_fk",
+					"tableFrom": "rotation_job",
+					"tableTo": "user",
+					"columnsFrom": ["user_id"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.session": {
+			"name": "session",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"user_id": {
+					"name": "user_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"expires_at": {
+					"name": "expires_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {
+				"session_user_id_user_id_fk": {
+					"name": "session_user_id_user_id_fk",
+					"tableFrom": "session",
+					"tableTo": "user",
+					"columnsFrom": ["user_id"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.subscription": {
+			"name": "subscription",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"user_id": {
+					"name": "user_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"tier": {
+					"name": "tier",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "'free'"
+				},
+				"status": {
+					"name": "status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "'active'"
+				},
+				"current_period_end": {
+					"name": "current_period_end",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"monthly_token_allocation": {
+					"name": "monthly_token_allocation",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"default": 25
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {
+				"subscription_user_id_user_id_fk": {
+					"name": "subscription_user_id_user_id_fk",
+					"tableFrom": "subscription",
+					"tableTo": "user",
+					"columnsFrom": ["user_id"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {
+				"subscription_user_id_unique": {
+					"name": "subscription_user_id_unique",
+					"nullsNotDistinct": false,
+					"columns": ["user_id"]
+				}
+			},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.texture_generation": {
+			"name": "texture_generation",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"user_id": {
+					"name": "user_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"prompt": {
+					"name": "prompt",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"status": {
+					"name": "status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "'pending'"
+				},
+				"progress": {
+					"name": "progress",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"default": 0
+				},
+				"current_stage": {
+					"name": "current_stage",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"basecolor_url": {
+					"name": "basecolor_url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"normal_url": {
+					"name": "normal_url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"roughness_url": {
+					"name": "roughness_url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"metallic_url": {
+					"name": "metallic_url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"height_url": {
+					"name": "height_url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"seed": {
+					"name": "seed",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"token_cost": {
+					"name": "token_cost",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"error_message": {
+					"name": "error_message",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"completed_at": {
+					"name": "completed_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {
+				"texture_generation_user_id_user_id_fk": {
+					"name": "texture_generation_user_id_user_id_fk",
+					"tableFrom": "texture_generation",
+					"tableTo": "user",
+					"columnsFrom": ["user_id"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.transaction": {
+			"name": "transaction",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"user_id": {
+					"name": "user_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"nowpayments_payment_id": {
+					"name": "nowpayments_payment_id",
+					"type": "bigint",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"nowpayments_invoice_id": {
+					"name": "nowpayments_invoice_id",
+					"type": "bigint",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"order_id": {
+					"name": "order_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"type": {
+					"name": "type",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"amount": {
+					"name": "amount",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"pay_currency": {
+					"name": "pay_currency",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"pay_amount": {
+					"name": "pay_amount",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"tokens_granted": {
+					"name": "tokens_granted",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"status": {
+					"name": "status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "'pending'"
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {
+				"transaction_user_id_user_id_fk": {
+					"name": "transaction_user_id_user_id_fk",
+					"tableFrom": "transaction",
+					"tableTo": "user",
+					"columnsFrom": ["user_id"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {
+				"transaction_nowpayments_payment_id_unique": {
+					"name": "transaction_nowpayments_payment_id_unique",
+					"nullsNotDistinct": false,
+					"columns": ["nowpayments_payment_id"]
+				}
+			},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.user": {
+			"name": "user",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"email": {
+					"name": "email",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"username": {
+					"name": "username",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"avatar_url": {
+					"name": "avatar_url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"github_id": {
+					"name": "github_id",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"tokens": {
+					"name": "tokens",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"default": 25
+				},
+				"bonus_tokens": {
+					"name": "bonus_tokens",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"default": 0
+				},
+				"nsfw_enabled": {
+					"name": "nsfw_enabled",
+					"type": "boolean",
+					"primaryKey": false,
+					"notNull": true,
+					"default": true
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {
+				"user_email_unique": {
+					"name": "user_email_unique",
+					"nullsNotDistinct": false,
+					"columns": ["email"]
+				},
+				"user_github_id_unique": {
+					"name": "user_github_id_unique",
+					"nullsNotDistinct": false,
+					"columns": ["github_id"]
+				}
+			},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.vast_instance": {
+			"name": "vast_instance",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"status": {
+					"name": "status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "'creating'"
+				},
+				"http_host": {
+					"name": "http_host",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"http_port": {
+					"name": "http_port",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"gpu_name": {
+					"name": "gpu_name",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"cost_per_hour": {
+					"name": "cost_per_hour",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"current_job_id": {
+					"name": "current_job_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"last_activity_at": {
+					"name": "last_activity_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"error_message": {
+					"name": "error_message",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		}
+	},
+	"enums": {},
+	"schemas": {},
+	"sequences": {},
+	"roles": {},
+	"policies": {},
+	"views": {},
+	"_meta": {
+		"columns": {},
+		"schemas": {},
+		"tables": {}
+	}
 }
