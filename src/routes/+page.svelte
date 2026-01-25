@@ -45,7 +45,7 @@ const jsonLd = {
 			'@type': 'Organization',
 			name: 'GenSprite',
 			url,
-			logo: 'https://gensprite.p5ina.dev/favicon.svg'
+			logo: 'https://gensprite.p5ina.dev/icon-512.png'
 		}
 	]
 };

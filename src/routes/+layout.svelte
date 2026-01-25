@@ -1,6 +1,6 @@
 <script lang="ts">
 import './layout.css';
-import favicon from '$lib/assets/favicon.svg';
+import favicon from '$lib/assets/favicon.png';
 import { browser } from '$app/environment';
 import { page } from '$app/state';
 import { fade } from 'svelte/transition';
@@ -20,6 +20,9 @@ if (browser) {
 </script>
 
 <svelte:head>
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+	<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 	<link rel="icon" href={favicon} />
 	<meta name="theme-color" content="#eab308" />
 	<link rel="canonical" href="https://gensprite.p5ina.dev{page.url.pathname}" />
