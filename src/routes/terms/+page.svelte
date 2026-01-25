@@ -19,7 +19,7 @@ import Footer from '$lib/components/Footer.svelte';
 			<section>
 				<h2 class="text-xl font-semibold text-white mb-4">1. Acceptance of Terms</h2>
 				<p class="text-zinc-400 leading-relaxed">
-					By accessing or using GenSprite ("Service"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Service. We reserve the right to modify these terms at any time, and your continued use of the Service constitutes acceptance of any modifications.
+					By accessing or using GenSprite ("Service"), operated by Timur Turatbekov ("we", "us", or "our"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Service. We reserve the right to modify these terms at any time, and your continued use of the Service constitutes acceptance of any modifications.
 				</p>
 			</section>
 

@@ -19,7 +19,7 @@ import Footer from '$lib/components/Footer.svelte';
 			<section>
 				<h2 class="text-xl font-semibold text-white mb-4">1. Introduction</h2>
 				<p class="text-zinc-400 leading-relaxed">
-					GenSprite ("we", "our", or "us") respects your privacy and is committed to protecting your personal data. This Privacy Policy explains how we collect, use, and safeguard your information when you use our AI game asset generation service.
+					GenSprite, operated by Timur Turatbekov ("we", "our", or "us"), respects your privacy and is committed to protecting your personal data. This Privacy Policy explains how we collect, use, and safeguard your information when you use our AI game asset generation service.
 				</p>
 			</section>
 

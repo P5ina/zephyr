@@ -29,6 +29,7 @@ const maxWidthClass = {
 					<span class="text-sm font-semibold text-white">GenSprite</span>
 				</a>
 				<div class="flex items-center gap-6 text-sm text-zinc-400">
+					<a href="/pricing" class="hover:text-white transition-colors">Pricing</a>
 					<a href="/terms" class="hover:text-white transition-colors">Terms</a>
 					<a href="/privacy" class="hover:text-white transition-colors">Privacy</a>
 					<a href="/refund" class="hover:text-white transition-colors">Refunds</a>
