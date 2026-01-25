@@ -12,17 +12,17 @@ import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
 
-const title = 'Zephyr - AI Game Asset Generator | Sprites, Textures & 8-Direction Rotation';
+const title = 'GenSprite - AI Game Asset Generator | Sprites, Textures & 8-Direction Rotation';
 const description = 'Generate game-ready sprites, PBR textures, and 8-directional character rotations with AI. Powered by FLUX.1 and ComfyUI. Start free with 50 tokens.';
-const url = 'https://zephyr.p5ina.dev';
-const image = 'https://zephyr.p5ina.dev/og-image.png';
+const url = 'https://gensprite.p5ina.dev';
+const image = 'https://gensprite.p5ina.dev/og-image.png';
 
 const jsonLd = {
 	'@context': 'https://schema.org',
 	'@graph': [
 		{
 			'@type': 'WebApplication',
-			name: 'Zephyr',
+			name: 'GenSprite',
 			url,
 			description,
 			applicationCategory: 'DesignApplication',
@@ -43,9 +43,9 @@ const jsonLd = {
 		},
 		{
 			'@type': 'Organization',
-			name: 'Zephyr',
+			name: 'GenSprite',
 			url,
-			logo: 'https://zephyr.p5ina.dev/favicon.svg'
+			logo: 'https://gensprite.p5ina.dev/favicon.svg'
 		}
 	]
 };
@@ -62,7 +62,7 @@ const jsonLd = {
 	<meta property="og:title" content={title} />
 	<meta property="og:description" content={description} />
 	<meta property="og:image" content={image} />
-	<meta property="og:site_name" content="Zephyr" />
+	<meta property="og:site_name" content="GenSprite" />
 
 	<!-- Twitter Card -->
 	<meta name="twitter:card" content="summary_large_image" />
@@ -89,7 +89,7 @@ const jsonLd = {
 				<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
 					<Sparkles class="w-4 h-4 text-zinc-900" />
 				</div>
-				<span class="text-xl font-bold text-white">Zephyr</span>
+				<span class="text-xl font-bold text-white">GenSprite</span>
 			</div>
 			<div class="flex items-center gap-6">
 				<a href="#features" class="text-sm text-zinc-400 hover:text-white transition-colors">
@@ -392,7 +392,7 @@ const jsonLd = {
 					<div class="w-6 h-6 rounded-md bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
 						<Sparkles class="w-3 h-3 text-zinc-900" />
 					</div>
-					<span class="text-sm font-semibold text-white">Zephyr</span>
+					<span class="text-sm font-semibold text-white">GenSprite</span>
 				</div>
 				<div class="flex items-center gap-6 text-sm text-zinc-400">
 					<a href="/terms" class="hover:text-white transition-colors">Terms</a>
@@ -402,7 +402,7 @@ const jsonLd = {
 						<Github class="w-5 h-5" />
 					</a>
 				</div>
-				<p class="text-sm text-zinc-500">© 2025 Zephyr. All rights reserved.</p>
+				<p class="text-sm text-zinc-500">© 2025 GenSprite. All rights reserved.</p>
 			</div>
 		</div>
 	</footer>

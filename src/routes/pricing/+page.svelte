@@ -24,7 +24,7 @@ function getDiscount(pack: (typeof PRICING.creditPacks)[keyof typeof PRICING.cre
 </script>
 
 <svelte:head>
-	<title>Pricing - Zephyr</title>
+	<title>Pricing - GenSprite</title>
 	<meta name="description" content="Simple token-based pricing for AI game asset generation. Start free with 50 tokens, buy more when you need them." />
 </svelte:head>
 
@@ -39,7 +39,7 @@ function getDiscount(pack: (typeof PRICING.creditPacks)[keyof typeof PRICING.cre
 					<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
 						<Sparkles class="w-4 h-4 text-zinc-900" />
 					</div>
-					<span class="text-xl font-bold text-white">Zephyr</span>
+					<span class="text-xl font-bold text-white">GenSprite</span>
 				</div>
 			</div>
 			{#if data.user}

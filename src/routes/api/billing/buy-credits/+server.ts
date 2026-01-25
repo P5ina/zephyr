@@ -30,7 +30,7 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 			priceAmount: pack.price,
 			priceCurrency: 'usd',
 			orderId,
-			orderDescription: `Zephyr ${pack.name}`,
+			orderDescription: `GenSprite ${pack.name}`,
 			callbackUrl: `${baseUrl}/api/billing/webhook`,
 			successUrl: `${baseUrl}/?checkout=success`,
 			cancelUrl: `${baseUrl}/?checkout=canceled`,

@@ -35,7 +35,7 @@ function isActive(href: string) {
 	<header class="border-b border-zinc-800">
 		<div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
 			<div class="flex items-center gap-6">
-				<a href="/" class="text-xl font-bold text-white hover:text-yellow-400 transition-colors">Zephyr</a>
+				<a href="/" class="text-xl font-bold text-white hover:text-yellow-400 transition-colors">GenSprite</a>
 				<nav class="flex items-center gap-1">
 					{#each tabs as tab}
 						<a

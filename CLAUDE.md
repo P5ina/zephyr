@@ -1,4 +1,4 @@
-# Zephyr
+# GenSprite
 
 AI-powered game asset generation platform for sprites, textures, and 8-directional rotations.
 
@@ -8,7 +8,7 @@ AI-powered game asset generation platform for sprites, textures, and 8-direction
 - **Database**: Vercel Postgres (Neon) + Drizzle ORM
 - **Image Generation**: ComfyUI workflows (Flux Schnell, SV3D, ControlNet)
 - **3D Preview**: Three.js + Threlte
-- **Payments**: NowPayments (crypto)
+- **Payments**: Paddle (planned)
 - **File Storage**: Vercel Blob
 - **Deployment**: Vercel
 
@@ -30,7 +30,6 @@ AI-powered game asset generation platform for sprites, textures, and 8-direction
         schema.ts             — Database schema
       auth.ts                 — Session management
       oauth.ts                — GitHub OAuth
-      nowpayments.ts          — Crypto payments
     /components
       /three
         MaterialPreview.svelte — 3D texture preview
@@ -61,11 +60,15 @@ AI-powered game asset generation platform for sprites, textures, and 8-direction
     /login
       /github                 — GitHub OAuth flow
       /preview                — Demo mode for preview deployments
+    /terms                    — Terms of Service
+    /privacy                  — Privacy Policy
+    /refund                   — Refund Policy
+    /pricing                  — Pricing page
 ```
 
 ## Worker Repository
 
-Workflows and job processing are in a separate worker repo (`zephyr-worker`):
+Workflows and job processing are in a separate worker repo (`gensprite-worker`):
 - `workflows/sprite.json` — Sprite generation using Flux Schnell + RMBG
 - `workflows/rotate_regular.json` — SV3D rotation with ControlNet Tile + IPAdapter refinement
 
@@ -133,8 +136,8 @@ POSTGRES_URL=               # Vercel Postgres connection string
 BLOB_READ_WRITE_TOKEN=     # Vercel Blob storage token
 GITHUB_CLIENT_ID=          # GitHub OAuth
 GITHUB_CLIENT_SECRET=
-NOWPAYMENTS_API_KEY=       # Crypto payments
-NOWPAYMENTS_IPN_SECRET=
+PADDLE_API_KEY=            # Paddle payments (planned)
+PADDLE_WEBHOOK_SECRET=
 PREVIEW_LOGIN_SECRET=      # Secret for preview deployment login
 ```
 

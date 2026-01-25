@@ -3,8 +3,8 @@ import { ArrowLeft, Sparkles } from 'lucide-svelte';
 </script>
 
 <svelte:head>
-	<title>Terms of Service - Zephyr</title>
-	<meta name="description" content="Terms of Service for Zephyr AI game asset generator" />
+	<title>Terms of Service - GenSprite</title>
+	<meta name="description" content="Terms of Service for GenSprite AI game asset generator" />
 </svelte:head>
 
 <div class="min-h-screen bg-zinc-950">
@@ -17,7 +17,7 @@ import { ArrowLeft, Sparkles } from 'lucide-svelte';
 				<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
 					<Sparkles class="w-4 h-4 text-zinc-900" />
 				</div>
-				<span class="text-xl font-bold text-white">Zephyr</span>
+				<span class="text-xl font-bold text-white">GenSprite</span>
 			</div>
 		</div>
 	</nav>
@@ -30,14 +30,14 @@ import { ArrowLeft, Sparkles } from 'lucide-svelte';
 			<section>
 				<h2 class="text-xl font-semibold text-white mb-4">1. Acceptance of Terms</h2>
 				<p class="text-zinc-400 leading-relaxed">
-					By accessing or using Zephyr ("Service"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Service. We reserve the right to modify these terms at any time, and your continued use of the Service constitutes acceptance of any modifications.
+					By accessing or using GenSprite ("Service"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Service. We reserve the right to modify these terms at any time, and your continued use of the Service constitutes acceptance of any modifications.
 				</p>
 			</section>
 
 			<section>
 				<h2 class="text-xl font-semibold text-white mb-4">2. Description of Service</h2>
 				<p class="text-zinc-400 leading-relaxed">
-					Zephyr is an AI-powered platform for generating game assets including sprites, PBR textures, and 8-directional character rotations. The Service operates on a token-based system where users purchase tokens to generate assets.
+					GenSprite is an AI-powered platform for generating game assets including sprites, PBR textures, and 8-directional character rotations. The Service operates on a token-based system where users purchase tokens to generate assets.
 				</p>
 			</section>
 

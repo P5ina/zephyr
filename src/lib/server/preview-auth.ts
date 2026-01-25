@@ -4,7 +4,7 @@ import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import * as auth from '$lib/server/auth';
 
-const PREVIEW_USER_EMAIL = 'preview@zephyr.local';
+const PREVIEW_USER_EMAIL = 'preview@gensprite.local';
 
 export async function getOrCreatePreviewUser() {
 	// Find existing preview user

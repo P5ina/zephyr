@@ -3,8 +3,8 @@ import { ArrowLeft, Sparkles } from 'lucide-svelte';
 </script>
 
 <svelte:head>
-	<title>Privacy Policy - Zephyr</title>
-	<meta name="description" content="Privacy Policy for Zephyr AI game asset generator" />
+	<title>Privacy Policy - GenSprite</title>
+	<meta name="description" content="Privacy Policy for GenSprite AI game asset generator" />
 </svelte:head>
 
 <div class="min-h-screen bg-zinc-950">
@@ -17,7 +17,7 @@ import { ArrowLeft, Sparkles } from 'lucide-svelte';
 				<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center">
 					<Sparkles class="w-4 h-4 text-zinc-900" />
 				</div>
-				<span class="text-xl font-bold text-white">Zephyr</span>
+				<span class="text-xl font-bold text-white">GenSprite</span>
 			</div>
 		</div>
 	</nav>
@@ -30,7 +30,7 @@ import { ArrowLeft, Sparkles } from 'lucide-svelte';
 			<section>
 				<h2 class="text-xl font-semibold text-white mb-4">1. Introduction</h2>
 				<p class="text-zinc-400 leading-relaxed">
-					Zephyr ("we", "our", or "us") respects your privacy and is committed to protecting your personal data. This Privacy Policy explains how we collect, use, and safeguard your information when you use our AI game asset generation service.
+					GenSprite ("we", "our", or "us") respects your privacy and is committed to protecting your personal data. This Privacy Policy explains how we collect, use, and safeguard your information when you use our AI game asset generation service.
 				</p>
 			</section>
 

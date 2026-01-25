@@ -22,7 +22,7 @@ if (browser) {
 <svelte:head>
 	<link rel="icon" href={favicon} />
 	<meta name="theme-color" content="#eab308" />
-	<link rel="canonical" href="https://zephyr.p5ina.dev{page.url.pathname}" />
+	<link rel="canonical" href="https://gensprite.p5ina.dev{page.url.pathname}" />
 </svelte:head>
 {#key page.url.pathname}
 	<div in:fade={{ duration: 150, delay: 150 }} out:fade={{ duration: 150 }}>

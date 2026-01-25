@@ -12,8 +12,12 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	Download,
+	Expand,
+	Grid3x3,
 	ImagePlus,
 	Loader2,
+	Pause,
+	Play,
 	Plus,
 	RotateCw,
 	Sparkles,
@@ -56,6 +60,16 @@ let rotationJobs = $state<RotationJob[]>(initialJobs);
 const pollingSet = new Set<string>();
 
 const TOKEN_COST = 8;
+
+// Viewer state
+let showViewer = $state(false);
+let viewerDirection = $state(0); // Index into animationOrder
+let isPlaying = $state(false);
+let animationSpeed = $state(200); // ms per frame
+let animationInterval: ReturnType<typeof setInterval> | null = null; // Not reactive
+
+// Animation order for cycling through directions (clockwise starting from N)
+const animationOrder = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'] as const;
 
 const directions = [
 	{ key: 'nw', label: 'NW', icon: ArrowUpLeft, angle: 315 },
@@ -286,6 +300,130 @@ function formatDate(date: Date | string | null) {
 
 function getJobPreviewImage(job: RotationJob): string | null {
 	return job.rotationS || job.rotationN || job.rotationE || job.rotationW || null;
+}
+
+// Viewer functions
+function openViewer() {
+	if (!hasAnyRotation) return;
+	showViewer = true;
+	viewerDirection = 0;
+}
+
+function closeViewer() {
+	showViewer = false;
+	stopAnimation();
+}
+
+function nextDirection() {
+	viewerDirection = (viewerDirection + 1) % animationOrder.length;
+}
+
+function prevDirection() {
+	viewerDirection = (viewerDirection - 1 + animationOrder.length) % animationOrder.length;
+}
+
+function togglePlay() {
+	if (isPlaying) {
+		stopAnimation();
+	} else {
+		startAnimation();
+	}
+}
+
+function startAnimation() {
+	if (animationInterval) clearInterval(animationInterval);
+	isPlaying = true;
+	animationInterval = setInterval(() => {
+		viewerDirection = (viewerDirection + 1) % animationOrder.length;
+	}, animationSpeed);
+}
+
+function stopAnimation() {
+	isPlaying = false;
+	if (animationInterval) {
+		clearInterval(animationInterval);
+		animationInterval = null;
+	}
+}
+
+function changeSpeed(newSpeed: number) {
+	animationSpeed = newSpeed;
+	if (isPlaying) {
+		// Restart with new speed
+		if (animationInterval) clearInterval(animationInterval);
+		animationInterval = setInterval(() => {
+			viewerDirection = (viewerDirection + 1) % animationOrder.length;
+		}, animationSpeed);
+	}
+}
+
+// Cleanup on unmount
+$effect(() => {
+	return () => {
+		if (animationInterval) clearInterval(animationInterval);
+	};
+});
+
+// Get current viewer image
+const currentViewerImage = $derived(
+	displayRotations[animationOrder[viewerDirection] as keyof typeof displayRotations]
+);
+const currentViewerLabel = $derived(animationOrder[viewerDirection].toUpperCase());
+
+// Export spritesheet
+async function exportSpritesheet() {
+	if (!hasAnyRotation) return;
+
+	const images: HTMLImageElement[] = [];
+	const loadPromises: Promise<void>[] = [];
+
+	// Load all images
+	for (const dir of animationOrder) {
+		const url = displayRotations[dir as keyof typeof displayRotations];
+		if (url) {
+			const img = new Image();
+			img.crossOrigin = 'anonymous';
+			const promise = new Promise<void>((resolve, reject) => {
+				img.onload = () => resolve();
+				img.onerror = () => reject(new Error(`Failed to load ${dir}`));
+			});
+			img.src = url;
+			images.push(img);
+			loadPromises.push(promise);
+		}
+	}
+
+	try {
+		await Promise.all(loadPromises);
+
+		if (images.length === 0) return;
+
+		// Get dimensions from first image
+		const imgWidth = images[0].width;
+		const imgHeight = images[0].height;
+
+		// Create canvas for horizontal spritesheet (8 frames in a row)
+		const canvas = document.createElement('canvas');
+		canvas.width = imgWidth * images.length;
+		canvas.height = imgHeight;
+
+		const ctx = canvas.getContext('2d');
+		if (!ctx) return;
+
+		// Draw each image
+		images.forEach((img, i) => {
+			ctx.drawImage(img, i * imgWidth, 0);
+		});
+
+		// Download
+		const link = document.createElement('a');
+		link.download = 'spritesheet.png';
+		link.href = canvas.toDataURL('image/png');
+		link.click();
+	} catch (e) {
+		console.error('Failed to export spritesheet:', e);
+		alert('Failed to export spritesheet');
+	}
 }
 
 function getSpriteUrl(sprite: typeof sprites[number]): string | null {
@@ -591,13 +729,31 @@ function scrollHistory(direction: 'left' | 'right') {
 			<div class="flex items-center justify-between mb-4">
 				<h2 class="text-lg font-semibold text-white">8-Direction Output</h2>
 				{#if hasAnyRotation}
-					<button
-						onclick={downloadAll}
-						class="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-medium rounded-lg transition-colors"
-					>
-						<Download class="w-3.5 h-3.5" />
-						Download
-					</button>
+					<div class="flex items-center gap-2">
+						<button
+							onclick={openViewer}
+							class="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 text-xs font-medium rounded-lg transition-colors"
+							title="Open viewer"
+						>
+							<Expand class="w-3.5 h-3.5" />
+							View
+						</button>
+						<button
+							onclick={exportSpritesheet}
+							class="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-medium rounded-lg transition-colors"
+							title="Export as spritesheet"
+						>
+							<Grid3x3 class="w-3.5 h-3.5" />
+							Spritesheet
+						</button>
+						<button
+							onclick={downloadAll}
+							class="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-medium rounded-lg transition-colors"
+						>
+							<Download class="w-3.5 h-3.5" />
+							Download
+						</button>
+					</div>
 				{/if}
 			</div>
 
@@ -610,19 +766,29 @@ function scrollHistory(direction: 'left' | 'right') {
 						</div>
 					{:else}
 						{@const url = displayRotations[dir.key as keyof typeof displayRotations]}
-						<div class="group relative aspect-square bg-zinc-800/50 rounded-lg border border-zinc-700 flex flex-col items-center justify-center overflow-hidden">
+						<button
+							onclick={() => {
+								if (url) {
+									const idx = animationOrder.indexOf(dir.key as typeof animationOrder[number]);
+									if (idx !== -1) {
+										viewerDirection = idx;
+										showViewer = true;
+									}
+								}
+							}}
+							class="group relative aspect-square bg-zinc-800/50 rounded-lg border border-zinc-700 flex flex-col items-center justify-center overflow-hidden {url ? 'cursor-pointer hover:border-yellow-500/50' : 'cursor-default'} transition-colors"
+						>
 							{#if url}
 								<img
 									src={url}
 									alt={dir.label}
 									class="w-full h-full object-contain"
 								/>
-								<button
-									onclick={() => downloadRotation(dir.key)}
-									class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+								<div
+									class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2"
 								>
-									<Download class="w-5 h-5 text-white" />
-								</button>
+									<Expand class="w-5 h-5 text-white" />
+								</div>
 							{:else if selectedJob?.status === 'processing'}
 								<Loader2 class="w-5 h-5 animate-spin text-zinc-600" />
 							{:else}
@@ -630,7 +796,7 @@ function scrollHistory(direction: 'left' | 'right') {
 								<Icon class="w-6 h-6 text-zinc-600 mb-1" />
 								<span class="text-[10px] text-zinc-500">{dir.label}</span>
 							{/if}
-						</div>
+						</button>
 					{/if}
 				{/each}
 			</div>
@@ -656,3 +822,146 @@ function scrollHistory(direction: 'left' | 'right') {
 		</div>
 	</div>
 </div>
+
+<!-- Sprite Viewer Modal -->
+{#if showViewer}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+		onclick={(e) => e.target === e.currentTarget && closeViewer()}
+		onkeydown={(e) => {
+			if (e.key === 'Escape') closeViewer();
+			if (e.key === 'ArrowLeft') prevDirection();
+			if (e.key === 'ArrowRight') nextDirection();
+			if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+		}}
+		role="dialog"
+		tabindex="-1"
+	>
+		<div class="relative w-full max-w-3xl max-h-full flex flex-col">
+			<!-- Close button -->
+			<button
+				onclick={closeViewer}
+				class="absolute -top-2 -right-2 z-10 p-2 bg-zinc-800 hover:bg-zinc-700 rounded-full text-zinc-400 hover:text-white transition-colors"
+			>
+				<X class="w-5 h-5" />
+			</button>
+
+			<!-- Main viewer -->
+			<div class="bg-zinc-900 border border-zinc-700 rounded-xl overflow-hidden flex flex-col max-h-[calc(100vh-2rem)]">
+				<!-- Image display -->
+				<div class="relative flex-1 min-h-0 bg-zinc-800/50 flex items-center justify-center p-8">
+					{#if currentViewerImage}
+						<img
+							src={currentViewerImage}
+							alt={currentViewerLabel}
+							class="max-w-full max-h-[50vh] object-contain"
+						/>
+					{:else}
+						<div class="text-zinc-500">No image</div>
+					{/if}
+
+					<!-- Direction indicator -->
+					<div class="absolute top-3 left-3 px-3 py-1.5 bg-black/60 rounded-lg">
+						<span class="text-white font-medium">{currentViewerLabel}</span>
+					</div>
+
+					<!-- Navigation arrows -->
+					<button
+						onclick={prevDirection}
+						class="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/60 hover:bg-black/80 rounded-full transition-colors"
+					>
+						<ChevronLeft class="w-5 h-5 text-white" />
+					</button>
+					<button
+						onclick={nextDirection}
+						class="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/60 hover:bg-black/80 rounded-full transition-colors"
+					>
+						<ChevronRight class="w-5 h-5 text-white" />
+					</button>
+				</div>
+
+				<!-- Controls -->
+				<div class="p-4 border-t border-zinc-700 bg-zinc-900 space-y-3">
+					<!-- Direction thumbnails -->
+					<div class="flex items-center justify-center gap-1">
+						{#each animationOrder as dir, i}
+							{@const url = displayRotations[dir as keyof typeof displayRotations]}
+							<button
+								onclick={() => { viewerDirection = i; }}
+								class="w-10 h-10 rounded border-2 overflow-hidden transition-all {viewerDirection === i ? 'border-yellow-500' : 'border-zinc-700 hover:border-zinc-600'}"
+							>
+								{#if url}
+									<img src={url} alt={dir.toUpperCase()} class="w-full h-full object-contain bg-zinc-800" />
+								{:else}
+									<div class="w-full h-full bg-zinc-800 flex items-center justify-center text-[8px] text-zinc-500">
+										{dir.toUpperCase()}
+									</div>
+								{/if}
+							</button>
+						{/each}
+					</div>
+
+					<!-- Animation and export controls -->
+					<div class="flex items-center justify-center gap-3 flex-wrap">
+						<!-- Animation controls -->
+						<button
+							onclick={togglePlay}
+							class="flex items-center gap-2 px-4 py-2 {isPlaying ? 'bg-yellow-500 text-zinc-900' : 'bg-zinc-800 text-white'} hover:opacity-90 rounded-lg transition-all font-medium"
+						>
+							{#if isPlaying}
+								<Pause class="w-4 h-4" />
+								Pause
+							{:else}
+								<Play class="w-4 h-4" />
+								Play
+							{/if}
+						</button>
+
+						<!-- Speed control -->
+						<div class="flex items-center gap-2">
+							<span class="text-xs text-zinc-400">Speed:</span>
+							<select
+								value={animationSpeed}
+								onchange={(e) => changeSpeed(Number((e.target as HTMLSelectElement).value))}
+								class="px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500"
+							>
+								<option value={400}>Slow</option>
+								<option value={200}>Normal</option>
+								<option value={100}>Fast</option>
+								<option value={50}>Very Fast</option>
+							</select>
+						</div>
+
+						<div class="w-px h-6 bg-zinc-700"></div>
+
+						<!-- Export buttons -->
+						<button
+							onclick={exportSpritesheet}
+							class="flex items-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium rounded-lg transition-colors"
+						>
+							<Grid3x3 class="w-4 h-4" />
+							Spritesheet
+						</button>
+						<button
+							onclick={downloadAll}
+							class="flex items-center gap-1.5 px-3 py-2 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 text-sm font-medium rounded-lg transition-colors"
+						>
+							<Download class="w-4 h-4" />
+							Download
+						</button>
+					</div>
+
+					<!-- Keyboard hints -->
+					<div class="text-center text-xs text-zinc-500 pt-2 border-t border-zinc-800">
+						<span class="inline-flex items-center gap-4 flex-wrap justify-center">
+							<span><kbd class="px-1.5 py-0.5 bg-zinc-800 rounded">←</kbd> <kbd class="px-1.5 py-0.5 bg-zinc-800 rounded">→</kbd> Navigate</span>
+							<span><kbd class="px-1.5 py-0.5 bg-zinc-800 rounded">Space</kbd> Play/Pause</span>
+							<span><kbd class="px-1.5 py-0.5 bg-zinc-800 rounded">Esc</kbd> Close</span>
+						</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}

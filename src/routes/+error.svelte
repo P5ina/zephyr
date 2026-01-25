@@ -25,7 +25,7 @@
 				>
 					<Sparkles class="w-5 h-5 text-zinc-900" />
 				</div>
-				<span class="text-2xl font-bold text-white">Zephyr</span>
+				<span class="text-2xl font-bold text-white">GenSprite</span>
 			</div>
 
 			<!-- Error code -->
@@ -58,7 +58,7 @@
 	<!-- Footer -->
 	<footer class="relative z-10 border-t border-zinc-800/50">
 		<div class="max-w-6xl mx-auto px-4 py-6">
-			<p class="text-sm text-zinc-500 text-center">© 2025 Zephyr. All rights reserved.</p>
+			<p class="text-sm text-zinc-500 text-center">© 2025 GenSprite. All rights reserved.</p>
 		</div>
 	</footer>
 </div>

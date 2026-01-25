@@ -3,4 +3,4 @@ User-agent: *
 Disallow: /app/
 Disallow: /api/
 
-Sitemap: https://zephyr.p5ina.dev/sitemap.xml
+Sitemap: https://gensprite.p5ina.dev/sitemap.xml
