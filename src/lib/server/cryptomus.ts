@@ -113,7 +113,19 @@ async function apiRequest<T>(
 	const result = await response.json();
 
 	if (!response.ok || result.state !== 0) {
-		throw new Error(result.message || `Cryptomus API error: ${response.status}`);
+		// Log full error for debugging
+		console.error('Cryptomus API error:', JSON.stringify(result, null, 2));
+		console.error('Request data:', JSON.stringify(data, null, 2));
+
+		// Extract detailed error message
+		let errorMessage = result.message || `Cryptomus API error: ${response.status}`;
+		if (result.errors) {
+			const errorDetails = Object.entries(result.errors)
+				.map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(', ') : val}`)
+				.join('; ');
+			errorMessage += ` - ${errorDetails}`;
+		}
+		throw new Error(errorMessage);
 	}
 
 	return result.result;
@@ -172,8 +184,9 @@ export function parseOrderId(orderId: string): {
 	timestamp: number;
 } | null {
 	try {
-		// Format: type:userId:pack:timestamp or type:userId:timestamp
-		const parts = orderId.split(':');
+		// Format: type_userId_pack_timestamp or type_userId_timestamp
+		// Using underscores because Cryptomus only allows alphanumeric, dash, underscore
+		const parts = orderId.split('_');
 		if (parts.length < 3) return null;
 
 		const type = parts[0] as 'subscription' | 'credit_pack';
@@ -205,7 +218,8 @@ export function createOrderId(
 ): string {
 	const timestamp = Date.now();
 	if (type === 'credit_pack' && pack) {
-		return `${type}:${userId}:${pack}:${timestamp}`;
+		// Using underscores - Cryptomus only allows alphanumeric, dash, underscore
+		return `${type}_${userId}_${pack}_${timestamp}`;
 	}
-	return `${type}:${userId}:${timestamp}`;
+	return `${type}_${userId}_${timestamp}`;
 }
