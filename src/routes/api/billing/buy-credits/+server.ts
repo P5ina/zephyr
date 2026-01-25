@@ -37,6 +37,9 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 			lifetime: 3600, // 1 hour
 		});
 
+		// Log full response for debugging
+		console.log('Cryptomus payment created:', JSON.stringify(payment, null, 2));
+
 		// Create pending transaction
 		await db.insert(table.transaction).values({
 			id: nanoid(),
@@ -49,6 +52,7 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 			status: 'pending',
 		});
 
+		console.log('Redirecting to:', payment.url);
 		return json({ url: payment.url });
 	} catch (err) {
 		console.error('Cryptomus payment creation error:', err);

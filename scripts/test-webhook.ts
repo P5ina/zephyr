@@ -42,13 +42,23 @@ function generateSignature(data: object): string {
   return crypto.createHash('md5').update(base64 + API_KEY).digest('hex');
 }
 
+// Pass order_id as argument: npx tsx scripts/test-webhook.ts credit_pack_xxx_starter_123
+const ORDER_ID = process.argv[2];
+
 async function testWebhook() {
+  if (!ORDER_ID) {
+    console.log('Usage: npx tsx scripts/test-webhook.ts <order_id>');
+    console.log('Example: npx tsx scripts/test-webhook.ts credit_pack_abc123_starter_1234567890');
+    console.log('\nGet the order_id from Vercel logs after creating a payment.');
+    process.exit(1);
+  }
+
   const data = {
     url_callback: CALLBACK_URL,
     currency: 'USDT',
     network: 'tron',
     status: 'paid',
-    order_id: `credit_pack_testuser_starter_${Date.now()}`,
+    order_id: ORDER_ID,
   };
 
   const sign = generateSignature(data);
