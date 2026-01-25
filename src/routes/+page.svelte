@@ -2,6 +2,7 @@
 import {
 	ArrowRight,
 	Check,
+	Github,
 	Layers,
 	RotateCw,
 	Sparkles,
