@@ -95,7 +95,7 @@ const jsonLd = {
 				<a href="#features" class="text-sm text-zinc-400 hover:text-white transition-colors">
 					Features
 				</a>
-				<a href="#pricing" class="text-sm text-zinc-400 hover:text-white transition-colors">
+				<a href="/pricing" class="text-sm text-zinc-400 hover:text-white transition-colors">
 					Pricing
 				</a>
 				{#if data.user}
