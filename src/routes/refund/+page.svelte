@@ -13,7 +13,7 @@ import Footer from '$lib/components/Footer.svelte';
 
 	<main class="max-w-4xl mx-auto px-4 py-12">
 		<h1 class="text-3xl font-bold text-white mb-2">Refund Policy</h1>
-		<p class="text-zinc-500 mb-8">Last updated: January 25, 2025</p>
+		<p class="text-zinc-500 mb-8">Last updated: January 25, 2026</p>
 
 		<div class="prose prose-invert prose-zinc max-w-none space-y-8">
 			<section>

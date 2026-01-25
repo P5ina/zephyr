@@ -36,7 +36,7 @@ const maxWidthClass = {
 						<Github class="w-5 h-5" />
 					</a>
 				</div>
-				<p class="text-sm text-zinc-500">© 2025 GenSprite. All rights reserved.</p>
+				<p class="text-sm text-zinc-500">© 2026 GenSprite. All rights reserved.</p>
 			</div>
 		{:else}
 			<div class="flex flex-wrap items-center justify-center gap-6 text-sm text-zinc-500">

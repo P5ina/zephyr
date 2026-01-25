@@ -55,7 +55,7 @@
 	<!-- Footer -->
 	<footer class="relative z-10 border-t border-zinc-800/50">
 		<div class="max-w-6xl mx-auto px-4 py-6">
-			<p class="text-sm text-zinc-500 text-center">© 2025 GenSprite. All rights reserved.</p>
+			<p class="text-sm text-zinc-500 text-center">© 2026 GenSprite. All rights reserved.</p>
 		</div>
 	</footer>
 </div>
