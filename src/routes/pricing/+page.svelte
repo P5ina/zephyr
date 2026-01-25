@@ -47,7 +47,7 @@ function getDiscount(pack: (typeof PRICING.creditPacks)[keyof typeof PRICING.cre
 				<span class="text-xs font-medium text-yellow-300">Free to start</span>
 			</div>
 			<h2 class="text-2xl font-bold text-white mb-2">50 free tokens on signup</h2>
-			<p class="text-zinc-400 text-sm">That's ~25 sprites, ~10 textures, or ~6 rotations to try everything out. No credit card required.</p>
+			<p class="text-zinc-400 text-sm">That's ~25 sprites, ~12 textures, or ~8 rotations to try everything out. No credit card required.</p>
 		</div>
 
 		<!-- Token Packs -->
@@ -59,22 +59,22 @@ function getDiscount(pack: (typeof PRICING.creditPacks)[keyof typeof PRICING.cre
 					<p class="text-xs text-zinc-500 mt-1">Great for trying out</p>
 				</div>
 				<div class="mb-2">
-					<span class="text-4xl font-bold text-white">$10</span>
+					<span class="text-4xl font-bold text-white">$5</span>
 				</div>
-				<div class="text-sm text-zinc-400 mb-4">500 tokens</div>
-				<div class="text-xs text-zinc-500 mb-6">${getPerTokenPrice(10, 500)} per token</div>
+				<div class="text-sm text-zinc-400 mb-4">300 tokens</div>
+				<div class="text-xs text-zinc-500 mb-6">${getPerTokenPrice(5, 300)} per token</div>
 				<ul class="space-y-2 mb-6">
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
-						<span>~250 sprites</span>
+						<span>~150 sprites</span>
 					</li>
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
-						<span>~100 textures</span>
+						<span>~75 textures</span>
 					</li>
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
-						<span>~62 rotations</span>
+						<span>~50 rotations</span>
 					</li>
 				</ul>
 				<a
@@ -95,22 +95,22 @@ function getDiscount(pack: (typeof PRICING.creditPacks)[keyof typeof PRICING.cre
 					<p class="text-xs text-zinc-500 mt-1">Most popular choice</p>
 				</div>
 				<div class="mb-2">
-					<span class="text-4xl font-bold text-white">$25</span>
+					<span class="text-4xl font-bold text-white">$15</span>
 				</div>
-				<div class="text-sm text-zinc-400 mb-1">2,000 tokens</div>
-				<div class="text-xs text-yellow-400 mb-6">${getPerTokenPrice(25, 2000)} per token — 37% off</div>
+				<div class="text-sm text-zinc-400 mb-1">1,200 tokens</div>
+				<div class="text-xs text-yellow-400 mb-6">${getPerTokenPrice(15, 1200)} per token — 25% off</div>
 				<ul class="space-y-2 mb-6">
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
-						<span>~1,000 sprites</span>
+						<span>~600 sprites</span>
 					</li>
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
-						<span>~400 textures</span>
+						<span>~300 textures</span>
 					</li>
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
-						<span>~250 rotations</span>
+						<span>~200 rotations</span>
 					</li>
 				</ul>
 				<a
@@ -128,22 +128,22 @@ function getDiscount(pack: (typeof PRICING.creditPacks)[keyof typeof PRICING.cre
 					<p class="text-xs text-zinc-500 mt-1">For power users</p>
 				</div>
 				<div class="mb-2">
-					<span class="text-4xl font-bold text-white">$50</span>
+					<span class="text-4xl font-bold text-white">$35</span>
 				</div>
-				<div class="text-sm text-zinc-400 mb-1">6,000 tokens</div>
-				<div class="text-xs text-green-400 mb-6">${getPerTokenPrice(50, 6000)} per token — 58% off</div>
+				<div class="text-sm text-zinc-400 mb-1">4,000 tokens</div>
+				<div class="text-xs text-green-400 mb-6">${getPerTokenPrice(35, 4000)} per token — 48% off</div>
 				<ul class="space-y-2 mb-6">
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
-						<span>~3,000 sprites</span>
+						<span>~2,000 sprites</span>
 					</li>
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
-						<span>~1,200 textures</span>
+						<span>~1,000 textures</span>
 					</li>
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
-						<span>~750 rotations</span>
+						<span>~666 rotations</span>
 					</li>
 				</ul>
 				<a

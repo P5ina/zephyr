@@ -43,7 +43,7 @@ import Footer from '$lib/components/Footer.svelte';
 					<p>The Service uses a token-based payment system:</p>
 					<ul class="list-disc list-inside space-y-2 ml-4">
 						<li>New accounts receive 50 free tokens upon registration</li>
-						<li>Additional tokens can be purchased in packs ($10, $25, or $50)</li>
+						<li>Additional tokens can be purchased in packs ($5, $15, or $35)</li>
 						<li>Tokens are non-refundable once purchased, except as described in our Refund Policy</li>
 						<li>Tokens never expire</li>
 						<li>Tokens are deducted before generation begins</li>

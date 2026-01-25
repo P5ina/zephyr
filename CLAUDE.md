@@ -116,16 +116,16 @@ rotationJob: id, userId, status, progress, currentStage,
 
 **Token Costs:**
 - Sprite: 2 tokens
-- Texture (PBR): 5 tokens
-- Rotation (8-dir): 8 tokens
+- Texture (PBR): 4 tokens
+- Rotation (8-dir): 6 tokens
 
 **Free Start:**
 - 50 tokens on signup (no credit card required)
 
 **Token Packs:**
-- Starter: 500 tokens / $10 ($0.02/token)
-- Creator: 2,000 tokens / $25 ($0.0125/token, 37% off)
-- Studio: 6,000 tokens / $50 ($0.0083/token, 58% off)
+- Starter: 300 tokens / $5 ($0.017/token)
+- Creator: 1,200 tokens / $15 ($0.0125/token, 25% off)
+- Studio: 4,000 tokens / $35 ($0.00875/token, 48% off)
 
 Tokens never expire. Failed generations are automatically refunded.
 

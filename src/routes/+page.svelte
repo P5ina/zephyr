@@ -254,7 +254,7 @@ const jsonLd = {
 					<span class="text-xs font-medium text-yellow-300">Free to start</span>
 				</div>
 				<h3 class="text-2xl font-bold text-white mb-2">50 free tokens on signup</h3>
-				<p class="text-zinc-400 text-sm">That's ~25 sprites, ~10 textures, or ~6 rotations to try everything out.</p>
+				<p class="text-zinc-400 text-sm">That's ~25 sprites, ~12 textures, or ~8 rotations to try everything out.</p>
 			</div>
 
 			<!-- Token Packs -->
@@ -263,13 +263,13 @@ const jsonLd = {
 				<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors">
 					<div class="mb-4">
 						<h3 class="text-lg font-semibold text-white">Starter</h3>
-						<p class="text-xs text-zinc-500 mt-1">~250 sprites</p>
+						<p class="text-xs text-zinc-500 mt-1">~150 sprites</p>
 					</div>
 					<div class="mb-4">
-						<span class="text-3xl font-bold text-white">$10</span>
-						<span class="text-zinc-500 text-sm ml-1">/ 500 tokens</span>
+						<span class="text-3xl font-bold text-white">$5</span>
+						<span class="text-zinc-500 text-sm ml-1">/ 300 tokens</span>
 					</div>
-					<p class="text-xs text-zinc-400 mb-4">$0.02 per token</p>
+					<p class="text-xs text-zinc-400 mb-4">$0.017 per token</p>
 					<a
 						href={data.user ? '/app/billing' : '/login'}
 						class="block text-center px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium rounded-xl transition-colors"
@@ -285,13 +285,13 @@ const jsonLd = {
 					</div>
 					<div class="mb-4">
 						<h3 class="text-lg font-semibold text-white">Creator</h3>
-						<p class="text-xs text-zinc-500 mt-1">~1,000 sprites</p>
+						<p class="text-xs text-zinc-500 mt-1">~600 sprites</p>
 					</div>
 					<div class="mb-4">
-						<span class="text-3xl font-bold text-white">$25</span>
-						<span class="text-zinc-500 text-sm ml-1">/ 2,000 tokens</span>
+						<span class="text-3xl font-bold text-white">$15</span>
+						<span class="text-zinc-500 text-sm ml-1">/ 1,200 tokens</span>
 					</div>
-					<p class="text-xs text-yellow-400 mb-4">$0.0125 per token — 37% off</p>
+					<p class="text-xs text-yellow-400 mb-4">$0.0125 per token — 25% off</p>
 					<a
 						href={data.user ? '/app/billing' : '/login'}
 						class="block text-center px-4 py-2.5 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 text-sm font-medium rounded-xl transition-all shadow-lg shadow-yellow-500/25"
@@ -304,13 +304,13 @@ const jsonLd = {
 				<div class="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-colors">
 					<div class="mb-4">
 						<h3 class="text-lg font-semibold text-white">Studio</h3>
-						<p class="text-xs text-zinc-500 mt-1">~3,000 sprites</p>
+						<p class="text-xs text-zinc-500 mt-1">~2,000 sprites</p>
 					</div>
 					<div class="mb-4">
-						<span class="text-3xl font-bold text-white">$50</span>
-						<span class="text-zinc-500 text-sm ml-1">/ 6,000 tokens</span>
+						<span class="text-3xl font-bold text-white">$35</span>
+						<span class="text-zinc-500 text-sm ml-1">/ 4,000 tokens</span>
 					</div>
-					<p class="text-xs text-green-400 mb-4">$0.0083 per token — 58% off</p>
+					<p class="text-xs text-green-400 mb-4">$0.00875 per token — 48% off</p>
 					<a
 						href={data.user ? '/app/billing' : '/login'}
 						class="block text-center px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium rounded-xl transition-colors"
@@ -335,14 +335,14 @@ const jsonLd = {
 						<div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center mx-auto mb-3">
 							<Layers class="w-5 h-5 text-orange-400" />
 						</div>
-						<p class="text-2xl font-bold text-white mb-1">5</p>
+						<p class="text-2xl font-bold text-white mb-1">4</p>
 						<p class="text-xs text-zinc-400">tokens per texture set</p>
 					</div>
 					<div class="p-4 rounded-xl bg-zinc-900/50 border border-zinc-800">
 						<div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center mx-auto mb-3">
 							<RotateCw class="w-5 h-5 text-amber-400" />
 						</div>
-						<p class="text-2xl font-bold text-white mb-1">8</p>
+						<p class="text-2xl font-bold text-white mb-1">6</p>
 						<p class="text-xs text-zinc-400">tokens per 8-dir rotation</p>
 					</div>
 				</div>

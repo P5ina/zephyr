@@ -6,27 +6,27 @@ export const PRICING = {
 
 	tokenCosts: {
 		sprite: 2,
-		texture: 5,
-		rotation: 8,
+		texture: 4,
+		rotation: 6,
 	},
 
 	creditPacks: {
 		starter: {
 			name: 'Starter',
-			tokens: 500,
-			price: 10, // $0.02 per token
+			tokens: 300,
+			price: 5, // $0.017 per token
 			popular: false,
 		},
 		creator: {
 			name: 'Creator',
-			tokens: 2000,
-			price: 25, // $0.0125 per token - 37% off
+			tokens: 1200,
+			price: 15, // $0.0125 per token - 25% off
 			popular: true,
 		},
 		studio: {
 			name: 'Studio',
-			tokens: 6000,
-			price: 50, // $0.0083 per token - 58% off
+			tokens: 4000,
+			price: 35, // $0.00875 per token - 48% off
 			popular: false,
 		},
 	},
