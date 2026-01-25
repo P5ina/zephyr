@@ -144,7 +144,7 @@ import { ArrowLeft, Sparkles } from 'lucide-svelte';
 						<li>Withdraw consent where applicable</li>
 					</ul>
 					<p class="mt-3">
-						To exercise these rights, contact us at support@zephyr.p5ina.dev.
+						To exercise these rights, contact us at support@p5ina.dev.
 					</p>
 				</div>
 			</section>
@@ -166,7 +166,7 @@ import { ArrowLeft, Sparkles } from 'lucide-svelte';
 			<section>
 				<h2 class="text-xl font-semibold text-white mb-4">11. Contact Us</h2>
 				<p class="text-zinc-400 leading-relaxed">
-					For questions about this Privacy Policy, please contact us at support@zephyr.p5ina.dev.
+					For questions about this Privacy Policy, please contact us at support@p5ina.dev.
 				</p>
 			</section>
 		</div>

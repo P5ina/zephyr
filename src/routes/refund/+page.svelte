@@ -81,7 +81,7 @@ import { ArrowLeft, Sparkles } from 'lucide-svelte';
 				<div class="text-zinc-400 leading-relaxed space-y-3">
 					<p>To request a refund for a token purchase:</p>
 					<ol class="list-decimal list-inside space-y-2 ml-4">
-						<li>Email us at support@zephyr.p5ina.dev</li>
+						<li>Email us at support@p5ina.dev</li>
 						<li>Include your account email address</li>
 						<li>Provide the transaction ID or date of purchase</li>
 						<li>Explain the reason for your refund request</li>
@@ -116,7 +116,7 @@ import { ArrowLeft, Sparkles } from 'lucide-svelte';
 			<section>
 				<h2 class="text-xl font-semibold text-white mb-4">8. Contact Us</h2>
 				<p class="text-zinc-400 leading-relaxed">
-					If you have questions about this Refund Policy or need assistance, please contact us at support@zephyr.p5ina.dev.
+					If you have questions about this Refund Policy or need assistance, please contact us at support@p5ina.dev.
 				</p>
 			</section>
 		</div>

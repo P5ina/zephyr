@@ -123,7 +123,7 @@ import { ArrowLeft, Sparkles } from 'lucide-svelte';
 			<section>
 				<h2 class="text-xl font-semibold text-white mb-4">11. Contact</h2>
 				<p class="text-zinc-400 leading-relaxed">
-					For questions about these Terms of Service, please contact us at support@zephyr.p5ina.dev.
+					For questions about these Terms of Service, please contact us at support@p5ina.dev.
 				</p>
 			</section>
 		</div>
