@@ -18,6 +18,7 @@ import {
 import MaterialPreview from '$lib/components/three/MaterialPreview.svelte';
 import type { TextureGeneration } from '$lib/server/db/schema';
 import type { PageData } from './$types';
+import { PRICING } from '$lib/pricing';
 
 let { data }: { data: PageData } = $props();
 
@@ -50,7 +51,7 @@ const pollingSet = new Set<string>();
 // Generation status
 let status = $state<string | null>(null);
 
-const TOKEN_COST = 5;
+const TOKEN_COST = PRICING.tokenCosts.texture;
 
 // Derived: currently selected generation (if viewing existing)
 const selectedGeneration = $derived(viewMode !== 'new' ? textureGenerations.find(g => g.id === viewMode) : null);

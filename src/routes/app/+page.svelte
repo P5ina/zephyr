@@ -10,6 +10,7 @@ import {
 } from 'lucide-svelte';
 import type { AssetGeneration } from '$lib/server/db/schema';
 import type { PageData } from './$types';
+import { PRICING } from '$lib/pricing';
 
 let { data }: { data: PageData } = $props();
 
@@ -38,7 +39,7 @@ let nextCursor = $state<string | null>(
 		: null,
 );
 
-const TOKEN_COST = 2;
+const TOKEN_COST = PRICING.tokenCosts.sprite;
 
 // Track which generations we're already polling
 const pollingSet = new Set<string>();

@@ -26,6 +26,7 @@ import {
 } from 'lucide-svelte';
 import type { RotationJob } from '$lib/server/db/schema';
 import type { PageData } from './$types';
+import { PRICING } from '$lib/pricing';
 
 let { data }: { data: PageData } = $props();
 
@@ -59,7 +60,7 @@ let rotationJobs = $state<RotationJob[]>(initialJobs);
 // Track polling
 const pollingSet = new Set<string>();
 
-const TOKEN_COST = 8;
+const TOKEN_COST = PRICING.tokenCosts.rotation;
 
 // Viewer state
 let showViewer = $state(false);
