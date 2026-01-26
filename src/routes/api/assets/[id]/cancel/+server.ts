@@ -20,8 +20,15 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 		error(404, 'Asset not found');
 	}
 
-	if (asset.status === 'completed' || asset.status === 'failed') {
-		error(400, 'Cannot cancel a completed or failed generation');
+	// Allow cancelling "completed" generations that have no actual results (stuck)
+	const hasResults = asset.resultUrls?.processed || asset.resultUrls?.raw;
+
+	if (asset.status === 'failed') {
+		error(400, 'Cannot cancel a failed generation');
+	}
+
+	if (asset.status === 'completed' && hasResults) {
+		error(400, 'Cannot cancel a completed generation with results');
 	}
 
 	await db

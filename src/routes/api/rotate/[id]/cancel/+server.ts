@@ -20,8 +20,15 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 		error(404, 'Rotation job not found');
 	}
 
-	if (rotation.status === 'completed' || rotation.status === 'failed') {
-		error(400, 'Cannot cancel a completed or failed generation');
+	// Allow cancelling "completed" generations that have no actual results (stuck)
+	const hasResults = rotation.rotationN || rotation.rotationS;
+
+	if (rotation.status === 'failed') {
+		error(400, 'Cannot cancel a failed generation');
+	}
+
+	if (rotation.status === 'completed' && hasResults) {
+		error(400, 'Cannot cancel a completed generation with results');
 	}
 
 	await db

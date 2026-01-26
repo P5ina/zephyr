@@ -20,8 +20,15 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 		error(404, 'Texture not found');
 	}
 
-	if (texture.status === 'completed' || texture.status === 'failed') {
-		error(400, 'Cannot cancel a completed or failed generation');
+	// Allow cancelling "completed" generations that have no actual results (stuck)
+	const hasResults = texture.basecolorUrl || texture.normalUrl;
+
+	if (texture.status === 'failed') {
+		error(400, 'Cannot cancel a failed generation');
+	}
+
+	if (texture.status === 'completed' && hasResults) {
+		error(400, 'Cannot cancel a completed generation with results');
 	}
 
 	await db
