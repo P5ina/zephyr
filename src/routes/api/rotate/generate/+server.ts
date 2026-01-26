@@ -3,11 +3,13 @@ import { put } from '@vercel/blob';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { env } from '$env/dynamic/private';
+import { PRICING } from '$lib/pricing';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
+import { submitRotationJob } from '$lib/server/runpod';
 import type { RequestHandler } from './$types';
 
-const TOKEN_COST = 8;
+const TOKEN_COST = PRICING.tokenCosts.rotation;
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!locals.user) {
@@ -122,6 +124,39 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			currentStage: 'Queued for processing...',
 		})
 		.returning();
+
+	// Submit to RunPod for processing
+	try {
+		await submitRotationJob({
+			jobId,
+			inputImageUrl,
+			elevation,
+		});
+	} catch (err) {
+		// RunPod submission failed - refund tokens and mark as failed
+		console.error('RunPod submission failed:', err);
+
+		await db
+			.update(table.user)
+			.set({
+				bonusTokens: sql`${table.user.bonusTokens} + ${bonusDeduct}`,
+				tokens: sql`${table.user.tokens} + ${regularDeduct}`,
+			})
+			.where(eq(table.user.id, locals.user.id));
+
+		await db
+			.update(table.rotationJob)
+			.set({
+				status: 'failed',
+				errorMessage: 'Failed to submit job for processing',
+			})
+			.where(eq(table.rotationJob.id, jobId));
+
+		error(
+			500,
+			'Failed to submit job for processing. Tokens have been refunded.',
+		);
+	}
 
 	return json({
 		id: job.id,
