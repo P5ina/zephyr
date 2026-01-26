@@ -257,9 +257,9 @@ function getAssetTypeLabel(type: string) {
 							onclick={() => openModal(gen)}
 							class="group relative aspect-square bg-zinc-800/50 rounded-lg overflow-hidden border border-zinc-700 cursor-pointer w-full text-left hover:border-zinc-600 transition-colors"
 						>
-							{#if gen.status === 'completed' && gen.resultUrls?.raw}
+							{#if gen.status === 'completed' && gen.resultUrls?.processed}
 								<img
-									src={gen.resultUrls.raw}
+									src={gen.resultUrls.processed}
 									alt={gen.prompt}
 									class="w-full h-full object-cover"
 								/>
@@ -367,9 +367,9 @@ function getAssetTypeLabel(type: string) {
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<!-- Image Preview -->
 					<div class="aspect-square bg-zinc-800/50 rounded-lg overflow-hidden border border-zinc-700">
-						{#if selectedGeneration.status === 'completed' && selectedGeneration.resultUrls?.raw}
+						{#if selectedGeneration.status === 'completed' && selectedGeneration.resultUrls?.processed}
 							<img
-								src={selectedGeneration.resultUrls.raw}
+								src={selectedGeneration.resultUrls.processed}
 								alt={selectedGeneration.prompt}
 								class="w-full h-full object-contain"
 							/>
@@ -460,9 +460,9 @@ function getAssetTypeLabel(type: string) {
 
 			<!-- Footer -->
 			<div class="p-4 border-t border-zinc-800 flex justify-end gap-2">
-				{#if selectedGeneration.status === 'completed' && selectedGeneration.resultUrls?.raw}
+				{#if selectedGeneration.status === 'completed' && selectedGeneration.resultUrls?.processed}
 					<a
-						href={selectedGeneration.resultUrls.raw}
+						href={selectedGeneration.resultUrls.processed}
 						download
 						class="flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 font-medium rounded-lg transition-colors"
 					>
