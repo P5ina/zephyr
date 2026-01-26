@@ -127,11 +127,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	// Submit to RunPod for processing
 	try {
-		await submitRotationJob({
+		const runpodResponse = await submitRotationJob({
 			jobId,
 			inputImageUrl,
 			elevation,
 		});
+
+		// Store RunPod job ID for status polling
+		await db
+			.update(table.rotationJob)
+			.set({ runpodJobId: runpodResponse.id })
+			.where(eq(table.rotationJob.id, jobId));
 	} catch (err) {
 		// RunPod submission failed - refund tokens and mark as failed
 		console.error('RunPod submission failed:', err);

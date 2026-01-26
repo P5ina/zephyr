@@ -84,13 +84,19 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	// Submit to RunPod for processing
 	try {
-		await submitSpriteJob({
+		const runpodResponse = await submitSpriteJob({
 			jobId: assetId,
 			prompt: body.prompt,
 			width,
 			height,
 			seed: body.seed,
 		});
+
+		// Store RunPod job ID for status polling
+		await db
+			.update(table.assetGeneration)
+			.set({ runpodJobId: runpodResponse.id })
+			.where(eq(table.assetGeneration.id, assetId));
 	} catch (err) {
 		// RunPod submission failed - refund tokens and mark as failed
 		console.error('RunPod submission failed:', err);

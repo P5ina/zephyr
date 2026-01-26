@@ -66,10 +66,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	// Submit to RunPod for processing
 	try {
-		await submitTextureJob({
+		const runpodResponse = await submitTextureJob({
 			jobId: textureId,
 			prompt: body.prompt.trim(),
 		});
+
+		// Store RunPod job ID for status polling
+		await db
+			.update(table.textureGeneration)
+			.set({ runpodJobId: runpodResponse.id })
+			.where(eq(table.textureGeneration.id, textureId));
 	} catch (err) {
 		// RunPod submission failed - refund tokens and mark as failed
 		console.error('RunPod submission failed:', err);

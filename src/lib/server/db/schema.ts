@@ -155,6 +155,7 @@ export const assetGeneration = pgTable('asset_generation', {
 		.default('pending'),
 	progress: integer('progress').notNull().default(0),
 	currentStage: text('current_stage'),
+	runpodJobId: text('runpod_job_id'),
 	vastInstanceId: text('vast_instance_id').references(() => vastInstance.id),
 	comfyuiPromptId: text('comfyui_prompt_id'),
 	retryCount: integer('retry_count').notNull().default(0),
@@ -202,6 +203,7 @@ export const textureGeneration = pgTable('texture_generation', {
 		.default('pending'),
 	progress: integer('progress').notNull().default(0),
 	currentStage: text('current_stage'),
+	runpodJobId: text('runpod_job_id'),
 
 	// Results - URLs for each PBR map
 	basecolorUrl: text('basecolor_url'),
@@ -237,6 +239,7 @@ export const rotationJob = pgTable('rotation_job', {
 		.default('pending'),
 	progress: integer('progress').notNull().default(0),
 	currentStage: text('current_stage'),
+	runpodJobId: text('runpod_job_id'),
 	startedAt: timestamp('started_at', { withTimezone: true, mode: 'date' }),
 
 	// Input
