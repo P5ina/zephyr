@@ -257,9 +257,9 @@ function getAssetTypeLabel(type: string) {
 							onclick={() => openModal(gen)}
 							class="group relative aspect-square bg-zinc-800/50 rounded-lg overflow-hidden border border-zinc-700 cursor-pointer w-full text-left hover:border-zinc-600 transition-colors"
 						>
-							{#if gen.status === 'completed' && gen.resultUrls?.processed}
+							{#if gen.status === 'completed' && (gen.resultUrls?.processed || gen.resultUrls?.raw)}
 								<img
-									src={gen.resultUrls.processed}
+									src={gen.resultUrls.processed || gen.resultUrls.raw}
 									alt={gen.prompt}
 									class="w-full h-full object-cover"
 								/>
@@ -367,9 +367,9 @@ function getAssetTypeLabel(type: string) {
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<!-- Image Preview -->
 					<div class="aspect-square bg-zinc-800/50 rounded-lg overflow-hidden border border-zinc-700">
-						{#if selectedGeneration.status === 'completed' && selectedGeneration.resultUrls?.processed}
+						{#if selectedGeneration.status === 'completed' && (selectedGeneration.resultUrls?.processed || selectedGeneration.resultUrls?.raw)}
 							<img
-								src={selectedGeneration.resultUrls.processed}
+								src={selectedGeneration.resultUrls.processed || selectedGeneration.resultUrls.raw}
 								alt={selectedGeneration.prompt}
 								class="w-full h-full object-contain"
 							/>
@@ -460,9 +460,9 @@ function getAssetTypeLabel(type: string) {
 
 			<!-- Footer -->
 			<div class="p-4 border-t border-zinc-800 flex justify-end gap-2">
-				{#if selectedGeneration.status === 'completed' && selectedGeneration.resultUrls?.processed}
+				{#if selectedGeneration.status === 'completed' && (selectedGeneration.resultUrls?.processed || selectedGeneration.resultUrls?.raw)}
 					<a
-						href={selectedGeneration.resultUrls.processed}
+						href={selectedGeneration.resultUrls.processed || selectedGeneration.resultUrls.raw}
 						download
 						class="flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 font-medium rounded-lg transition-colors"
 					>

@@ -4,10 +4,13 @@ import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import type { RequestHandler } from './$types';
 
-export const POST: RequestHandler = async ({ params, locals }) => {
+export const POST: RequestHandler = async ({ params, locals, url }) => {
 	if (!locals.user) {
 		error(401, 'Unauthorized');
 	}
+
+	// Force flag allows deleting stuck generations without refund
+	const force = url.searchParams.get('force') === 'true';
 
 	const asset = await db.query.assetGeneration.findFirst({
 		where: and(
@@ -20,39 +23,50 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 		error(404, 'Asset not found');
 	}
 
-	// Allow cancelling "completed" generations that have no actual results (stuck)
-	const hasResults = asset.resultUrls?.processed || asset.resultUrls?.raw;
-
+	// Check if already failed (no double refund)
 	if (asset.status === 'failed') {
 		error(400, 'Cannot cancel a failed generation');
 	}
 
-	if (asset.status === 'completed' && hasResults) {
-		error(400, 'Cannot cancel a completed generation with results');
+	// Allow cancelling "completed" generations that have no actual results (stuck)
+	// Or if force flag is set, allow deletion without refund
+	const hasResults = asset.resultUrls?.processed || asset.resultUrls?.raw;
+	const shouldRefund = asset.status !== 'completed' || !hasResults;
+
+	// If completed with results and not forcing, reject
+	if (asset.status === 'completed' && hasResults && !force) {
+		error(400, 'Cannot cancel a completed generation with results. Use ?force=true to delete without refund.');
 	}
 
 	await db
 		.update(table.assetGeneration)
 		.set({
 			status: 'failed',
-			errorMessage: 'Cancelled by user',
+			errorMessage: force ? 'Deleted by user' : 'Cancelled by user',
 		})
 		.where(eq(table.assetGeneration.id, asset.id));
 
-	// Refund both regular and bonus tokens correctly
-	const regularTokens = asset.tokenCost - asset.bonusTokenCost;
-	await db
-		.update(table.user)
-		.set({
-			tokens: sql`${table.user.tokens} + ${regularTokens}`,
-			bonusTokens: sql`${table.user.bonusTokens} + ${asset.bonusTokenCost}`,
-		})
-		.where(eq(table.user.id, asset.userId));
+	// Refund tokens only if generation wasn't actually completed
+	let regularTokensRefunded = 0;
+	let bonusTokensRefunded = 0;
+
+	if (shouldRefund) {
+		regularTokensRefunded = asset.tokenCost - asset.bonusTokenCost;
+		bonusTokensRefunded = asset.bonusTokenCost;
+		await db
+			.update(table.user)
+			.set({
+				tokens: sql`${table.user.tokens} + ${regularTokensRefunded}`,
+				bonusTokens: sql`${table.user.bonusTokens} + ${bonusTokensRefunded}`,
+			})
+			.where(eq(table.user.id, asset.userId));
+	}
 
 	return json({
 		success: true,
-		tokensRefunded: asset.tokenCost,
-		regularTokensRefunded: regularTokens,
-		bonusTokensRefunded: asset.bonusTokenCost,
+		tokensRefunded: regularTokensRefunded + bonusTokensRefunded,
+		regularTokensRefunded,
+		bonusTokensRefunded,
+		wasForced: force,
 	});
 };
