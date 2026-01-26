@@ -1,47 +1,39 @@
 """
-Rotation pipeline using SyncDreamer for multi-view generation.
-Generates 16 views and extracts 8 directions.
+Rotation pipeline using SVD (Stable Video Diffusion) for multi-view generation.
+Generates orbital video frames and extracts 8 directions.
 """
 
-import random
-from typing import Optional, Callable, Awaitable, List
+from typing import Optional, Callable, Awaitable
 from PIL import Image
 import numpy as np
+import torch
 from rembg import remove
 
-from models.loader import get_rembg_session
+from models.loader import get_rembg_session, MODEL_CACHE, HF_TOKEN
 from utils.blob import upload_image, download_image
 
 
-# Direction mapping: indices from 16-view output to 8 cardinal/ordinal directions
-# SyncDreamer generates 16 views evenly spaced around the object
-# Index 0 is the front view, going counter-clockwise
+# SVD generates 25 frames by default
+# Map to 8 cardinal/ordinal directions
 DIRECTION_INDICES = {
-    "N": 0,     # Front (0°)
-    "NE": 2,    # 45°
-    "E": 4,     # 90° (right)
-    "SE": 6,    # 135°
-    "S": 8,     # 180° (back)
-    "SW": 10,   # 225°
-    "W": 12,    # 270° (left)
-    "NW": 14,   # 315°
+    "S": 0,      # Front (0°)
+    "SW": 3,     # ~43°
+    "W": 6,      # ~86°
+    "NW": 9,     # ~130°
+    "N": 12,     # ~173° (back)
+    "NE": 15,    # ~216°
+    "E": 18,     # ~259°
+    "SE": 21,    # ~302°
 }
 
 
-def preprocess_input_image(image: Image.Image, size: int = 256) -> Image.Image:
+def preprocess_input_image(image: Image.Image, size: int = 576) -> Image.Image:
     """
-    Preprocess input image for SyncDreamer.
+    Preprocess input image for SVD.
     - Remove background if needed
     - Center the object
     - Resize to target size
     - Add white background
-
-    Args:
-        image: Input PIL Image
-        size: Target size (default 256 for SyncDreamer)
-
-    Returns:
-        Preprocessed image
     """
     # Convert to RGBA if needed
     if image.mode != "RGBA":
@@ -65,8 +57,8 @@ def preprocess_input_image(image: Image.Image, size: int = 256) -> Image.Image:
     cols = np.any(alpha > 10, axis=0)
 
     if not np.any(rows) or not np.any(cols):
-        # No content found, return as-is
-        return image.resize((size, size), Image.Resampling.LANCZOS)
+        # No content found, return white image
+        return Image.new("RGB", (size, size), (255, 255, 255))
 
     y_min, y_max = np.where(rows)[0][[0, -1]]
     x_min, x_max = np.where(cols)[0][[0, -1]]
@@ -77,66 +69,50 @@ def preprocess_input_image(image: Image.Image, size: int = 256) -> Image.Image:
     # Create square canvas with padding
     content_h, content_w = cropped.shape[:2]
     max_dim = max(content_h, content_w)
-    padding = int(max_dim * 0.1)  # 10% padding
+    padding = int(max_dim * 0.1)
     canvas_size = max_dim + padding * 2
 
-    # Create white canvas with alpha
-    canvas = np.ones((canvas_size, canvas_size, 4), dtype=np.uint8) * 255
-    canvas[:, :, 3] = 255  # Fully opaque white background
+    # Create white canvas
+    canvas = np.ones((canvas_size, canvas_size, 3), dtype=np.uint8) * 255
 
     # Center content on canvas
     y_offset = (canvas_size - content_h) // 2
     x_offset = (canvas_size - content_w) // 2
 
-    # Composite: place content over white background
+    # Composite over white background
+    alpha_factor = cropped[:, :, 3:4] / 255.0
     for c in range(3):
-        alpha_factor = cropped[:, :, 3:4] / 255.0
         canvas[y_offset:y_offset+content_h, x_offset:x_offset+content_w, c] = (
             cropped[:, :, c] * alpha_factor[:, :, 0] +
             255 * (1 - alpha_factor[:, :, 0])
         ).astype(np.uint8)
 
     # Resize to target size
-    result = Image.fromarray(canvas[:, :, :3])  # RGB only
+    result = Image.fromarray(canvas)
     result = result.resize((size, size), Image.Resampling.LANCZOS)
 
     return result
 
 
-async def generate_with_syncdreamer(input_image: Image.Image, elevation: int = 20) -> List[Image.Image]:
-    """
-    Generate multi-view images using SyncDreamer.
+# Lazy-loaded pipeline
+_svd_pipeline = None
 
-    Args:
-        input_image: Preprocessed input image (256x256, white background)
-        elevation: Camera elevation angle in degrees
 
-    Returns:
-        List of 16 PIL Images representing views around the object
-    """
-    import torch
-    from diffusers import DiffusionPipeline
+def get_svd_pipeline():
+    """Get or create the SVD pipeline for rotation."""
+    global _svd_pipeline
+    if _svd_pipeline is None:
+        from diffusers import StableVideoDiffusionPipeline
 
-    # Load SyncDreamer pipeline
-    pipe = DiffusionPipeline.from_pretrained(
-        "dylanebert/SyncDreamer",
-        torch_dtype=torch.float16,
-        trust_remote_code=True,
-    )
+        _svd_pipeline = StableVideoDiffusionPipeline.from_pretrained(
+            "stabilityai/stable-video-diffusion-img2vid-xt",
+            torch_dtype=torch.float16,
+            variant="fp16",
+            cache_dir=MODEL_CACHE,
+            token=HF_TOKEN,
+        ).to("cuda")
 
-    if torch.cuda.is_available():
-        pipe = pipe.to("cuda")
-
-    # Generate views
-    # SyncDreamer expects elevation in radians for some versions
-    result = pipe(
-        input_image,
-        num_inference_steps=50,
-        guidance_scale=2.0,
-        elevation=elevation,
-    )
-
-    return result.images
+    return _svd_pipeline
 
 
 async def generate_rotation(
@@ -147,27 +123,7 @@ async def generate_rotation(
     on_progress: Optional[Callable[[int, str], Awaitable[None]]] = None,
 ) -> dict:
     """
-    Generate 8-directional rotation from a single input image.
-
-    Args:
-        input_image_url: URL of the input image
-        elevation: Camera elevation angle (-90 to 90)
-        job_id: Job ID for file naming
-        blob_token: Vercel Blob token for uploads
-        on_progress: Async callback for progress updates
-
-    Returns:
-        Dict with rotation URLs:
-        {
-            "rotation_n": "https://...",
-            "rotation_ne": "https://...",
-            "rotation_e": "https://...",
-            "rotation_se": "https://...",
-            "rotation_s": "https://...",
-            "rotation_sw": "https://...",
-            "rotation_w": "https://...",
-            "rotation_nw": "https://...",
-        }
+    Generate 8-directional rotation from a single input image using SVD.
     """
     if on_progress:
         await on_progress(5, "Downloading input image...")
@@ -178,19 +134,36 @@ async def generate_rotation(
     if on_progress:
         await on_progress(10, "Preprocessing image...")
 
-    # Preprocess for SyncDreamer
-    processed_input = preprocess_input_image(input_image, size=256)
+    # Preprocess (576x576, white background, centered)
+    processed_input = preprocess_input_image(input_image, size=576)
 
     if on_progress:
-        await on_progress(15, "Generating multi-view images...")
+        await on_progress(15, "Loading model...")
 
-    # Generate 16 views with SyncDreamer
-    views = await generate_with_syncdreamer(processed_input, elevation=elevation)
+    pipe = get_svd_pipeline()
+
+    if on_progress:
+        await on_progress(20, "Generating orbital views...")
+
+    # Generate video frames
+    generator = torch.Generator(device="cuda").manual_seed(42)
+
+    output = pipe(
+        processed_input,
+        num_frames=25,
+        num_inference_steps=25,
+        decode_chunk_size=8,
+        generator=generator,
+        motion_bucket_id=127,  # Controls motion amount
+        noise_aug_strength=0.02,
+    )
+
+    frames = output.frames[0]  # List of PIL images
 
     if on_progress:
         await on_progress(60, "Processing rotations...")
 
-    # Get rembg session for background removal
+    # Get rembg session
     rembg_session = get_rembg_session()
 
     # Extract and upload 8 directions
@@ -202,26 +175,27 @@ async def generate_rotation(
             progress = 60 + int((i / len(direction_names)) * 35)
             await on_progress(progress, f"Processing {direction} direction...")
 
-        # Get the view for this direction
-        view_index = DIRECTION_INDICES[direction]
-        view_image = views[view_index]
+        frame_index = DIRECTION_INDICES[direction]
+        frame = frames[frame_index]
 
-        # Remove background for transparency
-        transparent_view = remove(
-            view_image,
+        if isinstance(frame, np.ndarray):
+            frame = Image.fromarray(frame)
+
+        # Remove background
+        transparent_frame = remove(
+            frame,
             session=rembg_session,
             alpha_matting=True,
             alpha_matting_foreground_threshold=240,
             alpha_matting_background_threshold=10,
         )
 
-        # Ensure RGBA
-        if transparent_view.mode != "RGBA":
-            transparent_view = transparent_view.convert("RGBA")
+        if transparent_frame.mode != "RGBA":
+            transparent_frame = transparent_frame.convert("RGBA")
 
         # Upload
         url = await upload_image(
-            image=transparent_view,
+            image=transparent_frame,
             path=f"rotations/{job_id}/{direction.lower()}.png",
             token=blob_token,
         )

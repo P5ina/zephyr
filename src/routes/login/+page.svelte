@@ -42,5 +42,20 @@ let { data }: { data: PageData } = $props();
 			</div>
 			<p class="mt-3 text-xs text-zinc-500 text-center">Preview mode - team members only</p>
 		{/if}
+
+		{#if data.isDev}
+			<div class="mt-4">
+				<a
+					href="/login/dev"
+					class="flex items-center justify-center gap-3 w-full px-4 py-3 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 rounded-lg transition-colors"
+				>
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+					</svg>
+					Dev Login
+				</a>
+			</div>
+			<p class="mt-3 text-xs text-zinc-500 text-center">Development mode - localhost only</p>
+		{/if}
 	</div>
 </div>

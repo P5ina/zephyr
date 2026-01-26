@@ -3,7 +3,6 @@
  */
 
 import { env } from '$env/dynamic/private';
-import { env as publicEnv } from '$env/dynamic/public';
 
 interface RunPodJobInput {
 	job_id: string;
@@ -35,7 +34,7 @@ interface RunPodResponse {
  * Get the webhook URL for RunPod to call back.
  */
 export function getWebhookUrl(): string {
-	const baseUrl = publicEnv.PUBLIC_APP_URL || 'http://localhost:5173';
+	const baseUrl = env.APP_URL || 'http://localhost:5173';
 	return `${baseUrl}/api/worker/webhook`;
 }
 

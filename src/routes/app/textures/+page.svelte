@@ -173,6 +173,44 @@ async function generate() {
 	}
 }
 
+async function cancelGeneration(id: string) {
+	if (!confirm('Cancel this generation? Your tokens will be refunded.')) return;
+
+	try {
+		const res = await fetch(`/api/textures/${id}/cancel`, { method: 'POST' });
+		if (!res.ok) {
+			const error = await res.json();
+			alert(error.message || 'Failed to cancel');
+			return;
+		}
+
+		const result = await res.json();
+
+		// Update generation status locally
+		textureGenerations = textureGenerations.map((g) =>
+			g.id === id
+				? { ...g, status: 'failed', errorMessage: 'Cancelled by user' }
+				: g,
+		);
+
+		// Update tokens
+		tokens = tokens + result.regularTokensRefunded;
+		bonusTokens = bonusTokens + result.bonusTokensRefunded;
+
+		// Stop polling
+		pollingSet.delete(id);
+
+		if (currentGeneratingId === id) {
+			generating = false;
+			currentGeneratingId = null;
+			status = null;
+		}
+	} catch (e) {
+		console.error('Cancel error:', e);
+		alert('Failed to cancel generation');
+	}
+}
+
 async function pollStatus(id: string) {
 	const poll = async (): Promise<void> => {
 		try {
@@ -573,6 +611,13 @@ function scrollHistory(direction: 'left' | 'right') {
 							</div>
 							<p class="text-xs text-zinc-500 mt-2">{selectedGeneration.progress}% complete</p>
 						</div>
+						<button
+							onclick={() => cancelGeneration(selectedGeneration.id)}
+							class="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-red-400 hover:text-red-300 rounded-lg transition-colors flex items-center justify-center gap-2"
+						>
+							<X class="w-4 h-4" />
+							Cancel Generation
+						</button>
 					{:else if selectedGeneration.status === 'failed'}
 						<!-- Error View -->
 						<div class="aspect-video bg-red-500/5 rounded-lg border border-red-500/20 flex flex-col items-center justify-center mb-4 p-6">

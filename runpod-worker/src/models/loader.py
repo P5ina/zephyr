@@ -6,8 +6,11 @@ Downloads and caches models during Docker build.
 import os
 import torch
 
-# Cache directory for models
-MODEL_CACHE = os.environ.get("HF_HOME", "/app/models")
+# Cache directory for models - use network volume if available
+MODEL_CACHE = os.environ.get("HF_HOME", "/runpod-volume/models")
+
+# HuggingFace token for gated models (Flux Schnell)
+HF_TOKEN = os.environ.get("HF_TOKEN")
 
 
 def get_device():
@@ -24,23 +27,14 @@ def get_dtype():
     return torch.float32
 
 
-def preload_models():
+def preload_public_models():
     """
-    Preload all models during Docker build.
-    This downloads models to the cache directory.
+    Preload non-gated models during Docker build.
+    Gated models (Flux) will be downloaded at runtime with HF_TOKEN.
     """
-    print("Preloading models...")
+    print("Preloading public models...")
 
-    # Flux Schnell for sprite generation
-    print("Loading Flux Schnell...")
-    from diffusers import FluxPipeline
-    FluxPipeline.from_pretrained(
-        "black-forest-labs/FLUX.1-schnell",
-        torch_dtype=torch.float16,
-        cache_dir=MODEL_CACHE,
-    )
-
-    # SDXL for texture generation
+    # SDXL for texture generation (public model)
     print("Loading SDXL...")
     from diffusers import StableDiffusionXLPipeline
     StableDiffusionXLPipeline.from_pretrained(
@@ -50,12 +44,34 @@ def preload_models():
         cache_dir=MODEL_CACHE,
     )
 
-    # Rembg model (u2net)
+    # Rembg model (isnet-general-use for better edge detection)
     print("Loading rembg model...")
     from rembg import new_session
-    new_session("u2net")
+    new_session("isnet-general-use")
 
-    print("All models preloaded!")
+    print("Public models preloaded!")
+    print("Note: Flux Schnell (gated) will download at runtime with HF_TOKEN")
+
+
+def preload_models():
+    """
+    Preload all models including gated ones.
+    Requires HF_TOKEN environment variable.
+    """
+    print("Preloading all models...")
+
+    # Flux Schnell for sprite generation (gated model, requires HF_TOKEN)
+    print("Loading Flux Schnell...")
+    from diffusers import FluxPipeline
+    FluxPipeline.from_pretrained(
+        "black-forest-labs/FLUX.1-schnell",
+        torch_dtype=torch.float16,
+        cache_dir=MODEL_CACHE,
+        token=HF_TOKEN,
+    )
+
+    # Also preload public models
+    preload_public_models()
 
 
 # Lazy-loaded pipeline instances
@@ -71,13 +87,12 @@ def get_sprite_pipeline():
         from diffusers import FluxPipeline
         _sprite_pipeline = FluxPipeline.from_pretrained(
             "black-forest-labs/FLUX.1-schnell",
-            torch_dtype=get_dtype(),
+            torch_dtype=torch.float16,
             cache_dir=MODEL_CACHE,
-        )
-        _sprite_pipeline.to(get_device())
-        # Enable memory optimizations
-        if torch.cuda.is_available():
-            _sprite_pipeline.enable_model_cpu_offload()
+            token=HF_TOKEN,
+            device_map=None,
+            low_cpu_mem_usage=False,
+        ).to("cuda")
     return _sprite_pipeline
 
 
@@ -88,14 +103,12 @@ def get_texture_pipeline():
         from diffusers import StableDiffusionXLPipeline
         _texture_pipeline = StableDiffusionXLPipeline.from_pretrained(
             "stabilityai/stable-diffusion-xl-base-1.0",
-            torch_dtype=get_dtype(),
+            torch_dtype=torch.float16,
             variant="fp16",
             cache_dir=MODEL_CACHE,
-        )
-        _texture_pipeline.to(get_device())
-        # Enable memory optimizations
-        if torch.cuda.is_available():
-            _texture_pipeline.enable_model_cpu_offload()
+            device_map=None,
+            low_cpu_mem_usage=False,
+        ).to("cuda")
     return _texture_pipeline
 
 
@@ -104,7 +117,8 @@ def get_rembg_session():
     global _rembg_session
     if _rembg_session is None:
         from rembg import new_session
-        _rembg_session = new_session("u2net")
+        # isnet-general-use has better edge detection for game sprites
+        _rembg_session = new_session("isnet-general-use")
     return _rembg_session
 
 
