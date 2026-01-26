@@ -256,7 +256,10 @@ async function pollStatus(id: string) {
 					currentGeneratingId = null;
 					status = null;
 				}
-				alert(result.error || 'Generation failed');
+				// Don't show alert for user-cancelled generations
+				if (result.error && !result.error.includes('Cancelled by user')) {
+					alert(result.error);
+				}
 				return;
 			}
 
