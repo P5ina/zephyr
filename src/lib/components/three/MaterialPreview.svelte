@@ -15,7 +15,6 @@ interface Props {
 	normalUrl?: string | null;
 	roughnessUrl?: string | null;
 	metallicUrl?: string | null;
-	heightUrl?: string | null;
 	shape?: 'sphere' | 'cube' | 'plane';
 	autoRotate?: boolean;
 }
@@ -27,7 +26,6 @@ const basecolorUrl = $derived(props.basecolorUrl ?? null);
 const normalUrl = $derived(props.normalUrl ?? null);
 const roughnessUrl = $derived(props.roughnessUrl ?? null);
 const metallicUrl = $derived(props.metallicUrl ?? null);
-const heightUrl = $derived(props.heightUrl ?? null);
 const shape = $derived(props.shape ?? 'sphere');
 const autoRotate = $derived(props.autoRotate ?? true);
 
@@ -38,7 +36,6 @@ let basecolorMap = $state<Texture | null>(null);
 let normalMap = $state<Texture | null>(null);
 let roughnessMap = $state<Texture | null>(null);
 let metallicMap = $state<Texture | null>(null);
-let displacementMap = $state<Texture | null>(null);
 
 let meshRotation = $state({ x: 0, y: 0, z: 0 });
 
@@ -91,13 +88,6 @@ $effect(() => {
 	});
 });
 
-$effect(() => {
-	const url = heightUrl;
-	loadTexture(url).then((t) => {
-		displacementMap = t;
-	});
-});
-
 useTask((delta) => {
 	if (autoRotate) {
 		meshRotation.y += delta * 0.3;
@@ -111,7 +101,6 @@ const materialKey = $derived(
 		normalMap?.uuid,
 		roughnessMap?.uuid,
 		metallicMap?.uuid,
-		displacementMap?.uuid,
 	]
 		.filter(Boolean)
 		.join('-') || 'empty',
@@ -136,8 +125,6 @@ const materialKey = $derived(
 				normalMap={normalMap}
 				roughnessMap={roughnessMap}
 				metalnessMap={metallicMap}
-				displacementMap={displacementMap}
-				displacementScale={displacementMap ? 0.1 : 0}
 				roughness={roughnessMap ? 1 : 0.5}
 				metalness={metallicMap ? 1 : 0}
 			/>
@@ -162,8 +149,6 @@ const materialKey = $derived(
 				normalMap={normalMap}
 				roughnessMap={roughnessMap}
 				metalnessMap={metallicMap}
-				displacementMap={displacementMap}
-				displacementScale={displacementMap ? 0.2 : 0}
 				roughness={roughnessMap ? 1 : 0.5}
 				metalness={metallicMap ? 1 : 0}
 			/>

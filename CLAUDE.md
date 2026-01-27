@@ -16,7 +16,7 @@ AI-powered game asset generation platform for sprites, textures, and 8-direction
 
 1. **Sprite Generation** — Generate game sprites with transparent backgrounds (2 tokens)
 2. **8-Directional Rotation** — Generate sprites in 8 directions from an input image using SV3D (8 tokens)
-3. **PBR Texture Generation** — Generate complete texture sets with normal, roughness, metallic, height maps (5 tokens)
+3. **PBR Texture Generation** — Generate complete texture sets with normal, roughness, metallic maps (4 tokens)
 4. **3D Material Preview** — Real-time Three.js preview for generated textures
 
 ## Project Structure
@@ -102,7 +102,7 @@ assetGeneration: id, visibleId, userId, assetType ('sprite' | 'texture'),
 
 // Texture Generations (PBR)
 textureGeneration: id, userId, prompt, status, progress, currentStage,
-                   basecolorUrl, normalUrl, roughnessUrl, metallicUrl, heightUrl,
+                   basecolorUrl, normalUrl, roughnessUrl, metallicUrl,
                    seed, tokenCost, createdAt
 
 // Rotation Jobs (8-directional)

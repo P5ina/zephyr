@@ -30,7 +30,6 @@ interface SpriteResult {
 interface TextureResult {
 	basecolor_url: string;
 	normal_url: string;
-	height_url: string;
 	roughness_url: string;
 	metallic_url: string;
 	seed: number;
@@ -180,7 +179,6 @@ async function handleTextureUpdate(payload: WebhookPayload): Promise<void> {
 				currentStage: 'Completed',
 				basecolorUrl: textureResult.basecolor_url,
 				normalUrl: textureResult.normal_url,
-				heightUrl: textureResult.height_url,
 				roughnessUrl: textureResult.roughness_url,
 				metallicUrl: textureResult.metallic_url,
 				seed: textureResult.seed,

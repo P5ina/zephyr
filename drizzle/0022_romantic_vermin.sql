@@ -1,0 +1,1 @@
+ALTER TABLE "texture_generation" DROP COLUMN "height_url";

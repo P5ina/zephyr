@@ -83,7 +83,6 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 			normal: texture.normalUrl,
 			roughness: texture.roughnessUrl,
 			metallic: texture.metallicUrl,
-			height: texture.heightUrl,
 		};
 	}
 

@@ -170,7 +170,6 @@ export const assetGeneration = pgTable('asset_generation', {
 		baseColor?: string;
 		normal?: string;
 		roughness?: string;
-		height?: string;
 	}>(),
 
 	// Metadata
@@ -210,7 +209,6 @@ export const textureGeneration = pgTable('texture_generation', {
 	normalUrl: text('normal_url'),
 	roughnessUrl: text('roughness_url'),
 	metallicUrl: text('metallic_url'),
-	heightUrl: text('height_url'),
 
 	// Metadata
 	seed: integer('seed'),

@@ -68,14 +68,12 @@ const displayTextures = $derived(
 				normal: selectedGeneration.normalUrl,
 				roughness: selectedGeneration.roughnessUrl,
 				metallic: selectedGeneration.metallicUrl,
-				height: selectedGeneration.heightUrl,
 			}
 		: {
 				basecolor: null,
 				normal: null,
 				roughness: null,
 				metallic: null,
-				height: null,
 			},
 );
 
@@ -145,11 +143,11 @@ async function generate() {
 				status: 'pending',
 				progress: 0,
 				currentStage: null,
+				runpodJobId: null,
 				basecolorUrl: null,
 				normalUrl: null,
 				roughnessUrl: null,
 				metallicUrl: null,
-				heightUrl: null,
 				seed: null,
 				tokenCost: TOKEN_COST,
 				bonusTokenCost: 0,
@@ -232,7 +230,6 @@ async function pollStatus(id: string) {
 							normalUrl: result.textures?.normal || g.normalUrl,
 							roughnessUrl: result.textures?.roughness || g.roughnessUrl,
 							metallicUrl: result.textures?.metallic || g.metallicUrl,
-							heightUrl: result.textures?.height || g.heightUrl,
 						}
 					: g,
 			);
@@ -452,7 +449,6 @@ function scrollHistory(direction: 'left' | 'right') {
 								normalUrl={displayTextures.normal}
 								roughnessUrl={displayTextures.roughness}
 								metallicUrl={displayTextures.metallic}
-								heightUrl={displayTextures.height}
 								shape={previewShape}
 								{autoRotate}
 							/>
@@ -474,13 +470,12 @@ function scrollHistory(direction: 'left' | 'right') {
 							Download All
 						</button>
 					</div>
-					<div class="grid grid-cols-5 gap-2">
+					<div class="grid grid-cols-4 gap-2">
 						{#each [
 							{ key: 'basecolor', label: 'Color' },
 							{ key: 'normal', label: 'Normal' },
 							{ key: 'roughness', label: 'Rough' },
 							{ key: 'metallic', label: 'Metal' },
-							{ key: 'height', label: 'Height' },
 						] as map}
 							<div class="relative group">
 								{#if displayTextures[map.key as keyof typeof displayTextures]}
@@ -516,7 +511,7 @@ function scrollHistory(direction: 'left' | 'right') {
 					<h2 class="text-lg font-semibold text-white mb-4">Generate PBR Textures</h2>
 					<p class="text-sm text-zinc-400 mb-6">
 						Describe the material you want to create. We'll generate a complete set of PBR maps
-						including basecolor, normal, roughness, metallic, and height.
+						including basecolor, normal, roughness, and metallic.
 					</p>
 
 					<!-- Prompt -->
@@ -581,7 +576,7 @@ function scrollHistory(direction: 'left' | 'right') {
 
 					<!-- Info -->
 					<p class="mt-4 text-xs text-zinc-500 text-center">
-						Generation creates 5 PBR maps: basecolor, normal, roughness, metallic, and height.
+						Generation creates 4 PBR maps: basecolor, normal, roughness, and metallic.
 						Output resolution: 1024x1024
 					</p>
 				{:else if selectedGeneration}
