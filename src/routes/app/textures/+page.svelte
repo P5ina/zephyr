@@ -692,6 +692,12 @@ function scrollHistory(direction: 'left' | 'right') {
 									<span class="text-white font-medium">{selectedGeneration.seed}</span>
 								</div>
 							{/if}
+							{#if selectedGeneration.runpodJobId}
+								<div class="flex items-center justify-between text-sm mt-2">
+									<span class="text-zinc-400">Job ID</span>
+									<span class="text-white font-mono text-xs">{selectedGeneration.runpodJobId}</span>
+								</div>
+							{/if}
 						</div>
 
 						<!-- Actions -->

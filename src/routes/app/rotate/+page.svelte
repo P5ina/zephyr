@@ -766,6 +766,12 @@ function scrollHistory(direction: 'left' | 'right') {
 							<span class="text-zinc-400">Camera Elevation</span>
 							<span class="text-white font-medium">{selectedJob.elevation ?? 20}°</span>
 						</div>
+						{#if selectedJob.runpodJobId}
+							<div class="flex items-center justify-between text-sm mt-2">
+								<span class="text-zinc-400">Job ID</span>
+								<span class="text-white font-mono text-xs">{selectedJob.runpodJobId}</span>
+							</div>
+						{/if}
 					</div>
 
 					<!-- Actions -->

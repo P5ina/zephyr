@@ -483,6 +483,11 @@ function getAssetTypeLabel(type: string) {
 								Seed: {selectedGeneration.seed}
 							</div>
 						{/if}
+						{#if selectedGeneration.runpodJobId}
+							<div class="text-xs text-zinc-500 font-mono">
+								Job: {selectedGeneration.runpodJobId}
+							</div>
+						{/if}
 					</div>
 				</div>
 			</div>
