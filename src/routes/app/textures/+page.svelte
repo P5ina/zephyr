@@ -385,12 +385,18 @@ function scrollHistory(direction: 'left' | 'right') {
 						onclick={() => selectGeneration(gen.id)}
 						class="flex-shrink-0 relative w-16 h-16 rounded-lg overflow-hidden border-2 {viewMode === gen.id ? 'border-yellow-500' : 'border-zinc-700 hover:border-zinc-600'} transition-colors"
 					>
-						{#if gen.status === 'completed' && gen.basecolorUrl}
-							<img
-								src={gen.basecolorUrl}
-								alt={gen.prompt}
-								class="w-full h-full object-cover bg-zinc-800"
-							/>
+						{#if gen.status === 'completed'}
+							{#if gen.basecolorUrl}
+								<img
+									src={gen.basecolorUrl}
+									alt={gen.prompt}
+									class="w-full h-full object-cover bg-zinc-800"
+								/>
+							{:else}
+								<div class="w-full h-full bg-zinc-800 flex items-center justify-center">
+									<Check class="w-5 h-5 text-green-400" />
+								</div>
+							{/if}
 						{:else if gen.status === 'failed'}
 							<div class="w-full h-full bg-zinc-800 flex items-center justify-center">
 								<X class="w-5 h-5 text-red-400" />

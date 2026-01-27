@@ -1,6 +1,7 @@
 <script lang="ts">
 import {
 	Calendar,
+	Check,
 	Copy,
 	Download,
 	Info,
@@ -270,12 +271,18 @@ function getAssetTypeLabel(type: string) {
 							onclick={() => openModal(gen)}
 							class="group relative aspect-square bg-zinc-800/50 rounded-lg overflow-hidden border border-zinc-700 cursor-pointer w-full text-left hover:border-zinc-600 transition-colors"
 						>
-							{#if gen.status === 'completed' && (gen.resultUrls?.processed || gen.resultUrls?.raw)}
-								<img
-									src={gen.resultUrls.processed || gen.resultUrls.raw}
-									alt={gen.prompt}
-									class="w-full h-full object-cover"
-								/>
+							{#if gen.status === 'completed'}
+								{#if gen.resultUrls?.processed || gen.resultUrls?.raw}
+									<img
+										src={gen.resultUrls.processed || gen.resultUrls.raw}
+										alt={gen.prompt}
+										class="w-full h-full object-cover"
+									/>
+								{:else}
+									<div class="w-full h-full flex items-center justify-center bg-zinc-800">
+										<Check class="w-8 h-8 text-green-400" />
+									</div>
+								{/if}
 								<div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
 									<span class="p-2 bg-white/20 rounded-lg">
 										<Info class="w-5 h-5 text-white" />
@@ -380,12 +387,21 @@ function getAssetTypeLabel(type: string) {
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<!-- Image Preview -->
 					<div class="aspect-square bg-zinc-800/50 rounded-lg overflow-hidden border border-zinc-700">
-						{#if selectedGeneration.status === 'completed' && (selectedGeneration.resultUrls?.processed || selectedGeneration.resultUrls?.raw)}
-							<img
-								src={selectedGeneration.resultUrls.processed || selectedGeneration.resultUrls.raw}
-								alt={selectedGeneration.prompt}
-								class="w-full h-full object-contain"
-							/>
+						{#if selectedGeneration.status === 'completed'}
+							{#if selectedGeneration.resultUrls?.processed || selectedGeneration.resultUrls?.raw}
+								<img
+									src={selectedGeneration.resultUrls.processed || selectedGeneration.resultUrls.raw}
+									alt={selectedGeneration.prompt}
+									class="w-full h-full object-contain"
+								/>
+							{:else}
+								<div class="w-full h-full flex items-center justify-center">
+									<div class="text-center">
+										<Check class="w-12 h-12 mx-auto mb-2 text-green-400" />
+										<p class="text-sm text-zinc-400">Completed</p>
+									</div>
+								</div>
+							{/if}
 						{:else if selectedGeneration.status === 'failed'}
 							<div class="w-full h-full flex items-center justify-center text-red-400">
 								<div class="text-center">

@@ -535,12 +535,18 @@ function scrollHistory(direction: 'left' | 'right') {
 						onclick={() => selectJob(job.id)}
 						class="flex-shrink-0 relative w-16 h-16 rounded-lg overflow-hidden border-2 {viewMode === job.id ? 'border-yellow-500' : 'border-zinc-700 hover:border-zinc-600'} transition-colors"
 					>
-						{#if job.status === 'completed' && getJobPreviewImage(job)}
-							<img
-								src={getJobPreviewImage(job)}
-								alt="Rotation"
-								class="w-full h-full object-contain bg-zinc-800"
-							/>
+						{#if job.status === 'completed'}
+							{#if getJobPreviewImage(job)}
+								<img
+									src={getJobPreviewImage(job)}
+									alt="Rotation"
+									class="w-full h-full object-contain bg-zinc-800"
+								/>
+							{:else}
+								<div class="w-full h-full bg-zinc-800 flex items-center justify-center">
+									<Check class="w-5 h-5 text-green-400" />
+								</div>
+							{/if}
 						{:else if job.status === 'failed'}
 							<div class="w-full h-full bg-zinc-800 flex items-center justify-center">
 								<X class="w-5 h-5 text-red-400" />
