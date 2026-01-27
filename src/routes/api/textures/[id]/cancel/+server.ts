@@ -2,6 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import { and, eq, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
+import { cancelJob } from '$lib/server/runpod';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ params, locals }) => {
@@ -29,6 +30,15 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 
 	if (texture.status === 'completed' && hasResults) {
 		error(400, 'Cannot cancel a completed generation with results');
+	}
+
+	// Cancel the job on RunPod if it has a RunPod job ID
+	if (texture.runpodJobId) {
+		try {
+			await cancelJob(texture.runpodJobId);
+		} catch (e) {
+			console.error('Failed to cancel RunPod job:', e);
+		}
 	}
 
 	await db
