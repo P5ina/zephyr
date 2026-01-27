@@ -70,7 +70,9 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 					where: eq(table.assetGeneration.id, params.id),
 				}))!;
 			} else if (runpodStatus.status === 'COMPLETED' && runpodStatus.output) {
-				const output = runpodStatus.output as Record<string, unknown>;
+				const raw = runpodStatus.output as Record<string, unknown>;
+				// Unwrap nested {result: {...}} from old worker format
+				const output = (raw.result as Record<string, unknown>) ?? raw;
 				if (output.processed_url && !asset.resultUrls?.processed) {
 					await db
 						.update(table.assetGeneration)
