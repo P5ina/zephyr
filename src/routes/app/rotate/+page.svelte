@@ -716,6 +716,12 @@ function scrollHistory(direction: 'left' | 'right') {
 					<span class="text-xs text-zinc-500">{formatDate(selectedJob.createdAt)}</span>
 				</div>
 
+				{#if selectedJob.runpodJobId}
+					<div class="mb-3 text-xs text-zinc-500 font-mono">
+						Job: {selectedJob.runpodJobId}
+					</div>
+				{/if}
+
 				{#if selectedJob.status === 'processing' || selectedJob.status === 'pending'}
 					<!-- Progress View -->
 					<div class="aspect-square bg-zinc-800/30 rounded-lg border border-zinc-700 flex flex-col items-center justify-center mb-4">
@@ -766,12 +772,6 @@ function scrollHistory(direction: 'left' | 'right') {
 							<span class="text-zinc-400">Camera Elevation</span>
 							<span class="text-white font-medium">{selectedJob.elevation ?? 20}°</span>
 						</div>
-						{#if selectedJob.runpodJobId}
-							<div class="flex items-center justify-between text-sm mt-2">
-								<span class="text-zinc-400">Job ID</span>
-								<span class="text-white font-mono text-xs">{selectedJob.runpodJobId}</span>
-							</div>
-						{/if}
 					</div>
 
 					<!-- Actions -->
