@@ -1,4 +1,5 @@
 import {
+	bigint,
 	boolean,
 	integer,
 	json,
@@ -173,7 +174,7 @@ export const assetGeneration = pgTable('asset_generation', {
 	}>(),
 
 	// Metadata
-	seed: integer('seed'),
+	seed: bigint('seed', { mode: 'number' }),
 	tokenCost: integer('token_cost').notNull(),
 	bonusTokenCost: integer('bonus_token_cost').notNull().default(0),
 	errorMessage: text('error_message'),
@@ -211,7 +212,7 @@ export const textureGeneration = pgTable('texture_generation', {
 	metallicUrl: text('metallic_url'),
 
 	// Metadata
-	seed: integer('seed'),
+	seed: bigint('seed', { mode: 'number' }),
 	tokenCost: integer('token_cost').notNull(),
 	bonusTokenCost: integer('bonus_token_cost').notNull().default(0),
 	errorMessage: text('error_message'),

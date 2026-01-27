@@ -305,15 +305,6 @@ function getAssetTypeLabel(type: string) {
 									<div class="text-center w-full">
 										<Loader2 class="w-6 h-6 mx-auto mb-2 animate-spin text-yellow-400" />
 										<p class="text-xs text-zinc-400 mb-1">{gen.currentStage || getStatusLabel(gen.status)}</p>
-										{#if gen.progress > 0}
-											<div class="w-full h-1.5 bg-zinc-700 rounded-full overflow-hidden mb-1">
-												<div
-													class="h-full bg-gradient-to-r from-yellow-500 to-amber-400 transition-all duration-500"
-													style="width: {gen.progress}%"
-												></div>
-											</div>
-											<p class="text-[10px] text-zinc-500">{gen.progress}%</p>
-										{/if}
 									</div>
 									<!-- svelte-ignore a11y_no_static_element_interactions -->
 									<span
@@ -414,9 +405,6 @@ function getAssetTypeLabel(type: string) {
 								<div class="text-center">
 									<Loader2 class="w-12 h-12 mx-auto mb-2 animate-spin text-yellow-400" />
 									<p class="text-sm text-zinc-400">{selectedGeneration.currentStage || getStatusLabel(selectedGeneration.status)}</p>
-									{#if selectedGeneration.progress > 0}
-										<p class="text-xs text-zinc-500 mt-1">{selectedGeneration.progress}%</p>
-									{/if}
 								</div>
 							</div>
 						{/if}

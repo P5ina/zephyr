@@ -46,7 +46,10 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 						where: eq(table.rotationJob.id, params.id),
 					}))!;
 				}
-			} else if (runpodStatus.status === 'FAILED' || runpodStatus.status === 'CANCELLED') {
+			} else if (
+				runpodStatus.status === 'FAILED' ||
+				runpodStatus.status === 'CANCELLED'
+			) {
 				if (job.status !== 'failed') {
 					const regularTokens = job.tokenCost - job.bonusTokenCost;
 					await db

@@ -290,7 +290,11 @@ async function pollJobStatus(id: string) {
 					generating = false;
 					currentGeneratingId = null;
 				}
-				if (result.status === 'failed' && result.error && !result.error.includes('Cancelled by user')) {
+				if (
+					result.status === 'failed' &&
+					result.error &&
+					!result.error.includes('Cancelled by user')
+				) {
 					alert(result.error);
 				}
 				return;
@@ -583,9 +587,6 @@ function scrollHistory(direction: 'left' | 'right') {
 						{:else}
 							<div class="w-full h-full bg-zinc-800 flex flex-col items-center justify-center">
 								<Loader2 class="w-5 h-5 animate-spin text-yellow-400" />
-								{#if job.progress > 0}
-									<span class="text-[9px] text-yellow-400 mt-0.5">{job.progress}%</span>
-								{/if}
 							</div>
 						{/if}
 						{#if viewMode === job.id}
@@ -755,14 +756,7 @@ function scrollHistory(direction: 'left' | 'right') {
 					<!-- Progress View -->
 					<div class="aspect-square bg-zinc-800/30 rounded-lg border border-zinc-700 flex flex-col items-center justify-center mb-4">
 						<Loader2 class="w-12 h-12 animate-spin text-yellow-400 mb-4" />
-						<p class="text-sm text-zinc-300 mb-2">{selectedJob.currentStage || 'Processing...'}</p>
-						<div class="w-48 h-2 bg-zinc-700 rounded-full overflow-hidden">
-							<div
-								class="h-full bg-gradient-to-r from-yellow-500 to-amber-400 transition-all duration-500"
-								style="width: {selectedJob.progress}%"
-							></div>
-						</div>
-						<p class="text-xs text-zinc-500 mt-2">{selectedJob.progress}% complete</p>
+						<p class="text-sm text-zinc-300">{selectedJob.currentStage || 'Processing...'}</p>
 					</div>
 					<button
 						onclick={() => selectedJob && cancelJob(selectedJob.id)}

@@ -46,7 +46,10 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 						where: eq(table.textureGeneration.id, params.id),
 					}))!;
 				}
-			} else if (runpodStatus.status === 'FAILED' || runpodStatus.status === 'CANCELLED') {
+			} else if (
+				runpodStatus.status === 'FAILED' ||
+				runpodStatus.status === 'CANCELLED'
+			) {
 				if (texture.status !== 'failed') {
 					const regularTokens = texture.tokenCost - texture.bonusTokenCost;
 					await db

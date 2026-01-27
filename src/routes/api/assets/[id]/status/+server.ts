@@ -46,7 +46,10 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 						where: eq(table.assetGeneration.id, params.id),
 					}))!;
 				}
-			} else if (runpodStatus.status === 'FAILED' || runpodStatus.status === 'CANCELLED') {
+			} else if (
+				runpodStatus.status === 'FAILED' ||
+				runpodStatus.status === 'CANCELLED'
+			) {
 				if (asset.status !== 'failed') {
 					const regularTokens = asset.tokenCost - asset.bonusTokenCost;
 					await db
