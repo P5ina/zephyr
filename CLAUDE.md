@@ -6,7 +6,7 @@ AI-powered game asset generation platform for sprites, textures, and 8-direction
 
 - **Frontend/Backend**: SvelteKit 2, Svelte 5 (runes), TypeScript
 - **Database**: Vercel Postgres (Neon) + Drizzle ORM
-- **Image Generation**: ComfyUI workflows (Flux Schnell, SV3D, ControlNet)
+- **Image Generation**: SDXL + refiner, SV3D for rotations
 - **3D Preview**: Three.js + Threlte
 - **Payments**: Cryptomus (crypto)
 - **File Storage**: Vercel Blob
@@ -69,7 +69,7 @@ AI-powered game asset generation platform for sprites, textures, and 8-direction
 ## Worker Repository
 
 Workflows and job processing are in a separate worker repo (`gensprite-worker`):
-- `workflows/sprite.json` — Sprite generation using Flux Schnell + RMBG
+- `workflows/sprite.json` — Sprite generation using SDXL + refiner + RMBG
 - `workflows/rotate_regular.json` — SV3D rotation with ControlNet Tile + IPAdapter refinement
 
 **Rotation Pipeline (SV3D-based):**
