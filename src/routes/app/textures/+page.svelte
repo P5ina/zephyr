@@ -210,10 +210,31 @@ async function cancelGeneration(id: string) {
 }
 
 async function pollStatus(id: string) {
+	let retryCount = 0;
+	const maxRetries = 5;
+
 	const poll = async (): Promise<void> => {
 		try {
 			const res = await fetch(`/api/textures/${id}/status`);
-			if (!res.ok) return;
+			if (!res.ok) {
+				// Retry on server errors
+				retryCount++;
+				if (retryCount < maxRetries) {
+					await new Promise((r) => setTimeout(r, 2000));
+					return poll();
+				}
+				// Give up after max retries
+				pollingSet.delete(id);
+				if (currentGeneratingId === id) {
+					generating = false;
+					currentGeneratingId = null;
+					status = null;
+				}
+				return;
+			}
+
+			// Reset retry count on successful response
+			retryCount = 0;
 
 			const result = await res.json();
 			status = result.statusMessage || result.status;
@@ -263,7 +284,19 @@ async function pollStatus(id: string) {
 			await new Promise((r) => setTimeout(r, 2000));
 			return poll();
 		} catch {
-			// Ignore errors
+			// Retry on network errors
+			retryCount++;
+			if (retryCount < maxRetries) {
+				await new Promise((r) => setTimeout(r, 2000));
+				return poll();
+			}
+			// Give up after max retries
+			pollingSet.delete(id);
+			if (currentGeneratingId === id) {
+				generating = false;
+				currentGeneratingId = null;
+				status = null;
+			}
 		}
 	};
 	await poll();

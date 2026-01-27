@@ -241,11 +241,27 @@ async function generate() {
 }
 
 async function pollJobStatus(id: string) {
+	let retryCount = 0;
+	const maxRetries = 5;
+
 	const poll = async (): Promise<void> => {
 		try {
 			const res = await fetch(`/api/rotate/${id}/status`);
-			if (!res.ok) return;
+			if (!res.ok) {
+				retryCount++;
+				if (retryCount < maxRetries) {
+					await new Promise((r) => setTimeout(r, 2000));
+					return poll();
+				}
+				pollingSet.delete(id);
+				if (currentGeneratingId === id) {
+					generating = false;
+					currentGeneratingId = null;
+				}
+				return;
+			}
 
+			retryCount = 0;
 			const result = await res.json();
 
 			rotationJobs = rotationJobs.map((j) =>
@@ -282,7 +298,16 @@ async function pollJobStatus(id: string) {
 			await new Promise((r) => setTimeout(r, 2000));
 			return poll();
 		} catch {
-			// Ignore errors
+			retryCount++;
+			if (retryCount < maxRetries) {
+				await new Promise((r) => setTimeout(r, 2000));
+				return poll();
+			}
+			pollingSet.delete(id);
+			if (currentGeneratingId === id) {
+				generating = false;
+				currentGeneratingId = null;
+			}
 		}
 	};
 	await poll();

@@ -93,11 +93,21 @@ async function generate() {
 }
 
 async function pollStatus(id: string) {
+	let retryCount = 0;
+	const maxRetries = 5;
+
 	const poll = async () => {
 		try {
 			const res = await fetch(`/api/assets/${id}/status`);
-			if (!res.ok) return;
+			if (!res.ok) {
+				retryCount++;
+				if (retryCount < maxRetries) {
+					setTimeout(poll, 2000);
+				}
+				return;
+			}
 
+			retryCount = 0;
 			const updated = await res.json();
 			generations = generations.map((g) => (g.id === id ? updated : g));
 
@@ -105,7 +115,10 @@ async function pollStatus(id: string) {
 				setTimeout(poll, 2000);
 			}
 		} catch {
-			// Ignore errors, stop polling
+			retryCount++;
+			if (retryCount < maxRetries) {
+				setTimeout(poll, 2000);
+			}
 		}
 	};
 	setTimeout(poll, 2000);
