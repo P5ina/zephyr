@@ -247,6 +247,7 @@ async function pollStatus(id: string) {
 							status: result.status,
 							progress: result.progress || 0,
 							currentStage: result.statusMessage,
+							runpodJobId: result.runpodJobId || g.runpodJobId,
 							basecolorUrl: result.textures?.basecolor || g.basecolorUrl,
 							normalUrl: result.textures?.normal || g.normalUrl,
 							roughnessUrl: result.textures?.roughness || g.roughnessUrl,
@@ -635,6 +636,12 @@ function scrollHistory(direction: 'left' | 'right') {
 						<span class="text-xs text-zinc-500">{formatDate(selectedGeneration.createdAt)}</span>
 					</div>
 
+					{#if selectedGeneration.runpodJobId}
+						<div class="mb-3 text-xs text-zinc-500 font-mono">
+							Job: {selectedGeneration.runpodJobId}
+						</div>
+					{/if}
+
 					{#if selectedGeneration.status === 'processing' || selectedGeneration.status === 'pending'}
 						<!-- Progress View -->
 						<div class="aspect-video bg-zinc-800/30 rounded-lg border border-zinc-700 flex flex-col items-center justify-center mb-4">
@@ -690,12 +697,6 @@ function scrollHistory(direction: 'left' | 'right') {
 								<div class="flex items-center justify-between text-sm mt-2">
 									<span class="text-zinc-400">Seed</span>
 									<span class="text-white font-medium">{selectedGeneration.seed}</span>
-								</div>
-							{/if}
-							{#if selectedGeneration.runpodJobId}
-								<div class="flex items-center justify-between text-sm mt-2">
-									<span class="text-zinc-400">Job ID</span>
-									<span class="text-white font-mono text-xs">{selectedGeneration.runpodJobId}</span>
 								</div>
 							{/if}
 						</div>

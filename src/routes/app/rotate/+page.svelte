@@ -271,6 +271,7 @@ async function pollJobStatus(id: string) {
 							status: result.status,
 							progress: result.progress,
 							currentStage: result.statusMessage,
+							runpodJobId: result.runpodJobId || j.runpodJobId,
 							rotationN: result.rotations?.n,
 							rotationNE: result.rotations?.ne,
 							rotationE: result.rotations?.e,

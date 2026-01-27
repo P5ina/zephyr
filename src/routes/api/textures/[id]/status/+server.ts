@@ -89,6 +89,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	const response: Record<string, unknown> = {
 		id: texture.id,
 		status: texture.status,
+		runpodJobId: texture.runpodJobId,
 	};
 
 	if (texture.status === 'pending') {

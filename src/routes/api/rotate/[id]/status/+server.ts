@@ -89,6 +89,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	const response: Record<string, unknown> = {
 		id: job.id,
 		status: job.status,
+		runpodJobId: job.runpodJobId,
 	};
 
 	if (job.status === 'pending') {
