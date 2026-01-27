@@ -140,10 +140,13 @@ export async function getJobStatus(
 	);
 
 	if (!response.ok) {
-		const errorText = await response.text();
-		throw new Error(
-			`RunPod status check failed: ${response.status} ${errorText}`,
-		);
+		// Job no longer exists on RunPod (purged after completion/expiry)
+		// Return as FAILED so status endpoints can refund and mark appropriately
+		return {
+			id: runpodJobId,
+			status: 'FAILED',
+			error: 'Job no longer exists on RunPod',
+		};
 	}
 
 	return response.json();
