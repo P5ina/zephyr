@@ -32,7 +32,21 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		try {
 			const runpodStatus = await getJobStatus(asset.runpodJobId!);
 
-			if (runpodStatus.status === 'FAILED' || runpodStatus.status === 'CANCELLED') {
+			if (runpodStatus.status === 'IN_PROGRESS') {
+				if (asset.status !== 'processing') {
+					await db
+						.update(table.assetGeneration)
+						.set({
+							status: 'processing',
+							currentStage: 'Processing...',
+						})
+						.where(eq(table.assetGeneration.id, asset.id));
+
+					asset = (await db.query.assetGeneration.findFirst({
+						where: eq(table.assetGeneration.id, params.id),
+					}))!;
+				}
+			} else if (runpodStatus.status === 'FAILED' || runpodStatus.status === 'CANCELLED') {
 				if (asset.status !== 'failed') {
 					const regularTokens = asset.tokenCost - asset.bonusTokenCost;
 					await db

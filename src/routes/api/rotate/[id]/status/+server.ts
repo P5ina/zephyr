@@ -32,7 +32,21 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		try {
 			const runpodStatus = await getJobStatus(job.runpodJobId!);
 
-			if (runpodStatus.status === 'FAILED' || runpodStatus.status === 'CANCELLED') {
+			if (runpodStatus.status === 'IN_PROGRESS') {
+				if (job.status !== 'processing') {
+					await db
+						.update(table.rotationJob)
+						.set({
+							status: 'processing',
+							currentStage: 'Processing...',
+						})
+						.where(eq(table.rotationJob.id, job.id));
+
+					job = (await db.query.rotationJob.findFirst({
+						where: eq(table.rotationJob.id, params.id),
+					}))!;
+				}
+			} else if (runpodStatus.status === 'FAILED' || runpodStatus.status === 'CANCELLED') {
 				if (job.status !== 'failed') {
 					const regularTokens = job.tokenCost - job.bonusTokenCost;
 					await db

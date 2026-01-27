@@ -26,15 +26,27 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		texture.runpodJobId &&
 		(texture.status === 'pending' ||
 			texture.status === 'processing' ||
-			// Also check if completed but URLs are missing (webhook may have failed)
 			(texture.status === 'completed' && !texture.basecolorUrl));
 
 	if (needsRunpodCheck) {
 		try {
 			const runpodStatus = await getJobStatus(texture.runpodJobId!);
 
-			if (runpodStatus.status === 'FAILED' || runpodStatus.status === 'CANCELLED') {
-				// Refund tokens (only if not already marked as failed)
+			if (runpodStatus.status === 'IN_PROGRESS') {
+				if (texture.status !== 'processing') {
+					await db
+						.update(table.textureGeneration)
+						.set({
+							status: 'processing',
+							currentStage: 'Processing...',
+						})
+						.where(eq(table.textureGeneration.id, texture.id));
+
+					texture = (await db.query.textureGeneration.findFirst({
+						where: eq(table.textureGeneration.id, params.id),
+					}))!;
+				}
+			} else if (runpodStatus.status === 'FAILED' || runpodStatus.status === 'CANCELLED') {
 				if (texture.status !== 'failed') {
 					const regularTokens = texture.tokenCost - texture.bonusTokenCost;
 					await db
@@ -58,7 +70,6 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 					where: eq(table.textureGeneration.id, params.id),
 				}))!;
 			} else if (runpodStatus.status === 'COMPLETED' && runpodStatus.output) {
-				// Backfill URLs from RunPod output if missing in DB
 				const output = runpodStatus.output as Record<string, unknown>;
 				if (output.basecolor_url && !texture.basecolorUrl) {
 					await db

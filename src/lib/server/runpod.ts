@@ -7,8 +7,6 @@ import { env } from '$env/dynamic/private';
 interface RunPodJobInput {
 	job_id: string;
 	job_type: 'sprite' | 'texture' | 'rotation';
-	webhook_url: string;
-	webhook_secret: string;
 	blob_token: string;
 	// Sprite-specific
 	prompt?: string;
@@ -31,19 +29,7 @@ interface RunPodResponse {
 }
 
 /**
- * Get the webhook URL for RunPod to call back.
- */
-export function getWebhookUrl(): string {
-	const baseUrl = env.APP_URL || 'http://localhost:5173';
-	return `${baseUrl}/api/worker/webhook`;
-}
-
-/**
  * Submit a job to the RunPod serverless endpoint.
- *
- * @param input - Job input parameters
- * @returns RunPod job response
- * @throws Error if submission fails
  */
 export async function submitJob(
 	input: RunPodJobInput,
@@ -89,8 +75,6 @@ export async function submitSpriteJob(params: {
 	return submitJob({
 		job_id: params.jobId,
 		job_type: 'sprite',
-		webhook_url: getWebhookUrl(),
-		webhook_secret: env.RUNPOD_WEBHOOK_SECRET || '',
 		blob_token: env.BLOB_READ_WRITE_TOKEN || '',
 		prompt: params.prompt,
 		width: params.width,
@@ -110,8 +94,6 @@ export async function submitTextureJob(params: {
 	return submitJob({
 		job_id: params.jobId,
 		job_type: 'texture',
-		webhook_url: getWebhookUrl(),
-		webhook_secret: env.RUNPOD_WEBHOOK_SECRET || '',
 		blob_token: env.BLOB_READ_WRITE_TOKEN || '',
 		prompt: params.prompt,
 		seed: params.seed,
@@ -129,8 +111,6 @@ export async function submitRotationJob(params: {
 	return submitJob({
 		job_id: params.jobId,
 		job_type: 'rotation',
-		webhook_url: getWebhookUrl(),
-		webhook_secret: env.RUNPOD_WEBHOOK_SECRET || '',
 		blob_token: env.BLOB_READ_WRITE_TOKEN || '',
 		input_image_url: params.inputImageUrl,
 		elevation: params.elevation,
