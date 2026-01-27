@@ -21,27 +21,29 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		error(404, 'Asset not found');
 	}
 
-	// If job is processing and has a RunPod job ID, check RunPod status
-	if (
+	// Check RunPod status if we have a job ID and need to sync state
+	const needsRunpodCheck =
 		asset.runpodJobId &&
-		(asset.status === 'pending' || asset.status === 'processing')
-	) {
+		(asset.status === 'pending' ||
+			asset.status === 'processing' ||
+			(asset.status === 'completed' && !asset.resultUrls?.processed));
+
+	if (needsRunpodCheck) {
 		try {
-			const runpodStatus = await getJobStatus(asset.runpodJobId);
+			const runpodStatus = await getJobStatus(asset.runpodJobId!);
 
-			// If RunPod says the job failed or was cancelled, update our DB
 			if (runpodStatus.status === 'FAILED' || runpodStatus.status === 'CANCELLED') {
-				// Refund tokens
-				const regularTokens = asset.tokenCost - asset.bonusTokenCost;
-				await db
-					.update(table.user)
-					.set({
-						tokens: sql`${table.user.tokens} + ${regularTokens}`,
-						bonusTokens: sql`${table.user.bonusTokens} + ${asset.bonusTokenCost}`,
-					})
-					.where(eq(table.user.id, asset.userId));
+				if (asset.status !== 'failed') {
+					const regularTokens = asset.tokenCost - asset.bonusTokenCost;
+					await db
+						.update(table.user)
+						.set({
+							tokens: sql`${table.user.tokens} + ${regularTokens}`,
+							bonusTokens: sql`${table.user.bonusTokens} + ${asset.bonusTokenCost}`,
+						})
+						.where(eq(table.user.id, asset.userId));
+				}
 
-				// Mark as failed
 				await db
 					.update(table.assetGeneration)
 					.set({
@@ -50,13 +52,33 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 					})
 					.where(eq(table.assetGeneration.id, asset.id));
 
-				// Refetch updated asset
 				asset = (await db.query.assetGeneration.findFirst({
 					where: eq(table.assetGeneration.id, params.id),
 				}))!;
+			} else if (runpodStatus.status === 'COMPLETED' && runpodStatus.output) {
+				const output = runpodStatus.output as Record<string, unknown>;
+				if (output.processed_url && !asset.resultUrls?.processed) {
+					await db
+						.update(table.assetGeneration)
+						.set({
+							status: 'completed',
+							progress: 100,
+							currentStage: 'Completed',
+							resultUrls: {
+								raw: (output.raw_url as string) || undefined,
+								processed: output.processed_url as string,
+							},
+							seed: (output.seed as number) || null,
+							completedAt: new Date(),
+						})
+						.where(eq(table.assetGeneration.id, asset.id));
+
+					asset = (await db.query.assetGeneration.findFirst({
+						where: eq(table.assetGeneration.id, params.id),
+					}))!;
+				}
 			}
 		} catch (e) {
-			// Ignore RunPod API errors, just return current DB state
 			console.error('Failed to check RunPod status:', e);
 		}
 	}
