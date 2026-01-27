@@ -290,8 +290,8 @@ async function pollJobStatus(id: string) {
 					generating = false;
 					currentGeneratingId = null;
 				}
-				if (result.status === 'failed') {
-					alert(result.error || 'Generation failed');
+				if (result.status === 'failed' && result.error && !result.error.includes('Cancelled by user')) {
+					alert(result.error);
 				}
 				return;
 			}
@@ -482,6 +482,34 @@ async function exportSpritesheet() {
 	} catch (e) {
 		console.error('Failed to export spritesheet:', e);
 		alert('Failed to export spritesheet');
+	}
+}
+
+async function cancelJob(id: string) {
+	if (!confirm('Cancel this generation? Tokens will be refunded.')) return;
+
+	try {
+		const res = await fetch(`/api/rotate/${id}/cancel`, { method: 'POST' });
+		if (res.ok) {
+			const result = await res.json();
+			rotationJobs = rotationJobs.map((j) =>
+				j.id === id
+					? { ...j, status: 'failed', errorMessage: 'Cancelled by user' }
+					: j,
+			);
+			pollingSet.delete(id);
+			if (currentGeneratingId === id) {
+				generating = false;
+				currentGeneratingId = null;
+			}
+			tokens = tokens + (result.regularTokensRefunded ?? 0);
+			bonusTokens = bonusTokens + (result.bonusTokensRefunded ?? 0);
+		} else {
+			const error = await res.json();
+			alert(error.message || 'Failed to cancel');
+		}
+	} catch {
+		alert('Failed to cancel generation');
 	}
 }
 
@@ -736,6 +764,13 @@ function scrollHistory(direction: 'left' | 'right') {
 						</div>
 						<p class="text-xs text-zinc-500 mt-2">{selectedJob.progress}% complete</p>
 					</div>
+					<button
+						onclick={() => selectedJob && cancelJob(selectedJob.id)}
+						class="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-red-400 hover:text-red-300 rounded-lg transition-colors flex items-center justify-center gap-2"
+					>
+						<X class="w-4 h-4" />
+						Cancel Generation
+					</button>
 				{:else if selectedJob.status === 'failed'}
 					<!-- Error View -->
 					<div class="aspect-square bg-red-500/5 rounded-lg border border-red-500/20 flex flex-col items-center justify-center mb-4 p-6">
