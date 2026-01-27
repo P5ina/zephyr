@@ -1,11 +1,13 @@
 import { error, json } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { PRICING } from '$lib/pricing';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
+import { submitTextureJob } from '$lib/server/runpod';
 import type { RequestHandler } from './$types';
 
-const TOKEN_COST = 5;
+const TOKEN_COST = PRICING.tokenCosts.texture;
 
 interface TextureGenerateRequest {
 	prompt: string;
@@ -61,6 +63,44 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			currentStage: 'Queued for processing...',
 		})
 		.returning();
+
+	// Submit to RunPod for processing
+	try {
+		const runpodResponse = await submitTextureJob({
+			jobId: textureId,
+			prompt: body.prompt.trim(),
+		});
+
+		// Store RunPod job ID for status polling
+		await db
+			.update(table.textureGeneration)
+			.set({ runpodJobId: runpodResponse.id })
+			.where(eq(table.textureGeneration.id, textureId));
+	} catch (err) {
+		// RunPod submission failed - refund tokens and mark as failed
+		console.error('RunPod submission failed:', err);
+
+		await db
+			.update(table.user)
+			.set({
+				bonusTokens: sql`${table.user.bonusTokens} + ${bonusDeduct}`,
+				tokens: sql`${table.user.tokens} + ${regularDeduct}`,
+			})
+			.where(eq(table.user.id, locals.user.id));
+
+		await db
+			.update(table.textureGeneration)
+			.set({
+				status: 'failed',
+				errorMessage: 'Failed to submit job for processing',
+			})
+			.where(eq(table.textureGeneration.id, textureId));
+
+		error(
+			500,
+			'Failed to submit job for processing. Tokens have been refunded.',
+		);
+	}
 
 	return json({
 		id: texture.id,

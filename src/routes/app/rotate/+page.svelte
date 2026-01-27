@@ -241,11 +241,27 @@ async function generate() {
 }
 
 async function pollJobStatus(id: string) {
+	let retryCount = 0;
+	const maxRetries = 5;
+
 	const poll = async (): Promise<void> => {
 		try {
 			const res = await fetch(`/api/rotate/${id}/status`);
-			if (!res.ok) return;
+			if (!res.ok) {
+				retryCount++;
+				if (retryCount < maxRetries) {
+					await new Promise((r) => setTimeout(r, 2000));
+					return poll();
+				}
+				pollingSet.delete(id);
+				if (currentGeneratingId === id) {
+					generating = false;
+					currentGeneratingId = null;
+				}
+				return;
+			}
 
+			retryCount = 0;
 			const result = await res.json();
 
 			rotationJobs = rotationJobs.map((j) =>
@@ -255,6 +271,7 @@ async function pollJobStatus(id: string) {
 							status: result.status,
 							progress: result.progress,
 							currentStage: result.statusMessage,
+							runpodJobId: result.runpodJobId || j.runpodJobId,
 							rotationN: result.rotations?.n,
 							rotationNE: result.rotations?.ne,
 							rotationE: result.rotations?.e,
@@ -273,8 +290,12 @@ async function pollJobStatus(id: string) {
 					generating = false;
 					currentGeneratingId = null;
 				}
-				if (result.status === 'failed') {
-					alert(result.error || 'Generation failed');
+				if (
+					result.status === 'failed' &&
+					result.error &&
+					!result.error.includes('Cancelled by user')
+				) {
+					alert(result.error);
 				}
 				return;
 			}
@@ -282,7 +303,16 @@ async function pollJobStatus(id: string) {
 			await new Promise((r) => setTimeout(r, 2000));
 			return poll();
 		} catch {
-			// Ignore errors
+			retryCount++;
+			if (retryCount < maxRetries) {
+				await new Promise((r) => setTimeout(r, 2000));
+				return poll();
+			}
+			pollingSet.delete(id);
+			if (currentGeneratingId === id) {
+				generating = false;
+				currentGeneratingId = null;
+			}
 		}
 	};
 	await poll();
@@ -459,6 +489,34 @@ async function exportSpritesheet() {
 	}
 }
 
+async function cancelJob(id: string) {
+	if (!confirm('Cancel this generation? Tokens will be refunded.')) return;
+
+	try {
+		const res = await fetch(`/api/rotate/${id}/cancel`, { method: 'POST' });
+		if (res.ok) {
+			const result = await res.json();
+			rotationJobs = rotationJobs.map((j) =>
+				j.id === id
+					? { ...j, status: 'failed', errorMessage: 'Cancelled by user' }
+					: j,
+			);
+			pollingSet.delete(id);
+			if (currentGeneratingId === id) {
+				generating = false;
+				currentGeneratingId = null;
+			}
+			tokens = tokens + (result.regularTokensRefunded ?? 0);
+			bonusTokens = bonusTokens + (result.bonusTokensRefunded ?? 0);
+		} else {
+			const error = await res.json();
+			alert(error.message || 'Failed to cancel');
+		}
+	} catch {
+		alert('Failed to cancel generation');
+	}
+}
+
 function getSpriteUrl(sprite: (typeof sprites)[number]): string | null {
 	const urls = sprite.resultUrls as { processed?: string; raw?: string } | null;
 	return urls?.processed || urls?.raw || null;
@@ -510,12 +568,18 @@ function scrollHistory(direction: 'left' | 'right') {
 						onclick={() => selectJob(job.id)}
 						class="flex-shrink-0 relative w-16 h-16 rounded-lg overflow-hidden border-2 {viewMode === job.id ? 'border-yellow-500' : 'border-zinc-700 hover:border-zinc-600'} transition-colors"
 					>
-						{#if job.status === 'completed' && getJobPreviewImage(job)}
-							<img
-								src={getJobPreviewImage(job)}
-								alt="Rotation"
-								class="w-full h-full object-contain bg-zinc-800"
-							/>
+						{#if job.status === 'completed'}
+							{#if getJobPreviewImage(job)}
+								<img
+									src={getJobPreviewImage(job)}
+									alt="Rotation"
+									class="w-full h-full object-contain bg-zinc-800"
+								/>
+							{:else}
+								<div class="w-full h-full bg-zinc-800 flex items-center justify-center">
+									<Check class="w-5 h-5 text-green-400" />
+								</div>
+							{/if}
 						{:else if job.status === 'failed'}
 							<div class="w-full h-full bg-zinc-800 flex items-center justify-center">
 								<X class="w-5 h-5 text-red-400" />
@@ -523,9 +587,6 @@ function scrollHistory(direction: 'left' | 'right') {
 						{:else}
 							<div class="w-full h-full bg-zinc-800 flex flex-col items-center justify-center">
 								<Loader2 class="w-5 h-5 animate-spin text-yellow-400" />
-								{#if job.progress > 0}
-									<span class="text-[9px] text-yellow-400 mt-0.5">{job.progress}%</span>
-								{/if}
 							</div>
 						{/if}
 						{#if viewMode === job.id}
@@ -685,19 +746,25 @@ function scrollHistory(direction: 'left' | 'right') {
 					<span class="text-xs text-zinc-500">{formatDate(selectedJob.createdAt)}</span>
 				</div>
 
+				{#if selectedJob.runpodJobId}
+					<div class="mb-3 text-xs text-zinc-500 font-mono">
+						Job: {selectedJob.runpodJobId}
+					</div>
+				{/if}
+
 				{#if selectedJob.status === 'processing' || selectedJob.status === 'pending'}
 					<!-- Progress View -->
 					<div class="aspect-square bg-zinc-800/30 rounded-lg border border-zinc-700 flex flex-col items-center justify-center mb-4">
 						<Loader2 class="w-12 h-12 animate-spin text-yellow-400 mb-4" />
-						<p class="text-sm text-zinc-300 mb-2">{selectedJob.currentStage || 'Processing...'}</p>
-						<div class="w-48 h-2 bg-zinc-700 rounded-full overflow-hidden">
-							<div
-								class="h-full bg-gradient-to-r from-yellow-500 to-amber-400 transition-all duration-500"
-								style="width: {selectedJob.progress}%"
-							></div>
-						</div>
-						<p class="text-xs text-zinc-500 mt-2">{selectedJob.progress}% complete</p>
+						<p class="text-sm text-zinc-300">{selectedJob.currentStage || 'Processing...'}</p>
 					</div>
+					<button
+						onclick={() => selectedJob && cancelJob(selectedJob.id)}
+						class="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-red-400 hover:text-red-300 rounded-lg transition-colors flex items-center justify-center gap-2"
+					>
+						<X class="w-4 h-4" />
+						Cancel Generation
+					</button>
 				{:else if selectedJob.status === 'failed'}
 					<!-- Error View -->
 					<div class="aspect-square bg-red-500/5 rounded-lg border border-red-500/20 flex flex-col items-center justify-center mb-4 p-6">

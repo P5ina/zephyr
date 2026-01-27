@@ -9,24 +9,6 @@
  */
 
 import crypto from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
-
-// Try to load .env file manually
-if (existsSync('.env')) {
-	const envContent = readFileSync('.env', 'utf-8');
-	envContent.split('\n').forEach((line) => {
-		const [key, ...valueParts] = line.split('=');
-		if (key && valueParts.length > 0) {
-			const value = valueParts
-				.join('=')
-				.trim()
-				.replace(/^["']|["']$/g, '');
-			if (!process.env[key.trim()]) {
-				process.env[key.trim()] = value;
-			}
-		}
-	});
-}
 
 const MERCHANT_ID = process.env.CRYPTOMUS_MERCHANT_ID;
 const API_KEY = process.env.CRYPTOMUS_API_KEY;

@@ -68,14 +68,12 @@ const displayTextures = $derived(
 				normal: selectedGeneration.normalUrl,
 				roughness: selectedGeneration.roughnessUrl,
 				metallic: selectedGeneration.metallicUrl,
-				height: selectedGeneration.heightUrl,
 			}
 		: {
 				basecolor: null,
 				normal: null,
 				roughness: null,
 				metallic: null,
-				height: null,
 			},
 );
 
@@ -145,11 +143,11 @@ async function generate() {
 				status: 'pending',
 				progress: 0,
 				currentStage: null,
+				runpodJobId: null,
 				basecolorUrl: null,
 				normalUrl: null,
 				roughnessUrl: null,
 				metallicUrl: null,
-				heightUrl: null,
 				seed: null,
 				tokenCost: TOKEN_COST,
 				bonusTokenCost: 0,
@@ -173,11 +171,70 @@ async function generate() {
 	}
 }
 
+async function cancelGeneration(id: string) {
+	if (!confirm('Cancel this generation? Your tokens will be refunded.')) return;
+
+	try {
+		const res = await fetch(`/api/textures/${id}/cancel`, { method: 'POST' });
+		if (!res.ok) {
+			const error = await res.json();
+			alert(error.message || 'Failed to cancel');
+			return;
+		}
+
+		const result = await res.json();
+
+		// Update generation status locally
+		textureGenerations = textureGenerations.map((g) =>
+			g.id === id
+				? { ...g, status: 'failed', errorMessage: 'Cancelled by user' }
+				: g,
+		);
+
+		// Update tokens
+		tokens = tokens + result.regularTokensRefunded;
+		bonusTokens = bonusTokens + result.bonusTokensRefunded;
+
+		// Stop polling
+		pollingSet.delete(id);
+
+		if (currentGeneratingId === id) {
+			generating = false;
+			currentGeneratingId = null;
+			status = null;
+		}
+	} catch (e) {
+		console.error('Cancel error:', e);
+		alert('Failed to cancel generation');
+	}
+}
+
 async function pollStatus(id: string) {
+	let retryCount = 0;
+	const maxRetries = 5;
+
 	const poll = async (): Promise<void> => {
 		try {
 			const res = await fetch(`/api/textures/${id}/status`);
-			if (!res.ok) return;
+			if (!res.ok) {
+				// Retry on server errors
+				retryCount++;
+				if (retryCount < maxRetries) {
+					await new Promise((r) => setTimeout(r, 2000));
+					return poll();
+				}
+				// Give up after max retries
+				pollingSet.delete(id);
+				if (currentGeneratingId === id) {
+					generating = false;
+					currentGeneratingId = null;
+					status = null;
+				}
+				return;
+			}
+
+			// Reset retry count on successful response
+			retryCount = 0;
 
 			const result = await res.json();
 			status = result.statusMessage || result.status;
@@ -190,11 +247,11 @@ async function pollStatus(id: string) {
 							status: result.status,
 							progress: result.progress || 0,
 							currentStage: result.statusMessage,
+							runpodJobId: result.runpodJobId || g.runpodJobId,
 							basecolorUrl: result.textures?.basecolor || g.basecolorUrl,
 							normalUrl: result.textures?.normal || g.normalUrl,
 							roughnessUrl: result.textures?.roughness || g.roughnessUrl,
 							metallicUrl: result.textures?.metallic || g.metallicUrl,
-							heightUrl: result.textures?.height || g.heightUrl,
 						}
 					: g,
 			);
@@ -218,14 +275,29 @@ async function pollStatus(id: string) {
 					currentGeneratingId = null;
 					status = null;
 				}
-				alert(result.error || 'Generation failed');
+				// Don't show alert for user-cancelled generations
+				if (result.error && !result.error.includes('Cancelled by user')) {
+					alert(result.error);
+				}
 				return;
 			}
 
 			await new Promise((r) => setTimeout(r, 2000));
 			return poll();
 		} catch {
-			// Ignore errors
+			// Retry on network errors
+			retryCount++;
+			if (retryCount < maxRetries) {
+				await new Promise((r) => setTimeout(r, 2000));
+				return poll();
+			}
+			// Give up after max retries
+			pollingSet.delete(id);
+			if (currentGeneratingId === id) {
+				generating = false;
+				currentGeneratingId = null;
+				status = null;
+			}
 		}
 	};
 	await poll();
@@ -314,12 +386,18 @@ function scrollHistory(direction: 'left' | 'right') {
 						onclick={() => selectGeneration(gen.id)}
 						class="flex-shrink-0 relative w-16 h-16 rounded-lg overflow-hidden border-2 {viewMode === gen.id ? 'border-yellow-500' : 'border-zinc-700 hover:border-zinc-600'} transition-colors"
 					>
-						{#if gen.status === 'completed' && gen.basecolorUrl}
-							<img
-								src={gen.basecolorUrl}
-								alt={gen.prompt}
-								class="w-full h-full object-cover bg-zinc-800"
-							/>
+						{#if gen.status === 'completed'}
+							{#if gen.basecolorUrl}
+								<img
+									src={gen.basecolorUrl}
+									alt={gen.prompt}
+									class="w-full h-full object-cover bg-zinc-800"
+								/>
+							{:else}
+								<div class="w-full h-full bg-zinc-800 flex items-center justify-center">
+									<Check class="w-5 h-5 text-green-400" />
+								</div>
+							{/if}
 						{:else if gen.status === 'failed'}
 							<div class="w-full h-full bg-zinc-800 flex items-center justify-center">
 								<X class="w-5 h-5 text-red-400" />
@@ -327,9 +405,6 @@ function scrollHistory(direction: 'left' | 'right') {
 						{:else}
 							<div class="w-full h-full bg-zinc-800 flex flex-col items-center justify-center">
 								<Loader2 class="w-5 h-5 animate-spin text-yellow-400" />
-								{#if gen.progress > 0}
-									<span class="text-[9px] text-yellow-400 mt-0.5">{gen.progress}%</span>
-								{/if}
 							</div>
 						{/if}
 						{#if viewMode === gen.id}
@@ -411,7 +486,6 @@ function scrollHistory(direction: 'left' | 'right') {
 								normalUrl={displayTextures.normal}
 								roughnessUrl={displayTextures.roughness}
 								metallicUrl={displayTextures.metallic}
-								heightUrl={displayTextures.height}
 								shape={previewShape}
 								{autoRotate}
 							/>
@@ -433,13 +507,12 @@ function scrollHistory(direction: 'left' | 'right') {
 							Download All
 						</button>
 					</div>
-					<div class="grid grid-cols-5 gap-2">
+					<div class="grid grid-cols-4 gap-2">
 						{#each [
 							{ key: 'basecolor', label: 'Color' },
 							{ key: 'normal', label: 'Normal' },
 							{ key: 'roughness', label: 'Rough' },
 							{ key: 'metallic', label: 'Metal' },
-							{ key: 'height', label: 'Height' },
 						] as map}
 							<div class="relative group">
 								{#if displayTextures[map.key as keyof typeof displayTextures]}
@@ -475,7 +548,7 @@ function scrollHistory(direction: 'left' | 'right') {
 					<h2 class="text-lg font-semibold text-white mb-4">Generate PBR Textures</h2>
 					<p class="text-sm text-zinc-400 mb-6">
 						Describe the material you want to create. We'll generate a complete set of PBR maps
-						including basecolor, normal, roughness, metallic, and height.
+						including basecolor, normal, roughness, and metallic.
 					</p>
 
 					<!-- Prompt -->
@@ -540,7 +613,7 @@ function scrollHistory(direction: 'left' | 'right') {
 
 					<!-- Info -->
 					<p class="mt-4 text-xs text-zinc-500 text-center">
-						Generation creates 5 PBR maps: basecolor, normal, roughness, metallic, and height.
+						Generation creates 4 PBR maps: basecolor, normal, roughness, and metallic.
 						Output resolution: 1024x1024
 					</p>
 				{:else if selectedGeneration}
@@ -560,19 +633,25 @@ function scrollHistory(direction: 'left' | 'right') {
 						<span class="text-xs text-zinc-500">{formatDate(selectedGeneration.createdAt)}</span>
 					</div>
 
+					{#if selectedGeneration.runpodJobId}
+						<div class="mb-3 text-xs text-zinc-500 font-mono">
+							Job: {selectedGeneration.runpodJobId}
+						</div>
+					{/if}
+
 					{#if selectedGeneration.status === 'processing' || selectedGeneration.status === 'pending'}
 						<!-- Progress View -->
 						<div class="aspect-video bg-zinc-800/30 rounded-lg border border-zinc-700 flex flex-col items-center justify-center mb-4">
 							<Loader2 class="w-12 h-12 animate-spin text-yellow-400 mb-4" />
-							<p class="text-sm text-zinc-300 mb-2">{selectedGeneration.currentStage || 'Processing...'}</p>
-							<div class="w-48 h-2 bg-zinc-700 rounded-full overflow-hidden">
-								<div
-									class="h-full bg-gradient-to-r from-yellow-500 to-amber-400 transition-all duration-500"
-									style="width: {selectedGeneration.progress}%"
-								></div>
-							</div>
-							<p class="text-xs text-zinc-500 mt-2">{selectedGeneration.progress}% complete</p>
+							<p class="text-sm text-zinc-300">{selectedGeneration.currentStage || 'Processing...'}</p>
 						</div>
+						<button
+							onclick={() => cancelGeneration(selectedGeneration.id)}
+							class="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-red-400 hover:text-red-300 rounded-lg transition-colors flex items-center justify-center gap-2"
+						>
+							<X class="w-4 h-4" />
+							Cancel Generation
+						</button>
 					{:else if selectedGeneration.status === 'failed'}
 						<!-- Error View -->
 						<div class="aspect-video bg-red-500/5 rounded-lg border border-red-500/20 flex flex-col items-center justify-center mb-4 p-6">

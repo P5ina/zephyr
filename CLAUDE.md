@@ -6,7 +6,7 @@ AI-powered game asset generation platform for sprites, textures, and 8-direction
 
 - **Frontend/Backend**: SvelteKit 2, Svelte 5 (runes), TypeScript
 - **Database**: Vercel Postgres (Neon) + Drizzle ORM
-- **Image Generation**: ComfyUI workflows (Flux Schnell, SV3D, ControlNet)
+- **Image Generation**: SDXL + refiner, SV3D for rotations
 - **3D Preview**: Three.js + Threlte
 - **Payments**: Cryptomus (crypto)
 - **File Storage**: Vercel Blob
@@ -16,7 +16,7 @@ AI-powered game asset generation platform for sprites, textures, and 8-direction
 
 1. **Sprite Generation** — Generate game sprites with transparent backgrounds (2 tokens)
 2. **8-Directional Rotation** — Generate sprites in 8 directions from an input image using SV3D (8 tokens)
-3. **PBR Texture Generation** — Generate complete texture sets with normal, roughness, metallic, height maps (5 tokens)
+3. **PBR Texture Generation** — Generate complete texture sets with normal, roughness, metallic maps (4 tokens)
 4. **3D Material Preview** — Real-time Three.js preview for generated textures
 
 ## Project Structure
@@ -69,7 +69,7 @@ AI-powered game asset generation platform for sprites, textures, and 8-direction
 ## Worker Repository
 
 Workflows and job processing are in a separate worker repo (`gensprite-worker`):
-- `workflows/sprite.json` — Sprite generation using Flux Schnell + RMBG
+- `workflows/sprite.json` — Sprite generation using SDXL + refiner + RMBG
 - `workflows/rotate_regular.json` — SV3D rotation with ControlNet Tile + IPAdapter refinement
 
 **Rotation Pipeline (SV3D-based):**
@@ -102,7 +102,7 @@ assetGeneration: id, visibleId, userId, assetType ('sprite' | 'texture'),
 
 // Texture Generations (PBR)
 textureGeneration: id, userId, prompt, status, progress, currentStage,
-                   basecolorUrl, normalUrl, roughnessUrl, metallicUrl, heightUrl,
+                   basecolorUrl, normalUrl, roughnessUrl, metallicUrl,
                    seed, tokenCost, createdAt
 
 // Rotation Jobs (8-directional)

@@ -1,6 +1,7 @@
 <script lang="ts">
 import {
 	Calendar,
+	Check,
 	Copy,
 	Download,
 	Info,
@@ -93,11 +94,21 @@ async function generate() {
 }
 
 async function pollStatus(id: string) {
+	let retryCount = 0;
+	const maxRetries = 5;
+
 	const poll = async () => {
 		try {
 			const res = await fetch(`/api/assets/${id}/status`);
-			if (!res.ok) return;
+			if (!res.ok) {
+				retryCount++;
+				if (retryCount < maxRetries) {
+					setTimeout(poll, 2000);
+				}
+				return;
+			}
 
+			retryCount = 0;
 			const updated = await res.json();
 			generations = generations.map((g) => (g.id === id ? updated : g));
 
@@ -105,7 +116,10 @@ async function pollStatus(id: string) {
 				setTimeout(poll, 2000);
 			}
 		} catch {
-			// Ignore errors, stop polling
+			retryCount++;
+			if (retryCount < maxRetries) {
+				setTimeout(poll, 2000);
+			}
 		}
 	};
 	setTimeout(poll, 2000);
@@ -257,12 +271,18 @@ function getAssetTypeLabel(type: string) {
 							onclick={() => openModal(gen)}
 							class="group relative aspect-square bg-zinc-800/50 rounded-lg overflow-hidden border border-zinc-700 cursor-pointer w-full text-left hover:border-zinc-600 transition-colors"
 						>
-							{#if gen.status === 'completed' && gen.resultUrls?.raw}
-								<img
-									src={gen.resultUrls.raw}
-									alt={gen.prompt}
-									class="w-full h-full object-cover"
-								/>
+							{#if gen.status === 'completed'}
+								{#if gen.resultUrls?.processed || gen.resultUrls?.raw}
+									<img
+										src={gen.resultUrls.processed || gen.resultUrls.raw}
+										alt={gen.prompt}
+										class="w-full h-full object-cover"
+									/>
+								{:else}
+									<div class="w-full h-full flex items-center justify-center bg-zinc-800">
+										<Check class="w-8 h-8 text-green-400" />
+									</div>
+								{/if}
 								<div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
 									<span class="p-2 bg-white/20 rounded-lg">
 										<Info class="w-5 h-5 text-white" />
@@ -285,15 +305,6 @@ function getAssetTypeLabel(type: string) {
 									<div class="text-center w-full">
 										<Loader2 class="w-6 h-6 mx-auto mb-2 animate-spin text-yellow-400" />
 										<p class="text-xs text-zinc-400 mb-1">{gen.currentStage || getStatusLabel(gen.status)}</p>
-										{#if gen.progress > 0}
-											<div class="w-full h-1.5 bg-zinc-700 rounded-full overflow-hidden mb-1">
-												<div
-													class="h-full bg-gradient-to-r from-yellow-500 to-amber-400 transition-all duration-500"
-													style="width: {gen.progress}%"
-												></div>
-											</div>
-											<p class="text-[10px] text-zinc-500">{gen.progress}%</p>
-										{/if}
 									</div>
 									<!-- svelte-ignore a11y_no_static_element_interactions -->
 									<span
@@ -367,12 +378,21 @@ function getAssetTypeLabel(type: string) {
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<!-- Image Preview -->
 					<div class="aspect-square bg-zinc-800/50 rounded-lg overflow-hidden border border-zinc-700">
-						{#if selectedGeneration.status === 'completed' && selectedGeneration.resultUrls?.raw}
-							<img
-								src={selectedGeneration.resultUrls.raw}
-								alt={selectedGeneration.prompt}
-								class="w-full h-full object-contain"
-							/>
+						{#if selectedGeneration.status === 'completed'}
+							{#if selectedGeneration.resultUrls?.processed || selectedGeneration.resultUrls?.raw}
+								<img
+									src={selectedGeneration.resultUrls.processed || selectedGeneration.resultUrls.raw}
+									alt={selectedGeneration.prompt}
+									class="w-full h-full object-contain"
+								/>
+							{:else}
+								<div class="w-full h-full flex items-center justify-center">
+									<div class="text-center">
+										<Check class="w-12 h-12 mx-auto mb-2 text-green-400" />
+										<p class="text-sm text-zinc-400">Completed</p>
+									</div>
+								</div>
+							{/if}
 						{:else if selectedGeneration.status === 'failed'}
 							<div class="w-full h-full flex items-center justify-center text-red-400">
 								<div class="text-center">
@@ -385,9 +405,6 @@ function getAssetTypeLabel(type: string) {
 								<div class="text-center">
 									<Loader2 class="w-12 h-12 mx-auto mb-2 animate-spin text-yellow-400" />
 									<p class="text-sm text-zinc-400">{selectedGeneration.currentStage || getStatusLabel(selectedGeneration.status)}</p>
-									{#if selectedGeneration.progress > 0}
-										<p class="text-xs text-zinc-500 mt-1">{selectedGeneration.progress}%</p>
-									{/if}
 								</div>
 							</div>
 						{/if}
@@ -454,15 +471,20 @@ function getAssetTypeLabel(type: string) {
 								Seed: {selectedGeneration.seed}
 							</div>
 						{/if}
+						{#if selectedGeneration.runpodJobId}
+							<div class="text-xs text-zinc-500 font-mono">
+								Job: {selectedGeneration.runpodJobId}
+							</div>
+						{/if}
 					</div>
 				</div>
 			</div>
 
 			<!-- Footer -->
 			<div class="p-4 border-t border-zinc-800 flex justify-end gap-2">
-				{#if selectedGeneration.status === 'completed' && selectedGeneration.resultUrls?.raw}
+				{#if selectedGeneration.status === 'completed' && (selectedGeneration.resultUrls?.processed || selectedGeneration.resultUrls?.raw)}
 					<a
-						href={selectedGeneration.resultUrls.raw}
+						href={selectedGeneration.resultUrls.processed || selectedGeneration.resultUrls.raw}
 						download
 						class="flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 font-medium rounded-lg transition-colors"
 					>

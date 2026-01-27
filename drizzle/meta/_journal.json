@@ -1,153 +1,174 @@
 {
-	"version": "7",
-	"dialect": "postgresql",
-	"entries": [
-		{
-			"idx": 0,
-			"version": "7",
-			"when": 1768806916435,
-			"tag": "0000_init-schema",
-			"breakpoints": true
-		},
-		{
-			"idx": 1,
-			"version": "7",
-			"when": 1768807820449,
-			"tag": "0001_remove-google-auth",
-			"breakpoints": true
-		},
-		{
-			"idx": 2,
-			"version": "7",
-			"when": 1768808288209,
-			"tag": "0002_add-tokens",
-			"breakpoints": true
-		},
-		{
-			"idx": 3,
-			"version": "7",
-			"when": 1768809839492,
-			"tag": "0003_amazing_sunfire",
-			"breakpoints": true
-		},
-		{
-			"idx": 4,
-			"version": "7",
-			"when": 1768813057440,
-			"tag": "0004_magical_piledriver",
-			"breakpoints": true
-		},
-		{
-			"idx": 5,
-			"version": "7",
-			"when": 1768814586234,
-			"tag": "0005_typical_weapon_omega",
-			"breakpoints": true
-		},
-		{
-			"idx": 6,
-			"version": "7",
-			"when": 1768815876167,
-			"tag": "0006_stiff_miek",
-			"breakpoints": true
-		},
-		{
-			"idx": 7,
-			"version": "7",
-			"when": 1768827699867,
-			"tag": "0007_premium_catseye",
-			"breakpoints": true
-		},
-		{
-			"idx": 8,
-			"version": "7",
-			"when": 1768901201232,
-			"tag": "0008_condemned_celestials",
-			"breakpoints": true
-		},
-		{
-			"idx": 9,
-			"version": "7",
-			"when": 1768902186848,
-			"tag": "0009_furry_lady_mastermind",
-			"breakpoints": true
-		},
-		{
-			"idx": 10,
-			"version": "7",
-			"when": 1768955635206,
-			"tag": "0010_giant_cerise",
-			"breakpoints": true
-		},
-		{
-			"idx": 11,
-			"version": "7",
-			"when": 1768956214947,
-			"tag": "0011_green_bullseye",
-			"breakpoints": true
-		},
-		{
-			"idx": 12,
-			"version": "7",
-			"when": 1768956624089,
-			"tag": "0012_handy_maestro",
-			"breakpoints": true
-		},
-		{
-			"idx": 13,
-			"version": "7",
-			"when": 1768988335951,
-			"tag": "0013_public_xorn",
-			"breakpoints": true
-		},
-		{
-			"idx": 14,
-			"version": "7",
-			"when": 1768994217173,
-			"tag": "0014_young_molten_man",
-			"breakpoints": true
-		},
-		{
-			"idx": 15,
-			"version": "7",
-			"when": 1768996675912,
-			"tag": "0015_red_lilandra",
-			"breakpoints": true
-		},
-		{
-			"idx": 16,
-			"version": "7",
-			"when": 1769128450608,
-			"tag": "0016_funny_devos",
-			"breakpoints": true
-		},
-		{
-			"idx": 17,
-			"version": "7",
-			"when": 1769130446253,
-			"tag": "0017_natural_medusa",
-			"breakpoints": true
-		},
-		{
-			"idx": 18,
-			"version": "7",
-			"when": 1769131464582,
-			"tag": "0018_rare_shinko_yamashiro",
-			"breakpoints": true
-		},
-		{
-			"idx": 19,
-			"version": "7",
-			"when": 1769132624855,
-			"tag": "0019_tearful_boomerang",
-			"breakpoints": true
-		},
-		{
-			"idx": 20,
-			"version": "7",
-			"when": 1769370000000,
-			"tag": "0020_replace_nowpayments_with_cryptomus",
-			"breakpoints": true
-		}
-	]
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1768806916435,
+      "tag": "0000_init-schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1768807820449,
+      "tag": "0001_remove-google-auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768808288209,
+      "tag": "0002_add-tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1768809839492,
+      "tag": "0003_amazing_sunfire",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1768813057440,
+      "tag": "0004_magical_piledriver",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1768814586234,
+      "tag": "0005_typical_weapon_omega",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1768815876167,
+      "tag": "0006_stiff_miek",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1768827699867,
+      "tag": "0007_premium_catseye",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1768901201232,
+      "tag": "0008_condemned_celestials",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1768902186848,
+      "tag": "0009_furry_lady_mastermind",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1768955635206,
+      "tag": "0010_giant_cerise",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1768956214947,
+      "tag": "0011_green_bullseye",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1768956624089,
+      "tag": "0012_handy_maestro",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1768988335951,
+      "tag": "0013_public_xorn",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1768994217173,
+      "tag": "0014_young_molten_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1768996675912,
+      "tag": "0015_red_lilandra",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1769128450608,
+      "tag": "0016_funny_devos",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1769130446253,
+      "tag": "0017_natural_medusa",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1769131464582,
+      "tag": "0018_rare_shinko_yamashiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1769132624855,
+      "tag": "0019_tearful_boomerang",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1769370000000,
+      "tag": "0020_replace_nowpayments_with_cryptomus",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1769452901228,
+      "tag": "0021_spotty_power_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1769487176514,
+      "tag": "0022_romantic_vermin",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1769523563700,
+      "tag": "0023_illegal_fantastic_four",
+      "breakpoints": true
+    }
+  ]
 }

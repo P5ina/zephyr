@@ -1,4 +1,5 @@
 import {
+	bigint,
 	boolean,
 	integer,
 	json,
@@ -155,6 +156,7 @@ export const assetGeneration = pgTable('asset_generation', {
 		.default('pending'),
 	progress: integer('progress').notNull().default(0),
 	currentStage: text('current_stage'),
+	runpodJobId: text('runpod_job_id'),
 	vastInstanceId: text('vast_instance_id').references(() => vastInstance.id),
 	comfyuiPromptId: text('comfyui_prompt_id'),
 	retryCount: integer('retry_count').notNull().default(0),
@@ -169,11 +171,10 @@ export const assetGeneration = pgTable('asset_generation', {
 		baseColor?: string;
 		normal?: string;
 		roughness?: string;
-		height?: string;
 	}>(),
 
 	// Metadata
-	seed: integer('seed'),
+	seed: bigint('seed', { mode: 'number' }),
 	tokenCost: integer('token_cost').notNull(),
 	bonusTokenCost: integer('bonus_token_cost').notNull().default(0),
 	errorMessage: text('error_message'),
@@ -202,16 +203,16 @@ export const textureGeneration = pgTable('texture_generation', {
 		.default('pending'),
 	progress: integer('progress').notNull().default(0),
 	currentStage: text('current_stage'),
+	runpodJobId: text('runpod_job_id'),
 
 	// Results - URLs for each PBR map
 	basecolorUrl: text('basecolor_url'),
 	normalUrl: text('normal_url'),
 	roughnessUrl: text('roughness_url'),
 	metallicUrl: text('metallic_url'),
-	heightUrl: text('height_url'),
 
 	// Metadata
-	seed: integer('seed'),
+	seed: bigint('seed', { mode: 'number' }),
 	tokenCost: integer('token_cost').notNull(),
 	bonusTokenCost: integer('bonus_token_cost').notNull().default(0),
 	errorMessage: text('error_message'),
@@ -237,6 +238,7 @@ export const rotationJob = pgTable('rotation_job', {
 		.default('pending'),
 	progress: integer('progress').notNull().default(0),
 	currentStage: text('current_stage'),
+	runpodJobId: text('runpod_job_id'),
 	startedAt: timestamp('started_at', { withTimezone: true, mode: 'date' }),
 
 	// Input
