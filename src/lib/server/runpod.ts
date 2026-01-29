@@ -13,6 +13,7 @@ interface RunPodJobInput {
 	width?: number;
 	height?: number;
 	seed?: number;
+	single_object?: boolean;
 	// Texture-specific (uses prompt, seed)
 	// Rotation-specific
 	input_image_url?: string;
@@ -71,6 +72,7 @@ export async function submitSpriteJob(params: {
 	width: number;
 	height: number;
 	seed?: number;
+	singleObject?: boolean;
 }): Promise<RunPodResponse> {
 	return submitJob({
 		job_id: params.jobId,
@@ -80,6 +82,7 @@ export async function submitSpriteJob(params: {
 		width: params.width,
 		height: params.height,
 		seed: params.seed,
+		single_object: params.singleObject ?? true,
 	});
 }
 

@@ -37,6 +37,7 @@ const guestGenerationsRemaining = $derived(
 
 // Generation form
 let prompt = $state('');
+let singleObject = $state(true);
 let generating = $state(false);
 
 // Modal state
@@ -89,6 +90,7 @@ async function generate() {
 			body: JSON.stringify({
 				assetType: 'sprite',
 				prompt: prompt.trim(),
+				singleObject,
 			}),
 		});
 
@@ -276,6 +278,31 @@ function getAssetTypeLabel(type: string) {
 					rows="3"
 					class="w-full px-3 py-2 bg-zinc-800/50 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 resize-none"
 				></textarea>
+			</div>
+
+			<!-- Object Mode Toggle -->
+			<div class="mb-4">
+				<label class="block text-sm font-medium text-zinc-400 mb-2">Output Mode</label>
+				<div class="flex gap-2">
+					<button
+						type="button"
+						onclick={() => singleObject = true}
+						class="flex-1 px-3 py-2 text-sm rounded-lg border transition-colors {singleObject
+							? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400'
+							: 'bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600'}"
+					>
+						Single Object
+					</button>
+					<button
+						type="button"
+						onclick={() => singleObject = false}
+						class="flex-1 px-3 py-2 text-sm rounded-lg border transition-colors {!singleObject
+							? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400'
+							: 'bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600'}"
+					>
+						Multiple Objects
+					</button>
+				</div>
 			</div>
 
 			<!-- Generate Button -->
