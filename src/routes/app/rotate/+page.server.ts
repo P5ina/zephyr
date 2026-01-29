@@ -1,3 +1,4 @@
+import { redirect } from '@sveltejs/kit';
 import { and, desc, eq, isNotNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
@@ -5,7 +6,7 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
-		return { rotationJobs: [], sprites: [] };
+		redirect(302, '/login');
 	}
 
 	const [rotationJobs, sprites] = await Promise.all([

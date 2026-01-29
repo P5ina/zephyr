@@ -96,12 +96,7 @@ useTask((delta) => {
 
 // Key to force material recreation when textures load
 const materialKey = $derived(
-	[
-		basecolorMap?.uuid,
-		normalMap?.uuid,
-		roughnessMap?.uuid,
-		metallicMap?.uuid,
-	]
+	[basecolorMap?.uuid, normalMap?.uuid, roughnessMap?.uuid, metallicMap?.uuid]
 		.filter(Boolean)
 		.join('-') || 'empty',
 );

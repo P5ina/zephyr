@@ -1,22 +1,30 @@
-import { redirect } from '@sveltejs/kit';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, or, and, isNotNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user) {
-		redirect(302, '/login');
+export const load: PageServerLoad = async ({ locals, parent }) => {
+	const parentData = await parent();
+
+	// Get generations for this user or guest session
+	let assetGenerations: table.AssetGeneration[] = [];
+
+	if (locals.user) {
+		assetGenerations = await db.query.assetGeneration.findMany({
+			where: eq(table.assetGeneration.userId, locals.user.id),
+			orderBy: desc(table.assetGeneration.createdAt),
+			limit: 20,
+		});
+	} else if (locals.guestSession) {
+		assetGenerations = await db.query.assetGeneration.findMany({
+			where: eq(table.assetGeneration.guestSessionId, locals.guestSession.id),
+			orderBy: desc(table.assetGeneration.createdAt),
+			limit: 20,
+		});
 	}
 
-	const assetGenerations = await db.query.assetGeneration.findMany({
-		where: eq(table.assetGeneration.userId, locals.user.id),
-		orderBy: desc(table.assetGeneration.createdAt),
-		limit: 20,
-	});
-
 	return {
-		user: locals.user,
+		...parentData,
 		assetGenerations,
 	};
 };

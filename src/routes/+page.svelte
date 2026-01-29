@@ -35,7 +35,7 @@ const jsonLd = {
 				'@type': 'Offer',
 				price: '0',
 				priceCurrency: 'USD',
-				description: '50 free tokens on signup',
+				description: '3 free generations, no signup required',
 			},
 			featureList: [
 				'AI Sprite Generation',
@@ -91,11 +91,7 @@ const jsonLd = {
 	<!-- Hero Section -->
 	<section class="relative z-10 max-w-6xl mx-auto px-4 pt-20 pb-32">
 		<div class="text-center">
-			<div class="inline-flex items-center gap-2 px-3 py-1 mb-6 rounded-full bg-yellow-500/10 border border-yellow-500/20">
-				<Zap class="w-3.5 h-3.5 text-yellow-400" />
-				<span class="text-xs font-medium text-yellow-300">Powered by FLUX.1 + ComfyUI</span>
-			</div>
-			<h1 class="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight">
+<h1 class="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight">
 				Create game-ready assets<br />
 				<span class="bg-linear-to-r from-yellow-300 via-amber-400 to-orange-400 bg-clip-text text-transparent">with AI magic</span>
 			</h1>
@@ -104,24 +100,17 @@ const jsonLd = {
 				Perfect for indie developers, game designers, and creative studios.
 			</p>
 			<div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-				{#if data.user}
-					<a
-						href="/app"
-						class="group inline-flex items-center gap-2 px-8 py-4 bg-linear-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 font-semibold rounded-xl transition-all shadow-lg shadow-yellow-500/25 hover:shadow-yellow-500/40"
-					>
+				<a
+					href="/app"
+					class="group inline-flex items-center gap-2 px-8 py-4 bg-linear-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 font-semibold rounded-xl transition-all shadow-lg shadow-yellow-500/25 hover:shadow-yellow-500/40"
+				>
+					{#if data.user}
 						Go to App
-						<ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-					</a>
-				{:else}
-					<a
-						href="/login"
-						class="group inline-flex items-center gap-2 px-8 py-4 bg-linear-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 font-semibold rounded-xl transition-all shadow-lg shadow-yellow-500/25 hover:shadow-yellow-500/40"
-					>
-						<Github class="w-5 h-5" />
-						Start creating for free
-						<ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-					</a>
-				{/if}
+					{:else}
+						Try 3 free generations
+					{/if}
+					<ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+				</a>
 				<a
 					href="#pricing"
 					class="inline-flex items-center gap-2 px-8 py-4 text-zinc-300 hover:text-white font-medium transition-colors"
@@ -255,8 +244,8 @@ const jsonLd = {
 					<Sparkles class="w-3.5 h-3.5 text-yellow-400" />
 					<span class="text-xs font-medium text-yellow-300">Free to start</span>
 				</div>
-				<h3 class="text-2xl font-bold text-white mb-2">50 free tokens on signup</h3>
-				<p class="text-zinc-400 text-sm">That's ~25 sprites, ~12 textures, or ~8 rotations to try everything out.</p>
+				<h3 class="text-2xl font-bold text-white mb-2">Try 3 sprites free, no signup required</h3>
+				<p class="text-zinc-400 text-sm">Sign up to get 50 bonus tokens and unlock textures & rotations.</p>
 			</div>
 
 			<!-- Token Packs -->

@@ -1,19 +1,25 @@
 import { error, json } from '@sveltejs/kit';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, or, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { getJobStatus } from '$lib/server/runpod';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
-	if (!locals.user) {
+	// Build ownership condition
+	let ownershipCondition;
+	if (locals.user) {
+		ownershipCondition = eq(table.assetGeneration.userId, locals.user.id);
+	} else if (locals.guestSession) {
+		ownershipCondition = eq(table.assetGeneration.guestSessionId, locals.guestSession.id);
+	} else {
 		error(401, 'Unauthorized');
 	}
 
 	let asset = await db.query.assetGeneration.findFirst({
 		where: and(
 			eq(table.assetGeneration.id, params.id),
-			eq(table.assetGeneration.userId, locals.user.id),
+			ownershipCondition,
 		),
 	});
 
@@ -50,7 +56,8 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 				runpodStatus.status === 'FAILED' ||
 				runpodStatus.status === 'CANCELLED'
 			) {
-				if (asset.status !== 'failed') {
+				// Refund tokens only if this is a user-owned asset (not a guest generation)
+				if (asset.status !== 'failed' && asset.userId) {
 					const regularTokens = asset.tokenCost - asset.bonusTokenCost;
 					await db
 						.update(table.user)

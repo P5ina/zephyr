@@ -1,9 +1,11 @@
 import { error, json } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { GUEST_CONFIG } from '$lib/guest-config';
 import { PRICING } from '$lib/pricing';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
+import * as guestAuth from '$lib/server/guest-auth';
 import { submitSpriteJob } from '$lib/server/runpod';
 import type { RequestHandler } from './$types';
 
@@ -20,11 +22,7 @@ interface AssetGenerateRequest {
 	seed?: number;
 }
 
-export const POST: RequestHandler = async ({ request, locals }) => {
-	if (!locals.user) {
-		error(401, 'Unauthorized');
-	}
-
+export const POST: RequestHandler = async ({ request, locals, getClientAddress }) => {
 	const body: AssetGenerateRequest = await request.json();
 
 	if (!body.prompt?.trim()) {
@@ -40,6 +38,94 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		error(400, 'Invalid asset type');
 	}
 
+	// Guest flow
+	if (!locals.user) {
+		// Guests can only generate sprites
+		if (!GUEST_CONFIG.allowedAssetTypes.includes(assetType as 'sprite')) {
+			error(403, 'Sign up to generate textures');
+		}
+
+		// Get or create guest session
+		let guestSession = locals.guestSession;
+		if (!guestSession) {
+			const ipAddress = getClientAddress();
+			guestSession = await guestAuth.createGuestSession(ipAddress);
+			// Cookie will be set in response
+		}
+
+		// Check generation limit
+		if (!guestAuth.canGuestGenerate(guestSession)) {
+			error(429, 'Free generation limit reached. Sign up to continue.');
+		}
+
+		// Create asset record for guest
+		const assetId = nanoid();
+		const assetVisibleId = nanoid(10);
+		const width = body.width || 1024;
+		const height = body.height || 1024;
+
+		const [asset] = await db
+			.insert(table.assetGeneration)
+			.values({
+				id: assetId,
+				visibleId: assetVisibleId,
+				guestSessionId: guestSession.id,
+				assetType,
+				prompt: body.prompt,
+				width,
+				height,
+				status: 'pending',
+				tokenCost: 0,
+				bonusTokenCost: 0,
+				currentStage: 'Queued for processing...',
+			})
+			.returning();
+
+		// Submit to RunPod
+		try {
+			const runpodResponse = await submitSpriteJob({
+				jobId: assetId,
+				prompt: body.prompt,
+				width,
+				height,
+				seed: body.seed,
+			});
+
+			await db
+				.update(table.assetGeneration)
+				.set({ runpodJobId: runpodResponse.id })
+				.where(eq(table.assetGeneration.id, assetId));
+		} catch (err) {
+			console.error('RunPod submission failed:', err);
+
+			await db
+				.update(table.assetGeneration)
+				.set({
+					status: 'failed',
+					errorMessage: 'Failed to submit job for processing',
+				})
+				.where(eq(table.assetGeneration.id, assetId));
+
+			error(500, 'Failed to submit job for processing.');
+		}
+
+		// Increment guest usage
+		await guestAuth.incrementGuestUsage(guestSession.id);
+		const generationsRemaining = guestAuth.getGuestRemainingGenerations(guestSession) - 1;
+
+		return json({
+			asset,
+			isGuest: true,
+			generationsRemaining,
+			guestSessionId: guestSession.id,
+		}, {
+			headers: {
+				'Set-Cookie': `${GUEST_CONFIG.cookieName}=${guestSession.id}; Path=/; HttpOnly; SameSite=Lax; Expires=${guestSession.expiresAt.toUTCString()}`,
+			},
+		});
+	}
+
+	// Authenticated user flow
 	const cost = TOKEN_COSTS[assetType];
 	const total = locals.user.tokens + locals.user.bonusTokens;
 
@@ -128,6 +214,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	return json({
 		asset,
+		isGuest: false,
 		tokensUsed: cost,
 		tokensRemaining,
 		bonusTokensRemaining: bonusRemaining,

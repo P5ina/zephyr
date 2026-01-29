@@ -169,6 +169,13 @@
       "when": 1769523563700,
       "tag": "0023_illegal_fantastic_four",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1769696306344,
+      "tag": "0024_material_klaw",
+      "breakpoints": true
     }
   ]
 }

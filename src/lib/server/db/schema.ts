@@ -127,12 +127,24 @@ export const vastInstance = pgTable('vast_instance', {
 
 export type VastInstance = typeof vastInstance.$inferSelect;
 
+export const guestSession = pgTable('guest_session', {
+	id: text('id').primaryKey(),
+	ipAddress: text('ip_address').notNull(),
+	generationsUsed: integer('generations_used').notNull().default(0),
+	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
+		.notNull()
+		.defaultNow(),
+	expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }).notNull(),
+	convertedToUserId: text('converted_to_user_id').references(() => user.id),
+});
+
+export type GuestSession = typeof guestSession.$inferSelect;
+
 export const assetGeneration = pgTable('asset_generation', {
 	id: text('id').primaryKey(),
 	visibleId: text('visible_id').notNull().unique(),
-	userId: text('user_id')
-		.notNull()
-		.references(() => user.id),
+	userId: text('user_id').references(() => user.id),
+	guestSessionId: text('guest_session_id').references(() => guestSession.id),
 
 	// Configuration
 	assetType: text('asset_type', { enum: ['sprite', 'texture'] }).notNull(),
