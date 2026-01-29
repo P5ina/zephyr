@@ -282,25 +282,27 @@ function getAssetTypeLabel(type: string) {
 
 			<!-- Object Mode Toggle -->
 			<div class="mb-4">
-				<label class="block text-sm font-medium text-zinc-400 mb-2">Output Mode</label>
-				<div class="flex gap-2">
+				<label class="block text-sm font-medium text-zinc-400 mb-2">What's in the image?</label>
+				<div class="flex flex-col gap-2">
 					<button
 						type="button"
 						onclick={() => singleObject = true}
-						class="flex-1 px-3 py-2 text-sm rounded-lg border transition-colors {singleObject
-							? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400'
-							: 'bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600'}"
+						class="w-full px-3 py-2.5 text-left rounded-lg border transition-colors {singleObject
+							? 'bg-yellow-500/20 border-yellow-500/50'
+							: 'bg-zinc-800/50 border-zinc-700 hover:border-zinc-600'}"
 					>
-						Single Object
+						<span class="block text-sm font-medium {singleObject ? 'text-yellow-400' : 'text-zinc-300'}">One character or item</span>
+						<span class="block text-xs text-zinc-500 mt-0.5">A single hero, enemy, or object</span>
 					</button>
 					<button
 						type="button"
 						onclick={() => singleObject = false}
-						class="flex-1 px-3 py-2 text-sm rounded-lg border transition-colors {!singleObject
-							? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400'
-							: 'bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600'}"
+						class="w-full px-3 py-2.5 text-left rounded-lg border transition-colors {!singleObject
+							? 'bg-yellow-500/20 border-yellow-500/50'
+							: 'bg-zinc-800/50 border-zinc-700 hover:border-zinc-600'}"
 					>
-						Multiple Objects
+						<span class="block text-sm font-medium {!singleObject ? 'text-yellow-400' : 'text-zinc-300'}">Multiple items together</span>
+						<span class="block text-xs text-zinc-500 mt-0.5">A set of coins, potions, or icons</span>
 					</button>
 				</div>
 			</div>
