@@ -36,9 +36,9 @@ const initialJobs = data.rotationJobs;
 const sprites = data.sprites;
 
 // svelte-ignore state_referenced_locally
-let tokens = $state(data.user.tokens);
+let tokens = $state(data.user?.tokens ?? 0);
 // svelte-ignore state_referenced_locally
-let bonusTokens = $state(data.user.bonusTokens);
+let bonusTokens = $state(data.user?.bonusTokens ?? 0);
 
 // View mode: 'new' for creating new generation, or job ID for viewing existing
 let viewMode = $state<'new' | string>(

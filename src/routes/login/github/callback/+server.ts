@@ -1,9 +1,11 @@
 import { error, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { GUEST_CONFIG } from '$lib/guest-config';
 import * as auth from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
+import * as guestAuth from '$lib/server/guest-auth';
 import { github } from '$lib/server/oauth';
 import type { RequestHandler } from './$types';
 
@@ -93,6 +95,21 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	);
 
 	cookies.delete('github_oauth_state', { path: '/' });
+
+	// Convert guest generations to user if guest session exists
+	const guestSessionId = cookies.get(GUEST_CONFIG.cookieName);
+	if (guestSessionId) {
+		try {
+			const transferred = await guestAuth.convertGuestToUser(guestSessionId, user.id);
+			if (transferred > 0) {
+				console.log(`Transferred ${transferred} guest generations to user ${user.id}`);
+			}
+		} catch (e) {
+			console.error('Failed to convert guest generations:', e);
+		}
+		// Delete the guest session cookie
+		cookies.delete(GUEST_CONFIG.cookieName, { path: '/' });
+	}
 
 	redirect(302, '/app');
 };

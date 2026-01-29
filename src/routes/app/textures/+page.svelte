@@ -26,9 +26,9 @@ let { data }: { data: PageData } = $props();
 const initialGenerations = data.textureGenerations;
 
 // svelte-ignore state_referenced_locally
-let tokens = $state(data.user.tokens);
+let tokens = $state(data.user?.tokens ?? 0);
 // svelte-ignore state_referenced_locally
-let bonusTokens = $state(data.user.bonusTokens);
+let bonusTokens = $state(data.user?.bonusTokens ?? 0);
 
 // View mode: 'new' for creating new generation, or generation ID for viewing existing
 let viewMode = $state<'new' | string>(
@@ -138,7 +138,7 @@ async function generate() {
 			// Add to history
 			const newGen: TextureGeneration = {
 				id: result.id,
-				userId: data.user.id,
+				userId: data.user?.id ?? '',
 				prompt: prompt.trim(),
 				status: 'pending',
 				progress: 0,

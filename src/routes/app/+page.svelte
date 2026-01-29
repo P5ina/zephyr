@@ -4,11 +4,13 @@ import {
 	Check,
 	Copy,
 	Download,
+	Gift,
 	Info,
 	Loader2,
 	Sparkles,
 	X,
 } from 'lucide-svelte';
+import { GUEST_CONFIG } from '$lib/guest-config';
 import { PRICING } from '$lib/pricing';
 import type { AssetGeneration } from '$lib/server/db/schema';
 import type { PageData } from './$types';
@@ -18,10 +20,20 @@ let { data }: { data: PageData } = $props();
 // svelte-ignore state_referenced_locally
 const initialGenerations = data.assetGenerations;
 
+// User token state (only used when not a guest)
 // svelte-ignore state_referenced_locally
-let tokens = $state(data.user.tokens);
+let tokens = $state(data.user?.tokens ?? 0);
 // svelte-ignore state_referenced_locally
-let bonusTokens = $state(data.user.bonusTokens);
+let bonusTokens = $state(data.user?.bonusTokens ?? 0);
+
+// Guest state
+// svelte-ignore state_referenced_locally
+let guestGenerationsUsed = $state(data.guestSession?.generationsUsed ?? 0);
+let showSignupPrompt = $state(false);
+
+const guestGenerationsRemaining = $derived(
+	GUEST_CONFIG.maxGenerations - guestGenerationsUsed
+);
 
 // Generation form
 let prompt = $state('');
@@ -42,6 +54,13 @@ let nextCursor = $state<string | null>(
 
 const TOKEN_COST = PRICING.tokenCosts.sprite;
 
+// Can generate check
+const canGenerate = $derived(
+	data.isGuest
+		? guestGenerationsRemaining > 0
+		: tokens + bonusTokens >= TOKEN_COST
+);
+
 // Track which generations we're already polling
 const pollingSet = new Set<string>();
 
@@ -60,7 +79,7 @@ $effect(() => {
 });
 
 async function generate() {
-	if (!prompt.trim() || generating) return;
+	if (!prompt.trim() || generating || !canGenerate) return;
 
 	generating = true;
 	try {
@@ -81,8 +100,16 @@ async function generate() {
 
 		const result = await res.json();
 		generations = [result.asset, ...generations];
-		tokens = result.tokensRemaining;
-		bonusTokens = result.bonusTokensRemaining;
+
+		if (result.isGuest) {
+			// Update guest state
+			guestGenerationsUsed = GUEST_CONFIG.maxGenerations - result.generationsRemaining;
+			// Show signup prompt after first generation
+			showSignupPrompt = true;
+		} else {
+			tokens = result.tokensRemaining;
+			bonusTokens = result.bonusTokensRemaining;
+		}
 
 		// Start polling for status if needed
 		if (result.asset.status !== 'completed') {
@@ -162,7 +189,10 @@ function getStatusLabel(status: string) {
 }
 
 async function cancelGeneration(id: string) {
-	if (!confirm('Cancel this generation? Tokens will be refunded.')) return;
+	const confirmMsg = data.isGuest
+		? 'Cancel this generation?'
+		: 'Cancel this generation? Tokens will be refunded.';
+	if (!confirm(confirmMsg)) return;
 
 	try {
 		const res = await fetch(`/api/assets/${id}/cancel`, { method: 'POST' });
@@ -173,7 +203,9 @@ async function cancelGeneration(id: string) {
 					? { ...g, status: 'failed', errorMessage: 'Cancelled by user' }
 					: g,
 			);
-			tokens = tokens + result.tokensRefunded;
+			if (!data.isGuest && result.tokensRefunded > 0) {
+				tokens = tokens + result.tokensRefunded;
+			}
 		} else {
 			const error = await res.json();
 			alert(error.message || 'Failed to cancel');
@@ -225,6 +257,15 @@ function getAssetTypeLabel(type: string) {
 		<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 sticky top-8">
 			<h2 class="text-lg font-semibold text-white mb-4">Generate Sprite</h2>
 
+			<!-- Guest remaining generations badge -->
+			{#if data.isGuest}
+				<div class="mb-4 flex items-center gap-2 text-sm">
+					<span class="px-2 py-1 bg-yellow-500/10 text-yellow-400 rounded-lg border border-yellow-500/20">
+						{guestGenerationsRemaining} of {GUEST_CONFIG.maxGenerations} free generations
+					</span>
+				</div>
+			{/if}
+
 			<!-- Prompt -->
 			<div class="mb-4">
 				<label for="prompt" class="block text-sm font-medium text-zinc-400 mb-2">Prompt</label>
@@ -238,19 +279,56 @@ function getAssetTypeLabel(type: string) {
 			</div>
 
 			<!-- Generate Button -->
-			<button
-				onclick={generate}
-				disabled={!prompt.trim() || generating || tokens + bonusTokens < TOKEN_COST}
-				class="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 disabled:from-zinc-700 disabled:to-zinc-700 disabled:cursor-not-allowed text-zinc-900 disabled:text-zinc-400 font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
-			>
-				{#if generating}
-					<Loader2 class="w-4 h-4 animate-spin" />
-					Generating...
-				{:else}
+			{#if data.isGuest && !canGenerate}
+				<a
+					href="/login"
+					class="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
+				>
 					<Sparkles class="w-4 h-4" />
-					Generate ({TOKEN_COST} tokens)
-				{/if}
-			</button>
+					Sign up to continue
+				</a>
+				<p class="text-xs text-zinc-500 mt-2 text-center">
+					Get 50 free tokens when you sign up
+				</p>
+			{:else}
+				<button
+					onclick={generate}
+					disabled={!prompt.trim() || generating || !canGenerate}
+					class="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 disabled:from-zinc-700 disabled:to-zinc-700 disabled:cursor-not-allowed text-zinc-900 disabled:text-zinc-400 font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
+				>
+					{#if generating}
+						<Loader2 class="w-4 h-4 animate-spin" />
+						Generating...
+					{:else if data.isGuest}
+						<Sparkles class="w-4 h-4" />
+						Generate (free)
+					{:else}
+						<Sparkles class="w-4 h-4" />
+						Generate ({TOKEN_COST} tokens)
+					{/if}
+				</button>
+			{/if}
+
+			<!-- Signup prompt for guests -->
+			{#if data.isGuest && showSignupPrompt}
+				<div class="mt-4 p-3 bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border border-yellow-500/20 rounded-lg">
+					<div class="flex items-start gap-3">
+						<Gift class="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+						<div>
+							<p class="text-sm text-white font-medium">Save your sprites</p>
+							<p class="text-xs text-zinc-400 mt-1">
+								Sign up to keep your generations and get 50 free tokens.
+							</p>
+							<a
+								href="/login"
+								class="inline-block mt-2 px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 text-xs font-semibold rounded-lg transition-colors"
+							>
+								Sign up free
+							</a>
+						</div>
+					</div>
+				</div>
+			{/if}
 		</div>
 	</div>
 

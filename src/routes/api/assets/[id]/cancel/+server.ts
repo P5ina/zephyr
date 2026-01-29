@@ -6,7 +6,15 @@ import { cancelJob } from '$lib/server/runpod';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ params, locals, url }) => {
-	if (!locals.user) {
+	// Build ownership condition
+	let ownershipCondition;
+	const isGuest = !locals.user && !!locals.guestSession;
+
+	if (locals.user) {
+		ownershipCondition = eq(table.assetGeneration.userId, locals.user.id);
+	} else if (locals.guestSession) {
+		ownershipCondition = eq(table.assetGeneration.guestSessionId, locals.guestSession.id);
+	} else {
 		error(401, 'Unauthorized');
 	}
 
@@ -16,7 +24,7 @@ export const POST: RequestHandler = async ({ params, locals, url }) => {
 	const asset = await db.query.assetGeneration.findFirst({
 		where: and(
 			eq(table.assetGeneration.id, params.id),
-			eq(table.assetGeneration.userId, locals.user.id),
+			ownershipCondition,
 		),
 	});
 
@@ -59,11 +67,11 @@ export const POST: RequestHandler = async ({ params, locals, url }) => {
 		})
 		.where(eq(table.assetGeneration.id, asset.id));
 
-	// Refund tokens only if generation wasn't actually completed
+	// Refund tokens only if generation wasn't actually completed and user is authenticated
 	let regularTokensRefunded = 0;
 	let bonusTokensRefunded = 0;
 
-	if (shouldRefund) {
+	if (shouldRefund && !isGuest && asset.userId) {
 		regularTokensRefunded = asset.tokenCost - asset.bonusTokenCost;
 		bonusTokensRefunded = asset.bonusTokenCost;
 		await db
@@ -77,6 +85,7 @@ export const POST: RequestHandler = async ({ params, locals, url }) => {
 
 	return json({
 		success: true,
+		isGuest,
 		tokensRefunded: regularTokensRefunded + bonusTokensRefunded,
 		regularTokensRefunded,
 		bonusTokensRefunded,
