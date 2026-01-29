@@ -120,21 +120,27 @@ const jsonLd = {
 			</div>
 		</div>
 
-		<!-- Hero visual -->
+		<!-- Hero visual - Showcase sprites -->
 		<div class="mt-20 relative">
 			<div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent z-10 pointer-events-none"></div>
-			<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-				<div class="aspect-square rounded-2xl bg-gradient-to-br from-yellow-900/50 to-amber-900/50 border border-zinc-800 overflow-hidden">
-					<div class="w-full h-full bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=400&fit=crop')] bg-cover bg-center opacity-80"></div>
+			<div class="grid grid-cols-3 md:grid-cols-6 gap-4 md:gap-6 place-items-center">
+				<div class="aspect-square w-full max-w-[160px] rounded-2xl bg-gradient-to-br from-yellow-900/30 to-amber-900/30 border border-zinc-800 p-4 flex items-center justify-center">
+					<img src="/showcase/knight.png" alt="Knight sprite" class="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(234,179,8,0.3)]" />
 				</div>
-				<div class="aspect-square rounded-2xl bg-gradient-to-br from-amber-900/50 to-orange-900/50 border border-zinc-800 overflow-hidden mt-8">
-					<div class="w-full h-full bg-[url('https://images.unsplash.com/photo-1634017839464-5c339bbe3c35?w=400&h=400&fit=crop')] bg-cover bg-center opacity-80"></div>
+				<div class="aspect-square w-full max-w-[160px] rounded-2xl bg-gradient-to-br from-amber-900/30 to-orange-900/30 border border-zinc-800 p-4 flex items-center justify-center mt-8">
+					<img src="/showcase/robot.png" alt="Robot sprite" class="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(251,146,60,0.3)]" />
 				</div>
-				<div class="aspect-square rounded-2xl bg-gradient-to-br from-orange-900/50 to-red-900/50 border border-zinc-800 overflow-hidden">
-					<div class="w-full h-full bg-[url('https://images.unsplash.com/photo-1614850715649-1d0106293bd1?w=400&h=400&fit=crop')] bg-cover bg-center opacity-80"></div>
+				<div class="aspect-square w-full max-w-[160px] rounded-2xl bg-gradient-to-br from-orange-900/30 to-red-900/30 border border-zinc-800 p-4 flex items-center justify-center">
+					<img src="/showcase/sword.png" alt="Sword sprite" class="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]" />
 				</div>
-				<div class="aspect-square rounded-2xl bg-gradient-to-br from-red-900/50 to-yellow-900/50 border border-zinc-800 overflow-hidden mt-8">
-					<div class="w-full h-full bg-[url('https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=400&h=400&fit=crop')] bg-cover bg-center opacity-80"></div>
+				<div class="aspect-square w-full max-w-[160px] rounded-2xl bg-gradient-to-br from-red-900/30 to-yellow-900/30 border border-zinc-800 p-4 flex items-center justify-center mt-8">
+					<img src="/showcase/chest.png" alt="Treasure chest sprite" class="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(234,179,8,0.3)]" />
+				</div>
+				<div class="aspect-square w-full max-w-[160px] rounded-2xl bg-gradient-to-br from-yellow-900/30 to-amber-900/30 border border-zinc-800 p-4 flex items-center justify-center">
+					<img src="/showcase/shield.png" alt="Shield sprite" class="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(234,179,8,0.3)]" />
+				</div>
+				<div class="aspect-square w-full max-w-[160px] rounded-2xl bg-gradient-to-br from-purple-900/30 to-violet-900/30 border border-zinc-800 p-4 flex items-center justify-center mt-8">
+					<img src="/showcase/crystal.png" alt="Crystal sprite" class="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(168,85,247,0.3)]" />
 				</div>
 			</div>
 		</div>
