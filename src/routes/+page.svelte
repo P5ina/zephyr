@@ -18,8 +18,8 @@ const title =
 	'GenSprite - AI Game Asset Generator | Sprites, Textures & 8-Direction Rotation';
 const description =
 	'Generate game-ready sprites, PBR textures, and 8-directional character rotations with AI. Powered by FLUX.1 and ComfyUI. Start free with 50 tokens.';
-const url = 'https://gensprite.p5ina.dev';
-const image = 'https://gensprite.p5ina.dev/og-image.png';
+const url = 'https://gensprite.ai';
+const image = 'https://gensprite.ai/og-image.png';
 
 const jsonLd = {
 	'@context': 'https://schema.org',
@@ -49,7 +49,7 @@ const jsonLd = {
 			'@type': 'Organization',
 			name: 'GenSprite',
 			url,
-			logo: 'https://gensprite.p5ina.dev/icon-512.png',
+			logo: 'https://gensprite.ai/icon-512.png',
 		},
 	],
 };

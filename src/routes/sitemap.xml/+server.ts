@@ -1,6 +1,6 @@
 export const prerender = true;
 
-const pages = ['', '/login'];
+const pages = ['', '/pricing', '/login', '/terms', '/privacy', '/refund'];
 
 export function GET() {
 	const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
@@ -8,7 +8,7 @@ export function GET() {
 ${pages
 	.map(
 		(page) => `  <url>
-    <loc>https://gensprite.p5ina.dev${page}</loc>
+    <loc>https://gensprite.ai${page}</loc>
     <changefreq>${page === '' ? 'weekly' : 'monthly'}</changefreq>
     <priority>${page === '' ? '1.0' : '0.8'}</priority>
   </url>`,

@@ -14,7 +14,7 @@ const MERCHANT_ID = process.env.CRYPTOMUS_MERCHANT_ID;
 const API_KEY = process.env.CRYPTOMUS_API_KEY;
 const CALLBACK_URL = process.env.PUBLIC_BASE_URL
 	? `${process.env.PUBLIC_BASE_URL}/api/billing/webhook`
-	: 'https://gensprite.p5ina.dev/api/billing/webhook';
+	: 'https://gensprite.ai/api/billing/webhook';
 
 if (!MERCHANT_ID || !API_KEY) {
 	console.error('Missing CRYPTOMUS_MERCHANT_ID or CRYPTOMUS_API_KEY in .env');

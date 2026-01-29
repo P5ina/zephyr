@@ -25,7 +25,7 @@ if (browser) {
 	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 	<link rel="icon" href={favicon} />
 	<meta name="theme-color" content="#eab308" />
-	<link rel="canonical" href="https://gensprite.p5ina.dev{page.url.pathname}" />
+	<link rel="canonical" href="https://gensprite.ai{page.url.pathname}" />
 </svelte:head>
 {#key page.url.pathname}
 	<div in:fade={{ duration: 150, delay: 150 }} out:fade={{ duration: 150 }}>
