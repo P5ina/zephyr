@@ -176,6 +176,13 @@
       "when": 1769696306344,
       "tag": "0024_material_klaw",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1769859320767,
+      "tag": "0025_grey_aaron_stack",
+      "breakpoints": true
     }
   ]
 }

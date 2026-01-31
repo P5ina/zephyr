@@ -279,3 +279,41 @@ export const rotationJob = pgTable('rotation_job', {
 });
 
 export type RotationJob = typeof rotationJob.$inferSelect;
+
+export const rotationJobNew = pgTable('rotation_job_new', {
+	id: text('id').primaryKey(),
+	userId: text('user_id')
+		.notNull()
+		.references(() => user.id),
+
+	// Status
+	status: text('status', {
+		enum: ['pending', 'processing', 'completed', 'failed'],
+	})
+		.notNull()
+		.default('pending'),
+	progress: integer('progress').notNull().default(0),
+	currentStage: text('current_stage'),
+	falRequestId: text('fal_request_id'),
+
+	// Input
+	inputImageUrl: text('input_image_url'),
+	elevation: integer('elevation').notNull().default(20),
+
+	// Results - 4 directions (front, right, back, left)
+	rotationFront: text('rotation_front'),
+	rotationRight: text('rotation_right'),
+	rotationBack: text('rotation_back'),
+	rotationLeft: text('rotation_left'),
+
+	// Metadata
+	tokenCost: integer('token_cost').notNull(),
+	bonusTokenCost: integer('bonus_token_cost').notNull().default(0),
+	errorMessage: text('error_message'),
+	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
+		.notNull()
+		.defaultNow(),
+	completedAt: timestamp('completed_at', { withTimezone: true, mode: 'date' }),
+});
+
+export type RotationJobNew = typeof rotationJobNew.$inferSelect;

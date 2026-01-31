@@ -1,8 +1,8 @@
 import { error, json } from '@sveltejs/kit';
-import { and, eq, or, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { getJobStatus } from '$lib/server/runpod';
+import { getSpriteJobStatus } from '$lib/server/fal';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
@@ -27,24 +27,24 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		error(404, 'Asset not found');
 	}
 
-	// Check RunPod status if we have a job ID and need to sync state
-	const needsRunpodCheck =
+	// Check fal.ai status if we have a request ID and need to sync state
+	const needsFalCheck =
 		asset.runpodJobId &&
 		(asset.status === 'pending' ||
 			asset.status === 'processing' ||
 			(asset.status === 'completed' && !asset.resultUrls?.processed));
 
-	if (needsRunpodCheck) {
+	if (needsFalCheck) {
 		try {
-			const runpodStatus = await getJobStatus(asset.runpodJobId!);
+			const falStatus = await getSpriteJobStatus(asset.runpodJobId!);
 
-			if (runpodStatus.status === 'IN_PROGRESS') {
+			if (falStatus.status === 'IN_PROGRESS' || falStatus.status === 'IN_QUEUE') {
 				if (asset.status !== 'processing') {
 					await db
 						.update(table.assetGeneration)
 						.set({
 							status: 'processing',
-							currentStage: 'Processing...',
+							currentStage: falStatus.status === 'IN_QUEUE' ? 'Queued...' : 'Processing...',
 						})
 						.where(eq(table.assetGeneration.id, asset.id));
 
@@ -53,8 +53,8 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 					}))!;
 				}
 			} else if (
-				runpodStatus.status === 'FAILED' ||
-				runpodStatus.status === 'CANCELLED'
+				falStatus.status === 'FAILED' ||
+				falStatus.status === 'CANCELLED'
 			) {
 				// Refund tokens only if this is a user-owned asset (not a guest generation)
 				if (asset.status !== 'failed' && asset.userId) {
@@ -72,18 +72,15 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 					.update(table.assetGeneration)
 					.set({
 						status: 'failed',
-						errorMessage: runpodStatus.error || 'Job failed on worker',
+						errorMessage: falStatus.error || 'Job failed on fal.ai',
 					})
 					.where(eq(table.assetGeneration.id, asset.id));
 
 				asset = (await db.query.assetGeneration.findFirst({
 					where: eq(table.assetGeneration.id, params.id),
 				}))!;
-			} else if (runpodStatus.status === 'COMPLETED' && runpodStatus.output) {
-				const raw = runpodStatus.output as Record<string, unknown>;
-				// Unwrap nested {result: {...}} from old worker format
-				const output = (raw.result as Record<string, unknown>) ?? raw;
-				if (output.processed_url && !asset.resultUrls?.processed) {
+			} else if (falStatus.status === 'COMPLETED' && falStatus.output) {
+				if (falStatus.output.processedUrl && !asset.resultUrls?.processed) {
 					await db
 						.update(table.assetGeneration)
 						.set({
@@ -91,10 +88,10 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 							progress: 100,
 							currentStage: 'Completed',
 							resultUrls: {
-								raw: (output.raw_url as string) || undefined,
-								processed: output.processed_url as string,
+								raw: falStatus.output.rawUrl || undefined,
+								processed: falStatus.output.processedUrl,
 							},
-							seed: (output.seed as number) || null,
+							seed: falStatus.output.seed || null,
 							completedAt: new Date(),
 						})
 						.where(eq(table.assetGeneration.id, asset.id));
@@ -105,7 +102,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 				}
 			}
 		} catch (e) {
-			console.error('Failed to check RunPod status:', e);
+			console.error('Failed to check fal.ai status:', e);
 		}
 	}
 

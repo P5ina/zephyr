@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Coins, Layers, Lock, Menu, RotateCw, Sparkles, X } from 'lucide-svelte';
+import { Coins, Layers, Lock, Menu, Rotate3d, RotateCw, Sparkles, X } from 'lucide-svelte';
 import type { Snippet } from 'svelte';
 import { page } from '$app/state';
 import { GUEST_CONFIG } from '$lib/guest-config';
@@ -25,14 +25,16 @@ const guestGenerationsRemaining = $derived(
 const tabs = [
 	{ href: '/app', label: 'Sprites', icon: Sparkles, guestAllowed: true },
 	{ href: '/app/textures', label: 'Textures', icon: Layers, guestAllowed: false },
-	{ href: '/app/rotate', label: 'Rotate', icon: RotateCw, guestAllowed: false },
+	{ href: '/app/rotate', label: 'Rotate 8', icon: RotateCw, guestAllowed: false },
+	{ href: '/app/rotate-new', label: 'Rotate 4', icon: Rotate3d, guestAllowed: false },
 ];
 
 function isActive(href: string) {
 	if (href === '/app') {
 		return page.url.pathname === '/app';
 	}
-	return page.url.pathname.startsWith(href);
+	// Exact match or followed by a slash (for nested routes)
+	return page.url.pathname === href || page.url.pathname.startsWith(href + '/');
 }
 
 function toggleMobileMenu() {

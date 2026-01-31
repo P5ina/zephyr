@@ -2,7 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import { and, eq, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { cancelJob } from '$lib/server/runpod';
+import { cancelSpriteJob } from '$lib/server/fal';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ params, locals, url }) => {
@@ -50,12 +50,12 @@ export const POST: RequestHandler = async ({ params, locals, url }) => {
 		);
 	}
 
-	// Cancel the job on RunPod if it has a RunPod job ID
+	// Cancel the job on fal.ai if it has a request ID
 	if (asset.runpodJobId) {
 		try {
-			await cancelJob(asset.runpodJobId);
+			await cancelSpriteJob(asset.runpodJobId);
 		} catch (e) {
-			console.error('Failed to cancel RunPod job:', e);
+			console.error('Failed to cancel fal.ai job:', e);
 		}
 	}
 

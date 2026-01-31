@@ -8,6 +8,8 @@ export const PRICING = {
 		sprite: 2,
 		texture: 4,
 		rotation: 6,
+		rotationNew: 25,
+		rotationSingleView: 7,
 	},
 
 	creditPacks: {

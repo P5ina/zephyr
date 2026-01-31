@@ -5,8 +5,8 @@ import { GUEST_CONFIG } from '$lib/guest-config';
 import { PRICING } from '$lib/pricing';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
+import { submitSpriteJob } from '$lib/server/fal';
 import * as guestAuth from '$lib/server/guest-auth';
-import { submitSpriteJob } from '$lib/server/runpod';
 import type { RequestHandler } from './$types';
 
 const TOKEN_COSTS: Record<string, number> = {
@@ -82,10 +82,9 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 			})
 			.returning();
 
-		// Submit to RunPod
+		// Submit to fal.ai
 		try {
-			const runpodResponse = await submitSpriteJob({
-				jobId: assetId,
+			const falResponse = await submitSpriteJob({
 				prompt: body.prompt,
 				width,
 				height,
@@ -95,10 +94,10 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 
 			await db
 				.update(table.assetGeneration)
-				.set({ runpodJobId: runpodResponse.id })
+				.set({ runpodJobId: falResponse.requestId })
 				.where(eq(table.assetGeneration.id, assetId));
 		} catch (err) {
-			console.error('RunPod submission failed:', err);
+			console.error('fal.ai submission failed:', err);
 
 			await db
 				.update(table.assetGeneration)
@@ -170,10 +169,9 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 		})
 		.returning();
 
-	// Submit to RunPod for processing
+	// Submit to fal.ai for processing
 	try {
-		const runpodResponse = await submitSpriteJob({
-			jobId: assetId,
+		const falResponse = await submitSpriteJob({
 			prompt: body.prompt,
 			width,
 			height,
@@ -181,14 +179,14 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 			singleObject: body.singleObject,
 		});
 
-		// Store RunPod job ID for status polling
+		// Store fal.ai request ID for status polling
 		await db
 			.update(table.assetGeneration)
-			.set({ runpodJobId: runpodResponse.id })
+			.set({ runpodJobId: falResponse.requestId })
 			.where(eq(table.assetGeneration.id, assetId));
 	} catch (err) {
-		// RunPod submission failed - refund tokens and mark as failed
-		console.error('RunPod submission failed:', err);
+		// fal.ai submission failed - refund tokens and mark as failed
+		console.error('fal.ai submission failed:', err);
 
 		await db
 			.update(table.user)
