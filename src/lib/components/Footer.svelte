@@ -38,7 +38,7 @@ const maxWidthClass = {
 							<Github class="w-5 h-5" />
 						</a>
 					</div>
-					<p class="text-sm text-zinc-500">© 2026 GenSprite. All rights reserved.</p>
+					<p class="text-sm text-zinc-500">MIT License</p>
 				</div>
 				<a href="https://www.producthunt.com/products/gensprite?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-gensprite" target="_blank" rel="noopener noreferrer">
 					<img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1071180&theme=dark&t=1769956387471" alt="GenSprite - AI-powered game assets generation | Product Hunt" width="250" height="54" />
