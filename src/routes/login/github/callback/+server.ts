@@ -1,7 +1,8 @@
 import { error, redirect } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { GUEST_CONFIG } from '$lib/guest-config';
+import { validatePromoCode, PROMO_COOKIE_NAME } from '$lib/promo-codes';
 import * as auth from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
@@ -57,6 +58,8 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		where: eq(table.user.githubId, githubUser.id),
 	});
 
+	let isNewUser = false;
+
 	if (!user) {
 		user = await db.query.user.findFirst({
 			where: eq(table.user.email, email),
@@ -72,6 +75,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 				})
 				.where(eq(table.user.id, user.id));
 		} else {
+			isNewUser = true;
 			const [newUser] = await db
 				.insert(table.user)
 				.values({
@@ -84,6 +88,22 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 				.returning();
 			user = newUser;
 		}
+	}
+
+	// Apply promo code bonus for new users
+	const promoCodeCookie = cookies.get(PROMO_COOKIE_NAME);
+	if (isNewUser && promoCodeCookie) {
+		const promo = validatePromoCode(promoCodeCookie);
+		if (promo) {
+			await db
+				.update(table.user)
+				.set({
+					bonusTokens: sql`${table.user.bonusTokens} + ${promo.bonusTokens}`,
+				})
+				.where(eq(table.user.id, user.id));
+			console.log(`Applied promo code ${promo.code} (+${promo.bonusTokens} tokens) to user ${user.id}`);
+		}
+		cookies.delete(PROMO_COOKIE_NAME, { path: '/' });
 	}
 
 	const sessionToken = auth.generateSessionToken();

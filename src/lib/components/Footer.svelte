@@ -23,21 +23,26 @@ const maxWidthClass = {
 <footer class="relative z-10 border-t border-zinc-800/50 {variant === 'simple' ? 'mt-12' : ''}">
 	<div class="{maxWidthClass[maxWidth]} mx-auto px-4 {variant === 'full' ? 'py-12' : 'py-8'}">
 		{#if variant === 'full'}
-			<div class="flex flex-col md:flex-row items-center justify-between gap-6">
-				<a href="/" class="flex items-center gap-2">
-					<img src={logo} alt="GenSprite" class="w-6 h-6 rounded-md" />
-					<span class="text-sm font-semibold text-white">GenSprite</span>
-				</a>
-				<div class="flex items-center gap-6 text-sm text-zinc-400">
-					<a href="/pricing" class="hover:text-white transition-colors">Pricing</a>
-					<a href="/terms" class="hover:text-white transition-colors">Terms</a>
-					<a href="/privacy" class="hover:text-white transition-colors">Privacy</a>
-					<a href="/refund" class="hover:text-white transition-colors">Refunds</a>
-					<a href="https://github.com" target="_blank" rel="noopener" class="hover:text-white transition-colors">
-						<Github class="w-5 h-5" />
+			<div class="flex flex-col items-center gap-6">
+				<div class="flex flex-col md:flex-row items-center justify-between gap-6 w-full">
+					<a href="/" class="flex items-center gap-2">
+						<img src={logo} alt="GenSprite" class="w-6 h-6 rounded-md" />
+						<span class="text-sm font-semibold text-white">GenSprite</span>
 					</a>
+					<div class="flex items-center gap-6 text-sm text-zinc-400">
+						<a href="/pricing" class="hover:text-white transition-colors">Pricing</a>
+						<a href="/terms" class="hover:text-white transition-colors">Terms</a>
+						<a href="/privacy" class="hover:text-white transition-colors">Privacy</a>
+						<a href="/refund" class="hover:text-white transition-colors">Refunds</a>
+						<a href="https://github.com/P5ina/zephyr" target="_blank" rel="noopener" class="hover:text-white transition-colors">
+							<Github class="w-5 h-5" />
+						</a>
+					</div>
+					<p class="text-sm text-zinc-500">© 2026 GenSprite. All rights reserved.</p>
 				</div>
-				<p class="text-sm text-zinc-500">© 2026 GenSprite. All rights reserved.</p>
+				<a href="https://www.producthunt.com/products/gensprite?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-gensprite" target="_blank" rel="noopener noreferrer">
+					<img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1071180&theme=dark&t=1769956387471" alt="GenSprite - AI-powered game assets generation | Product Hunt" width="250" height="54" />
+				</a>
 			</div>
 		{:else}
 			<div class="flex flex-wrap items-center justify-center gap-6 text-sm text-zinc-500">

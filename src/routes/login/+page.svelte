@@ -1,7 +1,22 @@
 <script lang="ts">
+import { Check, ChevronDown, Gift, Ticket } from 'lucide-svelte';
 import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
+
+let showPromoInput = $state(!!data.promoError);
+let promoInput = $state('');
+let promoError = $state(data.promoError || '');
+
+function applyPromoCode() {
+	const code = promoInput.trim().toUpperCase();
+	if (!code) {
+		promoError = 'Please enter a promo code';
+		return;
+	}
+	// Redirect to same page with promo param - server will validate
+	window.location.href = `/login?promo=${encodeURIComponent(code)}`;
+}
 </script>
 
 <svelte:head>
@@ -14,6 +29,18 @@ let { data }: { data: PageData } = $props();
 	<div class="w-full max-w-md p-8">
 		<h1 class="text-3xl font-bold text-white text-center mb-2">GenSprite</h1>
 		<p class="text-zinc-400 text-center mb-8">AI Image Generation Platform</p>
+
+		{#if data.promoCode}
+			<div class="mb-6 p-4 bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border border-yellow-500/30 rounded-xl">
+				<div class="flex items-center gap-3">
+					<Gift class="w-5 h-5 text-yellow-400 flex-shrink-0" />
+					<div>
+						<p class="text-sm font-medium text-white">Promo code applied: {data.promoCode}</p>
+						<p class="text-xs text-zinc-400 mt-0.5">Sign up to get {data.promoBonusTokens} bonus tokens!</p>
+					</div>
+				</div>
+			</div>
+		{/if}
 
 		<div class="space-y-3">
 			<a
@@ -60,6 +87,43 @@ let { data }: { data: PageData } = $props();
 			</svg>
 			Continue with Email
 		</a>
+
+		<!-- Promo code section -->
+		{#if !data.promoCode}
+			<div class="mt-6">
+				<button
+					type="button"
+					onclick={() => showPromoInput = !showPromoInput}
+					class="flex items-center justify-center gap-2 w-full text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+				>
+					<Ticket class="w-4 h-4" />
+					Have a promo code?
+					<ChevronDown class="w-4 h-4 transition-transform {showPromoInput ? 'rotate-180' : ''}" />
+				</button>
+
+				{#if showPromoInput}
+					<div class="mt-3 flex gap-2">
+						<input
+							type="text"
+							bind:value={promoInput}
+							placeholder="Enter code"
+							class="flex-1 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 uppercase"
+							onkeydown={(e) => e.key === 'Enter' && applyPromoCode()}
+						/>
+						<button
+							type="button"
+							onclick={applyPromoCode}
+							class="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 font-medium text-sm rounded-lg transition-colors"
+						>
+							Apply
+						</button>
+					</div>
+					{#if promoError}
+						<p class="mt-2 text-xs text-red-400">{promoError}</p>
+					{/if}
+				{/if}
+			</div>
+		{/if}
 
 		{#if data.isPreview}
 			<div class="mt-4">

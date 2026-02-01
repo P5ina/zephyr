@@ -17,7 +17,7 @@ let { data }: { data: PageData } = $props();
 const title =
 	'GenSprite - AI Game Asset Generator | Sprites, Textures & 8-Direction Rotation';
 const description =
-	'Generate game-ready sprites, PBR textures, and 8-directional character rotations with AI. Powered by FLUX.1 and ComfyUI. Start free with 50 tokens.';
+	'Generate game-ready sprites, PBR textures, and 8-directional character rotations with AI. Start free with 50 tokens.';
 const url = 'https://gensprite.ai';
 const image = 'https://gensprite.ai/og-image.png';
 
@@ -58,7 +58,7 @@ const jsonLd = {
 <svelte:head>
 	<title>{title}</title>
 	<meta name="description" content={description} />
-	<meta name="keywords" content="AI game assets, sprite generator, texture generator, PBR textures, game development, indie game dev, 8-direction sprites, character rotation, ComfyUI, FLUX" />
+	<meta name="keywords" content="AI game assets, sprite generator, texture generator, PBR textures, game development, indie game dev, 8-direction sprites, character rotation" />
 
 	<!-- Open Graph -->
 	<meta property="og:type" content="website" />
