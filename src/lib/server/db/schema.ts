@@ -14,6 +14,7 @@ export const user = pgTable('user', {
 	username: text('username'),
 	avatarUrl: text('avatar_url'),
 	githubId: integer('github_id').unique(),
+	googleId: text('google_id').unique(),
 	tokens: integer('tokens').notNull().default(50),
 	bonusTokens: integer('bonus_tokens').notNull().default(0),
 	nsfwEnabled: boolean('nsfw_enabled').notNull().default(true),
@@ -317,3 +318,16 @@ export const rotationJobNew = pgTable('rotation_job_new', {
 });
 
 export type RotationJobNew = typeof rotationJobNew.$inferSelect;
+
+export const magicLinkToken = pgTable('magic_link_token', {
+	id: text('id').primaryKey(),
+	email: text('email').notNull(),
+	token: text('token').notNull().unique(),
+	expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }).notNull(),
+	usedAt: timestamp('used_at', { withTimezone: true, mode: 'date' }),
+	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
+		.notNull()
+		.defaultNow(),
+});
+
+export type MagicLinkToken = typeof magicLinkToken.$inferSelect;
