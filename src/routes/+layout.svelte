@@ -4,14 +4,12 @@ import { fade } from 'svelte/transition';
 import { browser } from '$app/environment';
 import { page } from '$app/state';
 import favicon from '$lib/assets/favicon.png';
-import { inject } from '@vercel/analytics';
+import { injectAnalytics } from '@vercel/analytics/sveltekit';
 
 let { children } = $props();
 
 // Initialize Vercel Analytics
-if (browser) {
-	inject();
-}
+injectAnalytics();
 
 // Initialize Crisp chat
 if (browser) {
