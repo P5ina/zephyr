@@ -35,28 +35,12 @@ export async function submitSpriteJob(params: {
 	width?: number;
 	height?: number;
 	seed?: number;
-	singleObject?: boolean;
 }): Promise<{ requestId: string }> {
 	configureFal();
 
-	const singleObject = params.singleObject ?? true;
-
-	// Enhance prompt based on single/multiple object mode
-	let enhancedPrompt: string;
-
-	if (singleObject) {
-		enhancedPrompt =
-			`single ${params.prompt}, one object only, game sprite, centered, ` +
-			'isolated on solid background, no other objects, digital art, high quality';
-	} else {
-		enhancedPrompt =
-			`${params.prompt}, game sprites, arranged composition, ` +
-			'solid background, digital art, high quality';
-	}
-
 	const { request_id } = await fal.queue.submit(FAL_SPRITE_WORKFLOW_ID, {
 		input: {
-			prompt: enhancedPrompt,
+			prompt: params.prompt,
 			width: params.width ?? 1024,
 			height: params.height ?? 1024,
 			seed: params.seed,

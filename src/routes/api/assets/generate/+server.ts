@@ -20,7 +20,6 @@ interface AssetGenerateRequest {
 	width?: number;
 	height?: number;
 	seed?: number;
-	singleObject?: boolean;
 }
 
 export const POST: RequestHandler = async ({ request, locals, getClientAddress }) => {
@@ -89,7 +88,6 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 				width,
 				height,
 				seed: body.seed,
-				singleObject: body.singleObject,
 			});
 
 			await db
@@ -176,7 +174,6 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 			width,
 			height,
 			seed: body.seed,
-			singleObject: body.singleObject,
 		});
 
 		// Store fal.ai request ID for status polling

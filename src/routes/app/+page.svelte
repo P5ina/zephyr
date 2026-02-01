@@ -37,7 +37,6 @@ const guestGenerationsRemaining = $derived(
 
 // Generation form
 let prompt = $state('');
-let singleObject = $state(true);
 let generating = $state(false);
 
 // Modal state
@@ -90,7 +89,6 @@ async function generate() {
 			body: JSON.stringify({
 				assetType: 'sprite',
 				prompt: prompt.trim(),
-				singleObject,
 			}),
 		});
 
@@ -278,33 +276,6 @@ function getAssetTypeLabel(type: string) {
 					rows="3"
 					class="w-full px-3 py-2 bg-zinc-800/50 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 resize-none"
 				></textarea>
-			</div>
-
-			<!-- Object Mode Toggle -->
-			<div class="mb-4">
-				<label class="block text-sm font-medium text-zinc-400 mb-2">What's in the image?</label>
-				<div class="flex flex-col gap-2">
-					<button
-						type="button"
-						onclick={() => singleObject = true}
-						class="w-full px-3 py-2.5 text-left rounded-lg border transition-colors {singleObject
-							? 'bg-yellow-500/20 border-yellow-500/50'
-							: 'bg-zinc-800/50 border-zinc-700 hover:border-zinc-600'}"
-					>
-						<span class="block text-sm font-medium {singleObject ? 'text-yellow-400' : 'text-zinc-300'}">One character or item</span>
-						<span class="block text-xs text-zinc-500 mt-0.5">A single hero, enemy, or object</span>
-					</button>
-					<button
-						type="button"
-						onclick={() => singleObject = false}
-						class="w-full px-3 py-2.5 text-left rounded-lg border transition-colors {!singleObject
-							? 'bg-yellow-500/20 border-yellow-500/50'
-							: 'bg-zinc-800/50 border-zinc-700 hover:border-zinc-600'}"
-					>
-						<span class="block text-sm font-medium {!singleObject ? 'text-yellow-400' : 'text-zinc-300'}">Multiple items together</span>
-						<span class="block text-xs text-zinc-500 mt-0.5">A set of coins, potions, or icons</span>
-					</button>
-				</div>
 			</div>
 
 			<!-- Generate Button -->
