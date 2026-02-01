@@ -15,6 +15,7 @@ import {
 	Square,
 	X,
 } from 'lucide-svelte';
+import { track } from '@vercel/analytics';
 import MaterialPreview from '$lib/components/three/MaterialPreview.svelte';
 import { PRICING } from '$lib/pricing';
 import type { TextureGeneration } from '$lib/server/db/schema';
@@ -132,6 +133,9 @@ async function generate() {
 		const result = await res.json();
 		tokens = result.tokensRemaining ?? tokens;
 		bonusTokens = result.bonusTokensRemaining ?? bonusTokens;
+
+		// Track generation started
+		track('generation_started', { type: 'texture' });
 
 		// Poll for status
 		if (result.id) {
@@ -260,6 +264,10 @@ async function pollStatus(id: string) {
 				pollingSet.delete(id);
 				tokens = result.tokensRemaining ?? tokens;
 				bonusTokens = result.bonusTokensRemaining ?? bonusTokens;
+
+				// Track completion
+				track('generation_completed', { type: 'texture' });
+
 				if (currentGeneratingId === id) {
 					generating = false;
 					currentGeneratingId = null;

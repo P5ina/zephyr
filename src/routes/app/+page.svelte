@@ -10,6 +10,7 @@ import {
 	Sparkles,
 	X,
 } from 'lucide-svelte';
+import { track } from '@vercel/analytics';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import { PRICING } from '$lib/pricing';
 import type { AssetGeneration } from '$lib/server/db/schema';
@@ -101,6 +102,9 @@ async function generate() {
 		const result = await res.json();
 		generations = [result.asset, ...generations];
 
+		// Track generation started
+		track('generation_started', { type: 'sprite', is_guest: result.isGuest });
+
 		if (result.isGuest) {
 			// Update guest state
 			guestGenerationsUsed = GUEST_CONFIG.maxGenerations - result.generationsRemaining;
@@ -138,6 +142,11 @@ async function pollStatus(id: string) {
 			retryCount = 0;
 			const updated = await res.json();
 			generations = generations.map((g) => (g.id === id ? updated : g));
+
+			// Track completion
+			if (updated.status === 'completed') {
+				track('generation_completed', { type: 'sprite' });
+			}
 
 			if (updated.status !== 'completed' && updated.status !== 'failed') {
 				setTimeout(poll, 2000);

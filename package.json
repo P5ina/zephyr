@@ -38,6 +38,7 @@
 		"@neondatabase/serverless": "^1.0.2",
 		"@threlte/core": "^8.3.1",
 		"@threlte/extras": "^9.7.1",
+		"@vercel/analytics": "^1.6.1",
 		"@vercel/blob": "^2.0.0",
 		"arctic": "^3.7.0",
 		"jszip": "^3.10.1",

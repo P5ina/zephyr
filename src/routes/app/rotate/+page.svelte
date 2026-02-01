@@ -24,6 +24,7 @@ import {
 	Upload,
 	X,
 } from 'lucide-svelte';
+import { track } from '@vercel/analytics';
 import { PRICING } from '$lib/pricing';
 import type { RotationJob } from '$lib/server/db/schema';
 import type { PageData } from './$types';
@@ -231,6 +232,10 @@ async function generate() {
 			viewMode = result.job.id;
 			pollingSet.add(result.job.id);
 			clearSelection();
+
+			// Track generation started
+			track('generation_started', { type: 'rotation' });
+
 			pollJobStatus(result.job.id);
 		}
 	} catch (e) {
@@ -290,6 +295,12 @@ async function pollJobStatus(id: string) {
 					generating = false;
 					currentGeneratingId = null;
 				}
+
+				// Track completion
+				if (result.status === 'completed') {
+					track('generation_completed', { type: 'rotation' });
+				}
+
 				if (
 					result.status === 'failed' &&
 					result.error &&

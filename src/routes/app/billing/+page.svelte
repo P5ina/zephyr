@@ -11,6 +11,7 @@ import {
 	Sparkles,
 	XCircle,
 } from 'lucide-svelte';
+import { track } from '@vercel/analytics';
 import { PRICING } from '$lib/pricing';
 import type { PageData } from './$types';
 
@@ -22,6 +23,15 @@ let error = $state<string | null>(null);
 async function buyCredits(pack: keyof typeof PRICING.creditPacks) {
 	purchasing = pack;
 	error = null;
+
+	// Track purchase initiated
+	const packInfo = PRICING.creditPacks[pack];
+	track('purchase_initiated', {
+		pack,
+		tokens: packInfo.tokens,
+		price: packInfo.price
+	});
+
 	try {
 		const res = await fetch('/api/billing/buy-credits', {
 			method: 'POST',
