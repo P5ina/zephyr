@@ -2,6 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { decodeIdToken } from 'arctic';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { track } from '@vercel/analytics/server';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import { validatePromoCode, PROMO_COOKIE_NAME } from '$lib/promo-codes';
 import * as auth from '$lib/server/auth';
@@ -73,6 +74,9 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 				})
 				.returning();
 			user = newUser;
+
+			// Track signup
+			await track('signup', { method: 'google' });
 		}
 	}
 

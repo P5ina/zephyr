@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
+import { track } from '@vercel/analytics/server';
 import {
 	verifyWebhookIP,
 	verifyWebhookSignature,
@@ -135,6 +136,12 @@ async function handlePaymentCompleted(
 			bonusTokens: sql`${table.user.bonusTokens} + ${transaction.tokensGranted}`,
 		})
 		.where(eq(table.user.id, transaction.userId));
+
+	// Track purchase completed
+	await track('purchase_completed', {
+		tokens: transaction.tokensGranted,
+		amount: transaction.amount / 100, // Convert cents to dollars
+	});
 
 	console.log(
 		`Payment completed for user ${transaction.userId}: +${transaction.tokensGranted} tokens`,
