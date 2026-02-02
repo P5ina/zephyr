@@ -36,10 +36,17 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 			error(400, 'Image must be PNG, JPEG, or WebP');
 		}
 
-		// Convert to PNG for consistency (no resizing)
+		// Convert to PNG for consistency, downscale large images
 		// .rotate() without args auto-rotates based on EXIF orientation
 		const rawBuffer = Buffer.from(await file.arrayBuffer());
-		imageBuffer = await sharp(rawBuffer).rotate().png().toBuffer();
+		imageBuffer = await sharp(rawBuffer)
+			.rotate()
+			.resize(1024, 1024, {
+				fit: 'inside',
+				withoutEnlargement: true,
+			})
+			.png()
+			.toBuffer();
 	} else {
 		error(400, 'Image upload required (multipart/form-data)');
 	}
