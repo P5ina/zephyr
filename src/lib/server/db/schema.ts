@@ -331,3 +331,34 @@ export const magicLinkToken = pgTable('magic_link_token', {
 });
 
 export type MagicLinkToken = typeof magicLinkToken.$inferSelect;
+
+export const spinJob = pgTable('spin_job', {
+	id: text('id').primaryKey(),
+	userId: text('user_id').references(() => user.id),
+	guestSessionId: text('guest_session_id').references(() => guestSession.id),
+
+	// Status
+	status: text('status', {
+		enum: ['pending', 'processing', 'completed', 'failed'],
+	})
+		.notNull()
+		.default('pending'),
+	progress: integer('progress').notNull().default(0),
+	currentStage: text('current_stage'),
+	falRequestId: text('fal_request_id'),
+
+	// Input/Output
+	inputImageUrl: text('input_image_url'),
+	videoUrl: text('video_url'),
+
+	// Metadata
+	tokenCost: integer('token_cost').notNull().default(0),
+	bonusTokenCost: integer('bonus_token_cost').notNull().default(0),
+	errorMessage: text('error_message'),
+	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
+		.notNull()
+		.defaultNow(),
+	completedAt: timestamp('completed_at', { withTimezone: true, mode: 'date' }),
+});
+
+export type SpinJob = typeof spinJob.$inferSelect;

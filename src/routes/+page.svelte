@@ -4,6 +4,7 @@ import {
 	Check,
 	Github,
 	Layers,
+	Play,
 	RotateCw,
 	Sparkles,
 	Zap,
@@ -87,6 +88,22 @@ const jsonLd = {
 	</div>
 
 	<Header user={data.user} />
+
+	<!-- OIIA Spin Promo Banner -->
+	<div class="relative z-10 border-b border-purple-500/30 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-purple-500/10">
+		<a href="/spin" class="block max-w-6xl mx-auto px-4 py-3">
+			<div class="flex items-center justify-center gap-3 text-sm">
+				<span class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-medium">
+					<Play class="w-3 h-3" />
+					NEW
+				</span>
+				<span class="text-zinc-300">
+					<span class="font-semibold text-white">OIIA OIIA Spin Generator</span> — Create viral spinning videos from any image
+				</span>
+				<ArrowRight class="w-4 h-4 text-purple-400" />
+			</div>
+		</a>
+	</div>
 
 	<!-- Hero Section -->
 	<section class="relative z-10 max-w-6xl mx-auto px-4 pt-20 pb-32">

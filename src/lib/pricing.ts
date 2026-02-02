@@ -10,6 +10,7 @@ export const PRICING = {
 		rotation: 6,
 		rotationNew: 25,
 		rotationSingleView: 7,
+		spin: 25,
 	},
 
 	creditPacks: {

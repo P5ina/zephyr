@@ -295,3 +295,90 @@ export async function getSingleViewRotationStatus(requestId: string): Promise<{
 		};
 	}
 }
+
+// ============================================================================
+// Spin (OIIA spinning video)
+// ============================================================================
+
+const FAL_SPIN_WORKFLOW_ID = 'workflows/P5ina/spin';
+
+/**
+ * Submit a spin job to fal.ai
+ */
+export async function submitSpinJob(params: {
+	imageUrl: string;
+}): Promise<{ requestId: string }> {
+	configureFal();
+
+	const { request_id } = await fal.queue.submit(FAL_SPIN_WORKFLOW_ID, {
+		input: {
+			image_url: params.imageUrl,
+		},
+	});
+
+	return { requestId: request_id };
+}
+
+/**
+ * Get the status of a spin job from fal.ai
+ */
+export async function getSpinJobStatus(requestId: string): Promise<{
+	status: 'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+	output?: {
+		frames: string[];
+	};
+	error?: string;
+}> {
+	configureFal();
+
+	try {
+		const status = await fal.queue.status(FAL_SPIN_WORKFLOW_ID, {
+			requestId,
+			logs: false,
+		});
+
+		if (status.status === 'COMPLETED') {
+			const result = await fal.queue.result(FAL_SPIN_WORKFLOW_ID, {
+				requestId,
+			});
+
+			const data = result.data as { images?: Array<{ url: string }> };
+			const frames: string[] = [];
+
+			// Parse images array from fal.ai workflow
+			if (Array.isArray(data?.images)) {
+				for (const img of data.images) {
+					if (img?.url) {
+						frames.push(img.url);
+					}
+				}
+			}
+
+			console.log('[fal.ai] Spin completed with', frames.length, 'frames');
+
+			return {
+				status: 'COMPLETED',
+				output: { frames },
+			};
+		}
+
+		return {
+			status: status.status as 'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
+		};
+	} catch (error) {
+		console.error('[fal.ai] Error checking spin status:', error);
+		return {
+			status: 'FAILED',
+			error: error instanceof Error ? error.message : 'Unknown error',
+		};
+	}
+}
+
+/**
+ * Cancel a spin job on fal.ai
+ */
+export async function cancelSpinJob(requestId: string): Promise<void> {
+	configureFal();
+
+	await fal.queue.cancel(FAL_SPIN_WORKFLOW_ID, { requestId });
+}
