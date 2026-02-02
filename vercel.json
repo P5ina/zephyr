@@ -1,9 +1,3 @@
 {
-	"crons": [],
-	"functions": {
-		"src/routes/api/spin/[id]/status/+server.ts": {
-			"memory": 3009,
-			"maxDuration": 60
-		}
-	}
+	"crons": []
 }

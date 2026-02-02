@@ -8,6 +8,13 @@ import { getSpinJobStatus } from '$lib/server/fal';
 import { createSpinVideo } from '$lib/server/video';
 import type { RequestHandler } from './$types';
 
+// Video processing requires more memory
+export const config = {
+	runtime: 'nodejs22.x',
+	memory: 3009,
+	maxDuration: 60,
+};
+
 export const GET: RequestHandler = async ({ params, locals }) => {
 	// Build query conditions - allow access for owner (user or guest)
 	const conditions = [eq(table.spinJob.id, params.id)];
