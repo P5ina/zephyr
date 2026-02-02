@@ -2,6 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { and, eq, gt, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
+import { isDisposableEmail } from '$lib/server/disposable-emails';
 import { sendMagicLinkEmail } from '$lib/server/email';
 import { createMagicLink } from '$lib/server/magic-link';
 import type { Actions, PageServerLoad } from './$types';
@@ -30,6 +31,11 @@ export const actions: Actions = {
 		// Basic email validation
 		if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
 			return fail(400, { error: 'Invalid email address' });
+		}
+
+		// Block disposable/temporary email addresses
+		if (isDisposableEmail(normalizedEmail)) {
+			return fail(400, { error: 'Disposable email addresses are not allowed. Please use a permanent email.' });
 		}
 
 		// Rate limit by email

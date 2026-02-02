@@ -61,6 +61,9 @@ function closeMobileMenu() {
 		{#if variant === 'full' || showAuth}
 			<div class="hidden sm:flex items-center gap-6">
 				{#if variant === 'full'}
+					<a href="/spin" class="text-sm font-medium text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 hover:from-purple-300 hover:to-pink-300 transition-colors">
+						OIIA Spin
+					</a>
 					<a href="/#features" class="text-sm text-zinc-400 hover:text-white transition-colors">
 						Features
 					</a>
@@ -110,6 +113,13 @@ function closeMobileMenu() {
 		<div class="sm:hidden border-t border-zinc-800/50 bg-zinc-900/95 backdrop-blur-sm">
 			<div class="{maxWidthClass[maxWidth]} mx-auto px-4 py-4 flex flex-col gap-4">
 				{#if variant === 'full'}
+					<a
+						href="/spin"
+						onclick={closeMobileMenu}
+						class="text-sm font-medium text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 py-2"
+					>
+						OIIA Spin
+					</a>
 					<a
 						href="/#features"
 						onclick={closeMobileMenu}
