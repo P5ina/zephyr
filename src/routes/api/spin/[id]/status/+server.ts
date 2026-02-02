@@ -1,3 +1,4 @@
+import type { Config } from '@sveltejs/adapter-vercel';
 import { error, json } from '@sveltejs/kit';
 import { put } from '@vercel/blob';
 import { and, eq, or, sql } from 'drizzle-orm';
@@ -9,7 +10,7 @@ import { createSpinVideo } from '$lib/server/video';
 import type { RequestHandler } from './$types';
 
 // Video processing requires more memory
-export const config = {
+export const config: Config = {
 	runtime: 'nodejs22.x',
 	memory: 3009,
 	maxDuration: 60,
