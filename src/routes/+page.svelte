@@ -5,6 +5,7 @@ import {
 	Github,
 	Layers,
 	Play,
+	RefreshCw,
 	RotateCw,
 	Sparkles,
 	Zap,
@@ -170,6 +171,23 @@ const jsonLd = {
 				<h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Everything you need to create</h2>
 				<p class="text-zinc-400 max-w-xl mx-auto">Powerful features that make image generation fast, flexible, and fun.</p>
 			</div>
+
+			<!-- OIIA Spin - Featured -->
+			<a href="/spin" class="block mb-6 p-6 rounded-2xl bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-purple-500/10 border border-purple-500/30 hover:border-purple-500/50 transition-all group">
+				<div class="flex flex-col md:flex-row md:items-center gap-4">
+					<div class="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+						<RefreshCw class="w-7 h-7 text-purple-400" />
+					</div>
+					<div class="flex-1">
+						<div class="flex items-center gap-2 mb-1">
+							<h3 class="text-lg font-semibold text-white">OIIA OIIA Spin Generator</h3>
+							<span class="px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-medium">NEW</span>
+						</div>
+						<p class="text-sm text-zinc-400">Create viral spinning videos with the iconic OIIA sound. Upload any image and watch it spin!</p>
+					</div>
+					<ArrowRight class="w-5 h-5 text-purple-400 group-hover:translate-x-1 transition-transform shrink-0 hidden md:block" />
+				</div>
+			</a>
 
 			<div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
 				<!-- Game Sprites -->

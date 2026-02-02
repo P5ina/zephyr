@@ -1,4 +1,5 @@
 <script lang="ts">
+import { browser } from '$app/environment';
 import {
 	ArrowRight,
 	Check,
@@ -30,11 +31,14 @@ const initialBonusTokens = data.user?.bonusTokens ?? 0;
 // svelte-ignore state_referenced_locally
 const initialGenerationsRemaining = data.guestInfo?.generationsRemaining ?? 3;
 
+// Find any pending/processing job to resume
+const pendingJob = initialSpinJobs.find((j) => j.status === 'pending' || j.status === 'processing');
+
 // State
 let uploadedFile = $state<File | null>(null);
 let uploadPreviewUrl = $state<string | null>(null);
-let generating = $state(false);
-let currentJobId = $state<string | null>(null);
+let generating = $state(!!pendingJob);
+let currentJobId = $state<string | null>(pendingJob?.id ?? null);
 let spinJobs = $state<SpinJob[]>(initialSpinJobs);
 
 // Token state for logged-in users
@@ -63,8 +67,10 @@ $effect(() => {
 	}
 });
 
-// Start polling for pending jobs
+// Start polling for pending jobs (only on client)
 $effect(() => {
+	if (!browser) return;
+
 	for (const job of spinJobs) {
 		if (
 			(job.status === 'pending' || job.status === 'processing') &&

@@ -173,9 +173,9 @@ export async function createSpinVideo(params: CreateSpinVideoParams): Promise<Bu
 			ffmpegArgs.push('-i', audioPath);
 		}
 
-		// Add watermark if needed
+		// Add watermark if needed (loop it so it appears on all frames)
 		if (hasWatermarkFile) {
-			ffmpegArgs.push('-i', watermarkPath);
+			ffmpegArgs.push('-loop', '1', '-i', watermarkPath);
 		}
 
 		// Build filters - need to combine scale (for h264 compat) with optional watermark
@@ -183,10 +183,15 @@ export async function createSpinVideo(params: CreateSpinVideoParams): Promise<Bu
 
 		if (hasWatermarkFile) {
 			// Combine scale + watermark overlay in filter_complex
-			// Scale watermark to fit (10% of video width), then overlay
+			// 1. Scale video to h264-compatible dimensions
+			// 2. Scale watermark to 15% of video width, make semi-transparent (50% alpha)
+			// 3. Overlay in bottom-right corner with padding
+			// eval=frame ensures watermark appears on all frames
 			ffmpegArgs.push(
 				'-filter_complex',
-				`[0:v]${scaleFilter}[scaled];[2:v]scale=iw*0.15:-1[wm];[scaled][wm]overlay=W-w-10:H-h-10[out]`,
+				`[0:v]${scaleFilter}[scaled];` +
+				`[2:v]scale=w=-1:h=100,format=rgba,colorchannelmixer=aa=0.8[wm];` +
+				`[scaled][wm]overlay=W-w-20:H-h-20:eval=frame[out]`,
 				'-map', '[out]',
 			);
 			if (hasAudio) {
