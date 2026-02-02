@@ -159,16 +159,16 @@ export async function createSpinVideo(params: CreateSpinVideoParams): Promise<Bu
 		console.log(`[video] Local audio path: ${audioPath}, exists: ${hasAudio}`);
 		console.log(`[video] Local watermark path: ${watermarkPath}, exists: ${watermarkExists}`);
 
-		// If local files don't exist and we have an origin URL, download them
-		if (!hasAudio && originUrl) {
+		// If local audio doesn't exist, download from CDN
+		if (!hasAudio) {
 			try {
 				const audioTempPath = join(tempDir, 'oiia.mp3');
-				await downloadFile(`${originUrl}/audio/oiia.mp3`, audioTempPath);
+				await downloadFile('https://cdn.p5ina.dev/gensprite/oiia.mp3', audioTempPath);
 				audioPath = audioTempPath;
 				hasAudio = true;
-				console.log(`[video] Downloaded audio from origin to ${audioTempPath}`);
+				console.log(`[video] Downloaded audio from CDN to ${audioTempPath}`);
 			} catch (e) {
-				console.error(`[video] Failed to download audio from origin:`, e);
+				console.error(`[video] Failed to download audio from CDN:`, e);
 			}
 		}
 
