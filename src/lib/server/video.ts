@@ -30,7 +30,6 @@ interface CreateSpinVideoParams {
 	inputImageUrl: string;
 	frames: string[]; // 7 generated frame URLs
 	addWatermark: boolean;
-	originUrl?: string; // Base URL for fetching static assets on Vercel
 }
 
 /**
@@ -63,7 +62,7 @@ async function downloadFile(url: string, destPath: string): Promise<void> {
  * - Audio: OIIA track synced with spin start
  */
 export async function createSpinVideo(params: CreateSpinVideoParams): Promise<Buffer> {
-	const { inputImageUrl, frames, addWatermark, originUrl } = params;
+	const { inputImageUrl, frames, addWatermark } = params;
 
 	if (frames.length === 0) {
 		throw new Error('No frames provided');
@@ -172,15 +171,15 @@ export async function createSpinVideo(params: CreateSpinVideoParams): Promise<Bu
 			}
 		}
 
-		if (!watermarkExists && originUrl && addWatermark) {
+		if (!watermarkExists && addWatermark) {
 			try {
 				const watermarkTempPath = join(tempDir, 'watermark.png');
-				await downloadFile(`${originUrl}/watermark.png`, watermarkTempPath);
+				await downloadFile('https://cdn.p5ina.dev/gensprite/watermark.png', watermarkTempPath);
 				watermarkPath = watermarkTempPath;
 				watermarkExists = true;
-				console.log(`[video] Downloaded watermark from origin to ${watermarkTempPath}`);
+				console.log(`[video] Downloaded watermark from CDN to ${watermarkTempPath}`);
 			} catch (e) {
-				console.error(`[video] Failed to download watermark from origin:`, e);
+				console.error(`[video] Failed to download watermark from CDN:`, e);
 			}
 		}
 

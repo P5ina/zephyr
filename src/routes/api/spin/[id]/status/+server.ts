@@ -115,13 +115,10 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 					const addWatermark = !job.userId;
 
 					// Create video with ffmpeg
-					// Pass origin URL for fetching static assets on Vercel
-					const originUrl = env.ORIGIN || (env.VERCEL_URL ? `https://${env.VERCEL_URL}` : undefined);
 					const videoBuffer = await createSpinVideo({
 						inputImageUrl: job.inputImageUrl!,
 						frames: falStatus.output.frames,
 						addWatermark,
-						originUrl,
 					});
 
 					// Upload video to Vercel Blob
