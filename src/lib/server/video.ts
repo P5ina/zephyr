@@ -30,6 +30,7 @@ interface CreateSpinVideoParams {
 	inputImageUrl: string;
 	frames: string[]; // 7 generated frame URLs
 	addWatermark: boolean;
+	originUrl?: string; // Base URL for fetching static assets on Vercel
 }
 
 /**
@@ -62,7 +63,7 @@ async function downloadFile(url: string, destPath: string): Promise<void> {
  * - Audio: OIIA track synced with spin start
  */
 export async function createSpinVideo(params: CreateSpinVideoParams): Promise<Buffer> {
-	const { inputImageUrl, frames, addWatermark } = params;
+	const { inputImageUrl, frames, addWatermark, originUrl } = params;
 
 	if (frames.length === 0) {
 		throw new Error('No frames provided');
@@ -148,16 +149,43 @@ export async function createSpinVideo(params: CreateSpinVideoParams): Promise<Bu
 
 		console.log(`[video] Frame list created for OIIA sync (~12 seconds)`);
 
-		// Check if audio exists
-		const audioPath = getStaticPath('audio/oiia.mp3');
-		const watermarkPath = getStaticPath('watermark.png');
-		const hasAudio = existsSync(audioPath);
-		const watermarkExists = existsSync(watermarkPath);
-		const hasWatermarkFile = addWatermark && watermarkExists;
+		// Check if audio/watermark exist locally, otherwise download from origin
+		let audioPath = getStaticPath('audio/oiia.mp3');
+		let watermarkPath = getStaticPath('watermark.png');
+		let hasAudio = existsSync(audioPath);
+		let watermarkExists = existsSync(watermarkPath);
 
 		console.log(`[video] CWD: ${process.cwd()}`);
-		console.log(`[video] Audio path: ${audioPath}, exists: ${hasAudio}`);
-		console.log(`[video] Watermark: addWatermark=${addWatermark}, fileExists=${watermarkExists}, willApply=${hasWatermarkFile}`);
+		console.log(`[video] Local audio path: ${audioPath}, exists: ${hasAudio}`);
+		console.log(`[video] Local watermark path: ${watermarkPath}, exists: ${watermarkExists}`);
+
+		// If local files don't exist and we have an origin URL, download them
+		if (!hasAudio && originUrl) {
+			try {
+				const audioTempPath = join(tempDir, 'oiia.mp3');
+				await downloadFile(`${originUrl}/audio/oiia.mp3`, audioTempPath);
+				audioPath = audioTempPath;
+				hasAudio = true;
+				console.log(`[video] Downloaded audio from origin to ${audioTempPath}`);
+			} catch (e) {
+				console.error(`[video] Failed to download audio from origin:`, e);
+			}
+		}
+
+		if (!watermarkExists && originUrl && addWatermark) {
+			try {
+				const watermarkTempPath = join(tempDir, 'watermark.png');
+				await downloadFile(`${originUrl}/watermark.png`, watermarkTempPath);
+				watermarkPath = watermarkTempPath;
+				watermarkExists = true;
+				console.log(`[video] Downloaded watermark from origin to ${watermarkTempPath}`);
+			} catch (e) {
+				console.error(`[video] Failed to download watermark from origin:`, e);
+			}
+		}
+
+		const hasWatermarkFile = addWatermark && watermarkExists;
+		console.log(`[video] Audio available: ${hasAudio}, Watermark: addWatermark=${addWatermark}, available=${watermarkExists}, willApply=${hasWatermarkFile}`);
 
 		// Build ffmpeg command
 		const outputPath = join(tempDir, 'output.mp4');
