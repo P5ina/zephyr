@@ -2,5 +2,6 @@
 
 html,
 body {
-	background-color: #09090b; /* zinc-950 */
+	background-color: #09090b;
+	font-family: 'DM Sans', system-ui, sans-serif;
 }

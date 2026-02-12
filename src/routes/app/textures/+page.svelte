@@ -31,37 +31,29 @@ let tokens = $state(data.user?.tokens ?? 0);
 // svelte-ignore state_referenced_locally
 let bonusTokens = $state(data.user?.bonusTokens ?? 0);
 
-// View mode: 'new' for creating new generation, or generation ID for viewing existing
 let viewMode = $state<'new' | string>(
 	initialGenerations.length > 0 ? initialGenerations[0].id : 'new',
 );
 
-// Generation form
 let prompt = $state('');
 let generating = $state(false);
 let currentGeneratingId = $state<string | null>(null);
 
-// Preview shape
 let previewShape = $state<'sphere' | 'cube' | 'plane'>('sphere');
 let autoRotate = $state(true);
 
-// History
 let textureGenerations = $state<TextureGeneration[]>(initialGenerations);
 
-// Track polling
 const pollingSet = new Set<string>();
 
-// Generation status
 let status = $state<string | null>(null);
 
 const TOKEN_COST = PRICING.tokenCosts.texture;
 
-// Derived: currently selected generation (if viewing existing)
 const selectedGeneration = $derived(
 	viewMode !== 'new' ? textureGenerations.find((g) => g.id === viewMode) : null,
 );
 
-// Derived: textures to display
 const displayTextures = $derived(
 	selectedGeneration
 		? {
@@ -82,7 +74,6 @@ const hasAnyTexture = $derived(
 	Object.values(displayTextures).some((v) => v !== null),
 );
 
-// Start polling for any pending generations on page load
 $effect(() => {
 	for (const gen of initialGenerations) {
 		if (
@@ -134,12 +125,9 @@ async function generate() {
 		tokens = result.tokensRemaining ?? tokens;
 		bonusTokens = result.bonusTokensRemaining ?? bonusTokens;
 
-		// Track generation started
 		track('generation_started', { type: 'texture' });
 
-		// Poll for status
 		if (result.id) {
-			// Add to history
 			const newGen: TextureGeneration = {
 				id: result.id,
 				userId: data.user?.id ?? '',
@@ -188,18 +176,15 @@ async function cancelGeneration(id: string) {
 
 		const result = await res.json();
 
-		// Update generation status locally
 		textureGenerations = textureGenerations.map((g) =>
 			g.id === id
 				? { ...g, status: 'failed', errorMessage: 'Cancelled by user' }
 				: g,
 		);
 
-		// Update tokens
 		tokens = tokens + result.regularTokensRefunded;
 		bonusTokens = bonusTokens + result.bonusTokensRefunded;
 
-		// Stop polling
 		pollingSet.delete(id);
 
 		if (currentGeneratingId === id) {
@@ -221,13 +206,11 @@ async function pollStatus(id: string) {
 		try {
 			const res = await fetch(`/api/textures/${id}/status`);
 			if (!res.ok) {
-				// Retry on server errors
 				retryCount++;
 				if (retryCount < maxRetries) {
 					await new Promise((r) => setTimeout(r, 2000));
 					return poll();
 				}
-				// Give up after max retries
 				pollingSet.delete(id);
 				if (currentGeneratingId === id) {
 					generating = false;
@@ -237,13 +220,11 @@ async function pollStatus(id: string) {
 				return;
 			}
 
-			// Reset retry count on successful response
 			retryCount = 0;
 
 			const result = await res.json();
 			status = result.statusMessage || result.status;
 
-			// Update generation in list
 			textureGenerations = textureGenerations.map((g) =>
 				g.id === id
 					? {
@@ -265,7 +246,6 @@ async function pollStatus(id: string) {
 				tokens = result.tokensRemaining ?? tokens;
 				bonusTokens = result.bonusTokensRemaining ?? bonusTokens;
 
-				// Track completion
 				track('generation_completed', { type: 'texture' });
 
 				if (currentGeneratingId === id) {
@@ -283,7 +263,6 @@ async function pollStatus(id: string) {
 					currentGeneratingId = null;
 					status = null;
 				}
-				// Don't show alert for user-cancelled generations
 				if (result.error && !result.error.includes('Cancelled by user')) {
 					alert(result.error);
 				}
@@ -293,13 +272,11 @@ async function pollStatus(id: string) {
 			await new Promise((r) => setTimeout(r, 2000));
 			return poll();
 		} catch {
-			// Retry on network errors
 			retryCount++;
 			if (retryCount < maxRetries) {
 				await new Promise((r) => setTimeout(r, 2000));
 				return poll();
 			}
-			// Give up after max retries
 			pollingSet.delete(id);
 			if (currentGeneratingId === id) {
 				generating = false;
@@ -348,7 +325,6 @@ function formatDate(date: Date | string | null) {
 	return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-// History navigation
 let historyScrollContainer = $state<HTMLDivElement | null>(null);
 
 function scrollHistory(direction: 'left' | 'right') {
@@ -363,27 +339,24 @@ function scrollHistory(direction: 'left' | 'right') {
 
 <div class="flex flex-col h-full gap-4">
 	<!-- History Bar -->
-	<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-3">
+	<div class="history-bar">
 		<div class="flex items-center gap-2">
-			<!-- New Generation Button -->
 			<button
 				onclick={startNewGeneration}
-				class="flex-shrink-0 w-16 h-16 rounded-lg border-2 border-dashed {viewMode === 'new' ? 'border-yellow-500 bg-yellow-500/10' : 'border-zinc-700 hover:border-zinc-600'} flex items-center justify-center transition-colors"
+				class="history-new {viewMode === 'new' ? 'history-new-active' : ''}"
 			>
-				<Plus class="w-6 h-6 {viewMode === 'new' ? 'text-yellow-400' : 'text-zinc-500'}" />
+				<Plus class="w-6 h-6 {viewMode === 'new' ? 'text-amber-400' : 'text-zinc-500'}" />
 			</button>
 
-			<!-- Scroll Left -->
 			{#if textureGenerations.length > 0}
 				<button
 					onclick={() => scrollHistory('left')}
-					class="flex-shrink-0 p-1.5 hover:bg-zinc-800 rounded-lg transition-colors"
+					class="flex-shrink-0 p-1.5 hover:bg-zinc-800/60 rounded-lg transition-colors"
 				>
 					<ChevronLeft class="w-4 h-4 text-zinc-400" />
 				</button>
 			{/if}
 
-			<!-- History Items -->
 			<div
 				bind:this={historyScrollContainer}
 				class="flex-1 flex gap-2 overflow-x-auto scrollbar-hide"
@@ -392,7 +365,7 @@ function scrollHistory(direction: 'left' | 'right') {
 				{#each textureGenerations as gen (gen.id)}
 					<button
 						onclick={() => selectGeneration(gen.id)}
-						class="flex-shrink-0 relative w-16 h-16 rounded-lg overflow-hidden border-2 {viewMode === gen.id ? 'border-yellow-500' : 'border-zinc-700 hover:border-zinc-600'} transition-colors"
+						class="history-thumb {viewMode === gen.id ? 'history-thumb-active' : ''}"
 					>
 						{#if gen.status === 'completed'}
 							{#if gen.basecolorUrl}
@@ -412,11 +385,11 @@ function scrollHistory(direction: 'left' | 'right') {
 							</div>
 						{:else}
 							<div class="w-full h-full bg-zinc-800 flex flex-col items-center justify-center">
-								<Loader2 class="w-5 h-5 animate-spin text-yellow-400" />
+								<Loader2 class="w-5 h-5 animate-spin text-amber-400" />
 							</div>
 						{/if}
 						{#if viewMode === gen.id}
-							<div class="absolute top-1 right-1 w-3 h-3 bg-yellow-500 rounded-full flex items-center justify-center">
+							<div class="absolute top-1 right-1 w-3 h-3 bg-amber-500 rounded-full flex items-center justify-center">
 								<Check class="w-2 h-2 text-zinc-900" />
 							</div>
 						{/if}
@@ -424,11 +397,10 @@ function scrollHistory(direction: 'left' | 'right') {
 				{/each}
 			</div>
 
-			<!-- Scroll Right -->
 			{#if textureGenerations.length > 0}
 				<button
 					onclick={() => scrollHistory('right')}
-					class="flex-shrink-0 p-1.5 hover:bg-zinc-800 rounded-lg transition-colors"
+					class="flex-shrink-0 p-1.5 hover:bg-zinc-800/60 rounded-lg transition-colors"
 				>
 					<ChevronRight class="w-4 h-4 text-zinc-400" />
 				</button>
@@ -437,49 +409,39 @@ function scrollHistory(direction: 'left' | 'right') {
 	</div>
 
 	<!-- Main Content -->
-	<div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6">
+	<div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-5">
 		<!-- Left: 3D Preview -->
 		<div class="order-2 lg:order-1">
-			<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
-				<div class="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+			<div class="preview-panel">
+				<div class="preview-header">
 					<h2 class="text-sm font-medium text-white">3D Preview</h2>
 					<div class="flex items-center gap-2">
-						<!-- Shape selector -->
-						<div class="flex items-center gap-1 bg-zinc-800 rounded-lg p-1">
+						<div class="shape-toggle">
 							<button
 								onclick={() => (previewShape = 'sphere')}
-								class="p-1.5 rounded transition-colors {previewShape === 'sphere'
-									? 'bg-yellow-500 text-zinc-900'
-									: 'text-zinc-400 hover:text-white'}"
+								class="shape-btn {previewShape === 'sphere' ? 'shape-btn-active' : ''}"
 								title="Sphere"
 							>
 								<Circle class="w-4 h-4" />
 							</button>
 							<button
 								onclick={() => (previewShape = 'cube')}
-								class="p-1.5 rounded transition-colors {previewShape === 'cube'
-									? 'bg-yellow-500 text-zinc-900'
-									: 'text-zinc-400 hover:text-white'}"
+								class="shape-btn {previewShape === 'cube' ? 'shape-btn-active' : ''}"
 								title="Cube"
 							>
 								<Box class="w-4 h-4" />
 							</button>
 							<button
 								onclick={() => (previewShape = 'plane')}
-								class="p-1.5 rounded transition-colors {previewShape === 'plane'
-									? 'bg-yellow-500 text-zinc-900'
-									: 'text-zinc-400 hover:text-white'}"
+								class="shape-btn {previewShape === 'plane' ? 'shape-btn-active' : ''}"
 								title="Plane"
 							>
 								<Square class="w-4 h-4" />
 							</button>
 						</div>
-						<!-- Auto-rotate toggle -->
 						<button
 							onclick={() => (autoRotate = !autoRotate)}
-							class="p-1.5 rounded transition-colors {autoRotate
-								? 'bg-yellow-500 text-zinc-900'
-								: 'bg-zinc-800 text-zinc-400 hover:text-white'}"
+							class="shape-btn {autoRotate ? 'shape-btn-active' : ''}"
 							title="Auto-rotate"
 						>
 							<RotateCcw class="w-4 h-4" />
@@ -504,13 +466,10 @@ function scrollHistory(direction: 'left' | 'right') {
 
 			<!-- Texture Maps Grid -->
 			{#if hasAnyTexture}
-				<div class="mt-4 bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+				<div class="maps-panel">
 					<div class="flex items-center justify-between mb-3">
 						<h3 class="text-sm font-medium text-white">Generated Maps</h3>
-						<button
-							onclick={downloadAll}
-							class="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 text-xs font-medium rounded-lg transition-colors"
-						>
+						<button onclick={downloadAll} class="btn-sm btn-sm-gold">
 							<Download class="w-3.5 h-3.5" />
 							Download All
 						</button>
@@ -527,16 +486,16 @@ function scrollHistory(direction: 'left' | 'right') {
 									<img
 										src={displayTextures[map.key as keyof typeof displayTextures]}
 										alt={map.label}
-										class="w-full aspect-square object-cover rounded-lg border border-zinc-700"
+										class="w-full aspect-square object-cover rounded-lg border border-zinc-700/50"
 									/>
 									<button
 										onclick={() => downloadTexture(map.key as keyof typeof displayTextures)}
-										class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg"
+										class="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg"
 									>
 										<Download class="w-4 h-4 text-white" />
 									</button>
 								{:else}
-									<div class="w-full aspect-square bg-zinc-800 rounded-lg border border-zinc-700 flex items-center justify-center">
+									<div class="w-full aspect-square bg-zinc-800/40 rounded-lg border border-zinc-700/40 flex items-center justify-center">
 										<span class="text-xs text-zinc-500">-</span>
 									</div>
 								{/if}
@@ -550,31 +509,26 @@ function scrollHistory(direction: 'left' | 'right') {
 
 		<!-- Right: Generation Form / Details -->
 		<div class="order-1 lg:order-2">
-			<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 sticky top-8">
+			<div class="panel sticky top-20">
 				{#if viewMode === 'new'}
-					<!-- New Generation Mode -->
-					<h2 class="text-lg font-semibold text-white mb-4">Generate PBR Textures</h2>
-					<p class="text-sm text-zinc-400 mb-6">
+					<h2 class="panel-title">Generate PBR Textures</h2>
+					<p class="text-sm text-zinc-400 mb-5">
 						Describe the material you want to create. We'll generate a complete set of PBR maps
 						including basecolor, normal, roughness, and metallic.
 					</p>
 
-					<!-- Prompt -->
 					<div class="mb-4">
-						<label for="prompt" class="block text-sm font-medium text-zinc-400 mb-2">
-							Material Description
-						</label>
+						<label for="prompt" class="field-label">Material Description</label>
 						<textarea
 							id="prompt"
 							bind:value={prompt}
 							placeholder="e.g., weathered copper with green patina, brushed steel, rough concrete..."
 							rows="4"
-							class="w-full px-3 py-2 bg-zinc-800/50 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 resize-none"
+							class="field-textarea"
 						></textarea>
 					</div>
 
-					<!-- Example prompts -->
-					<div class="mb-6">
+					<div class="mb-5">
 						<p class="text-xs text-zinc-500 mb-2">Try these:</p>
 						<div class="flex flex-wrap gap-2">
 							{#each [
@@ -586,7 +540,7 @@ function scrollHistory(direction: 'left' | 'right') {
 							] as example}
 								<button
 									onclick={() => (prompt = example)}
-									class="px-2 py-1 text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded transition-colors"
+									class="example-chip"
 								>
 									{example}
 								</button>
@@ -594,21 +548,19 @@ function scrollHistory(direction: 'left' | 'right') {
 						</div>
 					</div>
 
-					<!-- Status -->
 					{#if status}
-						<div class="mb-4 px-3 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+						<div class="mb-4 px-3 py-2 bg-amber-500/6 border border-amber-500/15 rounded-xl">
 							<div class="flex items-center gap-2">
-								<Loader2 class="w-4 h-4 animate-spin text-yellow-400" />
-								<span class="text-sm text-yellow-300">{status}</span>
+								<Loader2 class="w-4 h-4 animate-spin text-amber-400" />
+								<span class="text-sm text-amber-300">{status}</span>
 							</div>
 						</div>
 					{/if}
 
-					<!-- Generate Button -->
 					<button
 						onclick={generate}
 						disabled={!prompt.trim() || generating || tokens + bonusTokens < TOKEN_COST}
-						class="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 disabled:from-zinc-700 disabled:to-zinc-700 disabled:cursor-not-allowed text-zinc-900 disabled:text-zinc-400 font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
+						class="btn-generate"
 					>
 						{#if generating}
 							<Loader2 class="w-4 h-4 animate-spin" />
@@ -619,15 +571,13 @@ function scrollHistory(direction: 'left' | 'right') {
 						{/if}
 					</button>
 
-					<!-- Info -->
 					<p class="mt-4 text-xs text-zinc-500 text-center">
 						Generation creates 4 PBR maps: basecolor, normal, roughness, and metallic.
-						Output resolution: 1024x1024
+						Output resolution: 1024&times;1024
 					</p>
 				{:else if selectedGeneration}
-					<!-- Viewing Existing Generation -->
 					<div class="flex items-center justify-between mb-4">
-						<h2 class="text-lg font-semibold text-white">
+						<h2 class="panel-title" style="margin-bottom:0">
 							{#if selectedGeneration.status === 'processing' || selectedGeneration.status === 'pending'}
 								Generating...
 							{:else if selectedGeneration.status === 'completed'}
@@ -648,45 +598,38 @@ function scrollHistory(direction: 'left' | 'right') {
 					{/if}
 
 					{#if selectedGeneration.status === 'processing' || selectedGeneration.status === 'pending'}
-						<!-- Progress View -->
-						<div class="aspect-video bg-zinc-800/30 rounded-lg border border-zinc-700 flex flex-col items-center justify-center mb-4">
-							<Loader2 class="w-12 h-12 animate-spin text-yellow-400 mb-4" />
+						<div class="aspect-video bg-zinc-800/25 rounded-xl border border-zinc-700/40 flex flex-col items-center justify-center mb-4">
+							<Loader2 class="w-12 h-12 animate-spin text-amber-400 mb-4" />
 							<p class="text-sm text-zinc-300">{selectedGeneration.currentStage || 'Processing...'}</p>
 						</div>
 						<button
 							onclick={() => cancelGeneration(selectedGeneration.id)}
-							class="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-red-400 hover:text-red-300 rounded-lg transition-colors flex items-center justify-center gap-2"
+							class="btn-cancel"
 						>
 							<X class="w-4 h-4" />
 							Cancel Generation
 						</button>
 					{:else if selectedGeneration.status === 'failed'}
-						<!-- Error View -->
-						<div class="aspect-video bg-red-500/5 rounded-lg border border-red-500/20 flex flex-col items-center justify-center mb-4 p-6">
+						<div class="aspect-video bg-red-500/5 rounded-xl border border-red-500/15 flex flex-col items-center justify-center mb-4 p-6">
 							<X class="w-12 h-12 text-red-400 mb-4" />
 							<p class="text-sm text-red-300 text-center mb-2">Generation failed</p>
 							{#if selectedGeneration.errorMessage}
 								<p class="text-xs text-red-400/70 text-center">{selectedGeneration.errorMessage}</p>
 							{/if}
 						</div>
-						<button
-							onclick={startNewGeneration}
-							class="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-						>
+						<button onclick={startNewGeneration} class="btn-secondary w-full">
 							<Plus class="w-4 h-4" />
 							Try Again
 						</button>
 					{:else if selectedGeneration.status === 'completed'}
-						<!-- Completed View -->
 						<div class="mb-4">
 							<span class="text-xs text-zinc-500 mb-2 block">Prompt</span>
-							<p class="text-sm text-white bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
+							<p class="text-sm text-white bg-zinc-800/40 rounded-xl p-3 border border-zinc-700/50">
 								{selectedGeneration.prompt}
 							</p>
 						</div>
 
-						<!-- Info -->
-						<div class="mb-4 p-3 bg-zinc-800/30 rounded-lg border border-zinc-700">
+						<div class="mb-4 p-3 bg-zinc-800/25 rounded-xl border border-zinc-700/40">
 							<div class="flex items-center justify-between text-sm">
 								<span class="text-zinc-400">Token Cost</span>
 								<span class="text-white font-medium">{selectedGeneration.tokenCost}</span>
@@ -699,19 +642,12 @@ function scrollHistory(direction: 'left' | 'right') {
 							{/if}
 						</div>
 
-						<!-- Actions -->
 						<div class="flex gap-2">
-							<button
-								onclick={downloadAll}
-								class="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-							>
+							<button onclick={downloadAll} class="btn-download flex-1">
 								<Download class="w-4 h-4" />
 								Download All
 							</button>
-							<button
-								onclick={startNewGeneration}
-								class="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors"
-							>
+							<button onclick={startNewGeneration} class="btn-secondary px-4">
 								<Plus class="w-4 h-4" />
 							</button>
 						</div>
@@ -721,3 +657,198 @@ function scrollHistory(direction: 'left' | 'right') {
 		</div>
 	</div>
 </div>
+
+<style>
+	/* Panels */
+	.panel {
+		background: rgba(24,24,27,.5);
+		border: 1px solid rgba(63,63,70,.35);
+		border-radius: 1rem;
+		padding: 1.5rem;
+		backdrop-filter: blur(6px);
+	}
+	.panel-title {
+		font-weight: 700; font-size: 1.05rem;
+		color: #fff; margin-bottom: 1rem;
+	}
+
+	/* History bar */
+	.history-bar {
+		background: rgba(24,24,27,.5);
+		border: 1px solid rgba(63,63,70,.35);
+		border-radius: .85rem;
+		padding: .65rem;
+		backdrop-filter: blur(6px);
+	}
+	.history-new {
+		flex-shrink: 0; width: 4rem; height: 4rem;
+		border-radius: .6rem;
+		border: 2px dashed rgba(63,63,70,.5);
+		display: flex; align-items: center; justify-content: center;
+		background: none; cursor: pointer;
+		transition: border-color .2s, background .2s;
+	}
+	.history-new:hover { border-color: rgba(63,63,70,.7); }
+	.history-new-active {
+		border-color: rgba(245,158,11,.5);
+		background: rgba(245,158,11,.06);
+	}
+	.history-thumb {
+		flex-shrink: 0; position: relative;
+		width: 4rem; height: 4rem;
+		border-radius: .6rem; overflow: hidden;
+		border: 2px solid rgba(63,63,70,.4);
+		background: none; cursor: pointer;
+		transition: border-color .2s;
+	}
+	.history-thumb:hover { border-color: rgba(63,63,70,.6); }
+	.history-thumb-active { border-color: rgba(245,158,11,.5); }
+
+	/* 3D Preview panel */
+	.preview-panel {
+		background: rgba(24,24,27,.5);
+		border: 1px solid rgba(63,63,70,.35);
+		border-radius: 1rem;
+		overflow: hidden;
+		backdrop-filter: blur(6px);
+	}
+	.preview-header {
+		display: flex; align-items: center; justify-content: space-between;
+		padding: .75rem 1rem;
+		border-bottom: 1px solid rgba(63,63,70,.25);
+	}
+	.shape-toggle {
+		display: flex; align-items: center; gap: .2rem;
+		background: rgba(39,39,42,.5);
+		border-radius: .45rem;
+		padding: .15rem;
+	}
+	.shape-btn {
+		padding: .35rem;
+		border-radius: .35rem;
+		border: none; cursor: pointer;
+		color: #71717a;
+		background: none;
+		transition: color .2s, background .2s;
+	}
+	.shape-btn:hover { color: #fff; }
+	.shape-btn-active {
+		background: linear-gradient(135deg, #fbbf24, #f59e0b);
+		color: #18181b;
+	}
+
+	/* Maps panel */
+	.maps-panel {
+		margin-top: 1rem;
+		background: rgba(24,24,27,.5);
+		border: 1px solid rgba(63,63,70,.35);
+		border-radius: 1rem;
+		padding: 1rem;
+		backdrop-filter: blur(6px);
+	}
+
+	/* Form fields */
+	.field-label {
+		display: block;
+		font-size: .8125rem;
+		font-weight: 500;
+		color: #a1a1aa;
+		margin-bottom: .5rem;
+	}
+	.field-textarea {
+		width: 100%;
+		padding: .6rem .75rem;
+		background: rgba(39,39,42,.4);
+		border: 1px solid rgba(63,63,70,.5);
+		border-radius: .65rem;
+		color: #fff;
+		font-size: .875rem;
+		resize: none;
+		transition: border-color .2s, box-shadow .2s;
+	}
+	.field-textarea::placeholder { color: #52525b; }
+	.field-textarea:focus {
+		outline: none;
+		border-color: rgba(245,158,11,.35);
+		box-shadow: 0 0 0 3px rgba(245,158,11,.08);
+	}
+
+	/* Example chips */
+	.example-chip {
+		padding: .25rem .55rem;
+		font-size: .72rem;
+		background: rgba(39,39,42,.4);
+		border: none; border-radius: .35rem;
+		color: #d4d4d8; cursor: pointer;
+		transition: background .2s;
+	}
+	.example-chip:hover { background: rgba(63,63,70,.5); }
+
+	/* Buttons */
+	.btn-generate {
+		width: 100%;
+		display: flex; align-items: center; justify-content: center; gap: .5rem;
+		padding: .75rem 1rem;
+		background: linear-gradient(135deg, #fbbf24, #f59e0b);
+		color: #18181b;
+		font-weight: 600; font-size: .875rem;
+		border-radius: .7rem;
+		border: none; cursor: pointer;
+		box-shadow: 0 0 20px rgba(245,158,11,.15);
+		transition: box-shadow .25s, transform .15s, opacity .2s;
+	}
+	.btn-generate:hover:not(:disabled) {
+		box-shadow: 0 0 28px rgba(245,158,11,.28);
+		transform: translateY(-1px);
+	}
+	.btn-generate:disabled {
+		background: rgba(63,63,70,.4);
+		color: #71717a; cursor: not-allowed; box-shadow: none;
+	}
+
+	.btn-secondary {
+		display: flex; align-items: center; justify-content: center; gap: .4rem;
+		padding: .6rem 1rem;
+		background: rgba(63,63,70,.3);
+		color: #fff; font-size: .8125rem; font-weight: 500;
+		border-radius: .55rem; border: none; cursor: pointer;
+		transition: background .2s;
+	}
+	.btn-secondary:hover { background: rgba(63,63,70,.5); }
+
+	.btn-cancel {
+		width: 100%;
+		display: flex; align-items: center; justify-content: center; gap: .4rem;
+		padding: .6rem 1rem;
+		background: rgba(63,63,70,.3);
+		color: #f87171; font-size: .875rem; font-weight: 500;
+		border-radius: .55rem; border: none; cursor: pointer;
+		transition: background .2s, color .2s;
+	}
+	.btn-cancel:hover { background: rgba(239,68,68,.1); color: #fca5a5; }
+
+	.btn-download {
+		display: flex; align-items: center; justify-content: center; gap: .4rem;
+		padding: .6rem 1rem;
+		background: linear-gradient(135deg, #fbbf24, #f59e0b);
+		color: #18181b; font-weight: 600; font-size: .8125rem;
+		border-radius: .55rem; border: none; cursor: pointer;
+		transition: box-shadow .2s;
+	}
+	.btn-download:hover { box-shadow: 0 0 16px rgba(245,158,11,.2); }
+
+	.btn-sm {
+		display: flex; align-items: center; gap: .35rem;
+		padding: .35rem .65rem;
+		background: rgba(63,63,70,.3);
+		color: #fff; font-size: .72rem; font-weight: 500;
+		border-radius: .45rem; border: none; cursor: pointer;
+		transition: background .2s;
+	}
+	.btn-sm:hover { background: rgba(63,63,70,.5); }
+	.btn-sm-gold {
+		background: linear-gradient(135deg, #fbbf24, #f59e0b);
+		color: #18181b; font-weight: 600;
+	}
+	.btn-sm-gold:hover { box-shadow: 0 0 12px rgba(245,158,11,.2); }
+</style>

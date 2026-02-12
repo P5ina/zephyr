@@ -107,80 +107,74 @@ function getDiscount(
 }
 </script>
 
-<div class="min-h-screen bg-zinc-950">
-	<header class="border-b border-zinc-800">
-		<div class="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
-			<a href="/app" class="p-2 text-zinc-400 hover:text-white transition-colors">
-				<ArrowLeft class="w-5 h-5" />
-			</a>
-			<h1 class="text-xl font-bold text-white">Buy Tokens</h1>
-		</div>
-	</header>
+<div class="billing-page">
+	<!-- Page header -->
+	<div class="page-header">
+		<a href="/app" class="back-link">
+			<ArrowLeft class="w-5 h-5" />
+		</a>
+		<h1 class="page-title">Buy Tokens</h1>
+	</div>
 
-	<main class="max-w-4xl mx-auto px-4 py-8 space-y-8">
+	<div class="billing-content">
 		{#if error}
-			<div class="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+			<div class="error-banner">
 				{error}
 			</div>
 		{/if}
 
 		<!-- Token Balance -->
-		<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+		<div class="panel">
 			<div class="flex items-center gap-3 mb-4">
-				<div class="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center">
-					<Coins class="w-5 h-5 text-yellow-400" />
+				<div class="icon-badge icon-badge-amber">
+					<Coins class="w-5 h-5" />
 				</div>
 				<div>
-					<h2 class="text-lg font-semibold text-white">Your Balance</h2>
-					<p class="text-sm text-zinc-400">Tokens available to spend</p>
+					<h2 class="panel-heading">Your Balance</h2>
+					<p class="panel-sub">Tokens available to spend</p>
 				</div>
 			</div>
-
 			<div class="flex items-baseline gap-2">
-				<span class="text-4xl font-bold text-white">{data.user.tokens + data.user.bonusTokens}</span>
-				<span class="text-zinc-400">tokens</span>
+				<span class="balance-number">{data.user.tokens + data.user.bonusTokens}</span>
+				<span class="text-zinc-500">tokens</span>
 			</div>
 		</div>
 
 		<!-- Token Packs -->
-		<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+		<div class="panel">
 			<div class="flex items-center gap-3 mb-6">
-				<div class="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-					<Package class="w-5 h-5 text-green-400" />
+				<div class="icon-badge icon-badge-green">
+					<Package class="w-5 h-5" />
 				</div>
 				<div>
-					<h2 class="text-lg font-semibold text-white">Buy Token Packs</h2>
-					<p class="text-sm text-zinc-400">One-time purchase, tokens never expire</p>
+					<h2 class="panel-heading">Buy Token Packs</h2>
+					<p class="panel-sub">One-time purchase, tokens never expire</p>
 				</div>
 			</div>
 
-			<div class="grid sm:grid-cols-3 gap-4">
+			<div class="packs-grid">
 				{#each Object.entries(PRICING.creditPacks) as [key, pack]}
 					{@const discount = getDiscount(pack)}
 					<button
 						onclick={() => buyCredits(key as keyof typeof PRICING.creditPacks)}
 						disabled={purchasing === key}
-						class="relative p-5 border rounded-xl text-left transition-all disabled:opacity-50 group {pack.popular
-							? 'border-yellow-500/50 bg-yellow-500/5 hover:border-yellow-500'
-							: 'border-zinc-700 hover:border-zinc-600'}"
+						class="pack-card {pack.popular ? 'pack-card-pop' : ''}"
 					>
 						{#if pack.popular}
-							<div class="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-gradient-to-r from-yellow-500 to-amber-500 rounded-full text-xs font-medium text-zinc-900">
-								Best Value
-							</div>
+							<div class="pack-badge">Best Value</div>
 						{/if}
-						<div class="text-sm font-medium text-zinc-400 mb-1">{pack.name}</div>
-						<div class="text-2xl font-bold text-white mb-1">{pack.tokens.toLocaleString()}</div>
-						<div class="text-sm text-zinc-500 mb-3">tokens</div>
-						<div class="flex items-baseline gap-2">
-							<span class="text-xl font-bold {pack.popular ? 'text-yellow-400' : 'text-white'}">
+						<div class="pack-name">{pack.name}</div>
+						<div class="pack-tokens">{pack.tokens.toLocaleString()}</div>
+						<div class="pack-tokens-label">tokens</div>
+						<div class="flex items-baseline gap-2 mt-3">
+							<span class="pack-price {pack.popular ? 'pack-price-gold' : ''}">
 								{purchasing === key ? '...' : `$${pack.price}`}
 							</span>
 							{#if discount > 0}
-								<span class="text-xs text-green-400 font-medium">{discount}% off</span>
+								<span class="pack-discount">{discount}% off</span>
 							{/if}
 						</div>
-						<div class="text-xs text-zinc-500 mt-1">
+						<div class="pack-per">
 							${getPerTokenPrice(pack.price, pack.tokens)} per token
 						</div>
 					</button>
@@ -193,34 +187,34 @@ function getDiscount(
 		</div>
 
 		<!-- Token Costs Reference -->
-		<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+		<div class="panel">
 			<h3 class="text-sm font-medium text-zinc-400 mb-4">Token costs</h3>
-			<div class="grid grid-cols-3 gap-4">
-				<div class="flex items-center gap-3">
-					<div class="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center">
-						<Sparkles class="w-4 h-4 text-yellow-400" />
+			<div class="costs-grid">
+				<div class="cost-item">
+					<div class="icon-badge-sm icon-badge-amber">
+						<Sparkles class="w-4 h-4" />
 					</div>
 					<div>
-						<div class="text-sm text-white font-medium">Sprite</div>
-						<div class="text-xs text-zinc-500">{PRICING.tokenCosts.sprite} tokens</div>
+						<div class="cost-name">Sprite</div>
+						<div class="cost-amount">{PRICING.tokenCosts.sprite} tokens</div>
 					</div>
 				</div>
-				<div class="flex items-center gap-3">
-					<div class="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
-						<Layers class="w-4 h-4 text-orange-400" />
+				<div class="cost-item">
+					<div class="icon-badge-sm icon-badge-orange">
+						<Layers class="w-4 h-4" />
 					</div>
 					<div>
-						<div class="text-sm text-white font-medium">Texture</div>
-						<div class="text-xs text-zinc-500">{PRICING.tokenCosts.texture} tokens</div>
+						<div class="cost-name">Texture</div>
+						<div class="cost-amount">{PRICING.tokenCosts.texture} tokens</div>
 					</div>
 				</div>
-				<div class="flex items-center gap-3">
-					<div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-						<RotateCw class="w-4 h-4 text-amber-400" />
+				<div class="cost-item">
+					<div class="icon-badge-sm icon-badge-amber">
+						<RotateCw class="w-4 h-4" />
 					</div>
 					<div>
-						<div class="text-sm text-white font-medium">Rotation</div>
-						<div class="text-xs text-zinc-500">{PRICING.tokenCosts.rotation} tokens</div>
+						<div class="cost-name">Rotation</div>
+						<div class="cost-amount">{PRICING.tokenCosts.rotation} tokens</div>
 					</div>
 				</div>
 			</div>
@@ -228,37 +222,37 @@ function getDiscount(
 
 		<!-- Transaction History -->
 		{#if data.transactions.length > 0}
-			<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+			<div class="panel">
 				<div class="flex items-center gap-3 mb-6">
-					<div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-						<CreditCard class="w-5 h-5 text-blue-400" />
+					<div class="icon-badge icon-badge-blue">
+						<CreditCard class="w-5 h-5" />
 					</div>
 					<div>
-						<h2 class="text-lg font-semibold text-white">Transaction History</h2>
-						<p class="text-sm text-zinc-400">Your past orders</p>
+						<h2 class="panel-heading">Transaction History</h2>
+						<p class="panel-sub">Your past orders</p>
 					</div>
 				</div>
 
-				<div class="space-y-3">
+				<div class="space-y-2">
 					{#each data.transactions as tx}
 						{@const StatusIcon = getStatusIcon(tx.status)}
-						<div class="flex items-center justify-between p-4 bg-zinc-800/50 rounded-lg">
+						<div class="tx-row">
 							<div class="flex items-center gap-4">
-								<div class="w-10 h-10 rounded-lg bg-zinc-700/50 flex items-center justify-center">
-									<Package class="w-5 h-5 text-green-400" />
+								<div class="icon-badge-sm" style="background:rgba(74,222,128,.08); color:#4ade80">
+									<Package class="w-4 h-4" />
 								</div>
 								<div>
-									<div class="font-medium text-white">
+									<div class="text-sm font-medium text-white">
 										{tx.tokensGranted.toLocaleString()} Tokens
 									</div>
-									<div class="text-sm text-zinc-500">
+									<div class="text-xs text-zinc-500">
 										{formatDate(tx.createdAt)}
 									</div>
 								</div>
 							</div>
 							<div class="flex items-center gap-4">
 								<div class="text-right">
-									<div class="font-medium text-white">
+									<div class="text-sm font-medium text-white">
 										${(tx.amount / 100).toFixed(2)}
 									</div>
 									{#if tx.payCurrency}
@@ -277,5 +271,152 @@ function getDiscount(
 				</div>
 			</div>
 		{/if}
-	</main>
+	</div>
 </div>
+
+<style>
+	.billing-page { max-width: 52rem; margin: 0 auto; }
+
+	/* Page header */
+	.page-header {
+		display: flex; align-items: center; gap: .75rem;
+		margin-bottom: 1.5rem;
+	}
+	.back-link {
+		padding: .45rem;
+		color: #71717a;
+		border-radius: .5rem;
+		transition: color .2s, background .2s;
+	}
+	.back-link:hover { color: #fff; background: rgba(63,63,70,.3); }
+	.page-title {
+		font-weight: 800; font-size: 1.35rem; color: #fff;
+	}
+
+	/* Content */
+	.billing-content { display: flex; flex-direction: column; gap: 1.5rem; }
+
+	/* Error banner */
+	.error-banner {
+		padding: .85rem 1rem;
+		background: rgba(239,68,68,.06);
+		border: 1px solid rgba(239,68,68,.15);
+		border-radius: .7rem;
+		color: #f87171;
+		font-size: .875rem;
+	}
+
+	/* Panels */
+	.panel {
+		background: rgba(24,24,27,.5);
+		border: 1px solid rgba(63,63,70,.35);
+		border-radius: 1rem;
+		padding: 1.5rem;
+		backdrop-filter: blur(6px);
+	}
+	.panel-heading { font-weight: 700; font-size: 1.05rem; color: #fff; }
+	.panel-sub { font-size: .8125rem; color: #71717a; }
+
+	/* Icon badges */
+	.icon-badge {
+		width: 2.5rem; height: 2.5rem;
+		border-radius: .6rem;
+		display: flex; align-items: center; justify-content: center;
+	}
+	.icon-badge-sm {
+		width: 2rem; height: 2rem;
+		border-radius: .5rem;
+		display: flex; align-items: center; justify-content: center;
+	}
+	.icon-badge-amber { background: rgba(245,158,11,.08); color: #fbbf24; }
+	.icon-badge-green { background: rgba(74,222,128,.08); color: #4ade80; }
+	.icon-badge-blue { background: rgba(96,165,250,.08); color: #60a5fa; }
+	.icon-badge-orange { background: rgba(249,115,22,.08); color: #fb923c; }
+
+	/* Balance */
+	.balance-number {
+		font-family: 'Syne', system-ui, sans-serif;
+		font-weight: 800;
+		font-size: 2.25rem;
+		color: #fff;
+	}
+
+	/* Packs grid */
+	.packs-grid {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 1rem;
+	}
+	@media (min-width: 640px) {
+		.packs-grid { grid-template-columns: repeat(3, 1fr); }
+	}
+	.pack-card {
+		position: relative;
+		padding: 1.25rem;
+		border: 1px solid rgba(63,63,70,.4);
+		border-radius: .85rem;
+		text-align: left;
+		background: none;
+		cursor: pointer;
+		transition: border-color .2s, box-shadow .2s, transform .15s;
+		color: #fff;
+	}
+	.pack-card:hover:not(:disabled) {
+		border-color: rgba(63,63,70,.6);
+		box-shadow: 0 4px 20px rgba(0,0,0,.3);
+		transform: translateY(-2px);
+	}
+	.pack-card:disabled { opacity: .5; cursor: not-allowed; }
+	.pack-card-pop {
+		border-color: rgba(245,158,11,.25);
+		background: rgba(245,158,11,.03);
+	}
+	.pack-card-pop:hover:not(:disabled) {
+		border-color: rgba(245,158,11,.4);
+		box-shadow: 0 4px 24px rgba(245,158,11,.08);
+	}
+	.pack-badge {
+		position: absolute; top: -.55rem;
+		left: 50%; transform: translateX(-50%);
+		padding: .15rem .65rem;
+		background: linear-gradient(135deg, #fbbf24, #f59e0b);
+		color: #18181b;
+		font-size: .65rem; font-weight: 600;
+		border-radius: 9999px;
+	}
+	.pack-name { font-size: .8125rem; color: #a1a1aa; margin-bottom: .25rem; }
+	.pack-tokens {
+		font-family: 'Syne', system-ui, sans-serif;
+		font-weight: 800; font-size: 1.5rem; color: #fff;
+	}
+	.pack-tokens-label { font-size: .8125rem; color: #52525b; }
+	.pack-price {
+		font-family: 'Syne', system-ui, sans-serif;
+		font-weight: 800; font-size: 1.2rem; color: #fff;
+	}
+	.pack-price-gold { color: #fbbf24; }
+	.pack-discount {
+		font-size: .6875rem; font-weight: 600; color: #4ade80;
+	}
+	.pack-per {
+		font-size: .6875rem; color: #52525b; margin-top: .25rem;
+	}
+
+	/* Costs grid */
+	.costs-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 1rem;
+	}
+	.cost-item { display: flex; align-items: center; gap: .7rem; }
+	.cost-name { font-size: .8125rem; font-weight: 500; color: #fff; }
+	.cost-amount { font-size: .72rem; color: #52525b; }
+
+	/* Transaction row */
+	.tx-row {
+		display: flex; align-items: center; justify-content: space-between;
+		padding: .85rem 1rem;
+		background: rgba(39,39,42,.3);
+		border-radius: .65rem;
+	}
+</style>

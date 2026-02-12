@@ -67,12 +67,11 @@ const TOKEN_COST = PRICING.tokenCosts.rotation;
 
 // Viewer state
 let showViewer = $state(false);
-let viewerDirection = $state(0); // Index into animationOrder
+let viewerDirection = $state(0);
 let isPlaying = $state(false);
-let animationSpeed = $state(200); // ms per frame
-let animationInterval: ReturnType<typeof setInterval> | null = null; // Not reactive
+let animationSpeed = $state(200);
+let animationInterval: ReturnType<typeof setInterval> | null = null;
 
-// Animation order for cycling through directions (clockwise starting from N)
 const animationOrder = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'] as const;
 
 const directions = [
@@ -87,12 +86,10 @@ const directions = [
 	{ key: 'se', label: 'SE', icon: ArrowDownRight, angle: 135 },
 ] as const;
 
-// Derived: currently selected job (if viewing existing)
 const selectedJob = $derived(
 	viewMode !== 'new' ? rotationJobs.find((j) => j.id === viewMode) : null,
 );
 
-// Derived: rotations to display
 const displayRotations = $derived(
 	selectedJob
 		? {
@@ -125,7 +122,6 @@ const hasImageSelected = $derived(
 );
 const previewUrl = $derived(uploadPreviewUrl || selectedImageUrl);
 
-// Start polling for any pending jobs on page load
 $effect(() => {
 	for (const job of initialJobs) {
 		if (
@@ -139,7 +135,6 @@ $effect(() => {
 	}
 });
 
-// Clean up preview URL when file changes
 $effect(() => {
 	if (uploadedFile) {
 		const url = URL.createObjectURL(uploadedFile);
@@ -233,7 +228,6 @@ async function generate() {
 			pollingSet.add(result.job.id);
 			clearSelection();
 
-			// Track generation started
 			track('generation_started', { type: 'rotation' });
 
 			pollJobStatus(result.job.id);
@@ -296,7 +290,6 @@ async function pollJobStatus(id: string) {
 					currentGeneratingId = null;
 				}
 
-				// Track completion
 				if (result.status === 'completed') {
 					track('generation_completed', { type: 'rotation' });
 				}
@@ -371,7 +364,6 @@ function getJobPreviewImage(job: RotationJob): string | null {
 	);
 }
 
-// Viewer functions
 function openViewer() {
 	if (!hasAnyRotation) return;
 	showViewer = true;
@@ -419,7 +411,6 @@ function stopAnimation() {
 function changeSpeed(newSpeed: number) {
 	animationSpeed = newSpeed;
 	if (isPlaying) {
-		// Restart with new speed
 		if (animationInterval) clearInterval(animationInterval);
 		animationInterval = setInterval(() => {
 			viewerDirection = (viewerDirection + 1) % animationOrder.length;
@@ -427,14 +418,12 @@ function changeSpeed(newSpeed: number) {
 	}
 }
 
-// Cleanup on unmount
 $effect(() => {
 	return () => {
 		if (animationInterval) clearInterval(animationInterval);
 	};
 });
 
-// Get current viewer image
 const currentViewerImage = $derived(
 	displayRotations[
 		animationOrder[viewerDirection] as keyof typeof displayRotations
@@ -444,14 +433,12 @@ const currentViewerLabel = $derived(
 	animationOrder[viewerDirection].toUpperCase(),
 );
 
-// Export spritesheet
 async function exportSpritesheet() {
 	if (!hasAnyRotation) return;
 
 	const images: HTMLImageElement[] = [];
 	const loadPromises: Promise<void>[] = [];
 
-	// Load all images
 	for (const dir of animationOrder) {
 		const url = displayRotations[dir as keyof typeof displayRotations];
 		if (url) {
@@ -472,11 +459,9 @@ async function exportSpritesheet() {
 
 		if (images.length === 0) return;
 
-		// Get dimensions from first image
 		const imgWidth = images[0].width;
 		const imgHeight = images[0].height;
 
-		// Create canvas for horizontal spritesheet (8 frames in a row)
 		const canvas = document.createElement('canvas');
 		canvas.width = imgWidth * images.length;
 		canvas.height = imgHeight;
@@ -484,12 +469,10 @@ async function exportSpritesheet() {
 		const ctx = canvas.getContext('2d');
 		if (!ctx) return;
 
-		// Draw each image
 		images.forEach((img, i) => {
 			ctx.drawImage(img, i * imgWidth, 0);
 		});
 
-		// Download
 		const link = document.createElement('a');
 		link.download = 'spritesheet.png';
 		link.href = canvas.toDataURL('image/png');
@@ -533,7 +516,6 @@ function getSpriteUrl(sprite: (typeof sprites)[number]): string | null {
 	return urls?.processed || urls?.raw || null;
 }
 
-// History navigation
 let historyScrollContainer = $state<HTMLDivElement | null>(null);
 
 function scrollHistory(direction: 'left' | 'right') {
@@ -548,27 +530,24 @@ function scrollHistory(direction: 'left' | 'right') {
 
 <div class="flex flex-col h-full gap-4">
 	<!-- History Bar -->
-	<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-3">
+	<div class="history-bar">
 		<div class="flex items-center gap-2">
-			<!-- New Generation Button -->
 			<button
 				onclick={startNewGeneration}
-				class="flex-shrink-0 w-16 h-16 rounded-lg border-2 border-dashed {viewMode === 'new' ? 'border-yellow-500 bg-yellow-500/10' : 'border-zinc-700 hover:border-zinc-600'} flex items-center justify-center transition-colors"
+				class="history-new {viewMode === 'new' ? 'history-new-active' : ''}"
 			>
-				<Plus class="w-6 h-6 {viewMode === 'new' ? 'text-yellow-400' : 'text-zinc-500'}" />
+				<Plus class="w-6 h-6 {viewMode === 'new' ? 'text-amber-400' : 'text-zinc-500'}" />
 			</button>
 
-			<!-- Scroll Left -->
 			{#if rotationJobs.length > 0}
 				<button
 					onclick={() => scrollHistory('left')}
-					class="flex-shrink-0 p-1.5 hover:bg-zinc-800 rounded-lg transition-colors"
+					class="flex-shrink-0 p-1.5 hover:bg-zinc-800/60 rounded-lg transition-colors"
 				>
 					<ChevronLeft class="w-4 h-4 text-zinc-400" />
 				</button>
 			{/if}
 
-			<!-- History Items -->
 			<div
 				bind:this={historyScrollContainer}
 				class="flex-1 flex gap-2 overflow-x-auto scrollbar-hide"
@@ -577,7 +556,7 @@ function scrollHistory(direction: 'left' | 'right') {
 				{#each rotationJobs as job (job.id)}
 					<button
 						onclick={() => selectJob(job.id)}
-						class="flex-shrink-0 relative w-16 h-16 rounded-lg overflow-hidden border-2 {viewMode === job.id ? 'border-yellow-500' : 'border-zinc-700 hover:border-zinc-600'} transition-colors"
+						class="history-thumb {viewMode === job.id ? 'history-thumb-active' : ''}"
 					>
 						{#if job.status === 'completed'}
 							{#if getJobPreviewImage(job)}
@@ -597,11 +576,11 @@ function scrollHistory(direction: 'left' | 'right') {
 							</div>
 						{:else}
 							<div class="w-full h-full bg-zinc-800 flex flex-col items-center justify-center">
-								<Loader2 class="w-5 h-5 animate-spin text-yellow-400" />
+								<Loader2 class="w-5 h-5 animate-spin text-amber-400" />
 							</div>
 						{/if}
 						{#if viewMode === job.id}
-							<div class="absolute top-1 right-1 w-3 h-3 bg-yellow-500 rounded-full flex items-center justify-center">
+							<div class="absolute top-1 right-1 w-3 h-3 bg-amber-500 rounded-full flex items-center justify-center">
 								<Check class="w-2 h-2 text-zinc-900" />
 							</div>
 						{/if}
@@ -609,11 +588,10 @@ function scrollHistory(direction: 'left' | 'right') {
 				{/each}
 			</div>
 
-			<!-- Scroll Right -->
 			{#if rotationJobs.length > 0}
 				<button
 					onclick={() => scrollHistory('right')}
-					class="flex-shrink-0 p-1.5 hover:bg-zinc-800 rounded-lg transition-colors"
+					class="flex-shrink-0 p-1.5 hover:bg-zinc-800/60 rounded-lg transition-colors"
 				>
 					<ChevronRight class="w-4 h-4 text-zinc-400" />
 				</button>
@@ -622,15 +600,14 @@ function scrollHistory(direction: 'left' | 'right') {
 	</div>
 
 	<!-- Main Content -->
-	<div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6">
+	<div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-5">
 		<!-- Left Panel -->
-		<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+		<div class="panel">
 			{#if viewMode === 'new'}
-				<!-- New Generation Mode -->
-				<h2 class="text-lg font-semibold text-white mb-4">New Rotation</h2>
+				<h2 class="panel-title">New Rotation</h2>
 
 				{#if previewUrl}
-					<div class="relative aspect-square bg-zinc-800/50 rounded-lg border border-zinc-700 overflow-hidden mb-4">
+					<div class="relative aspect-square bg-zinc-800/40 rounded-xl border border-zinc-700/50 overflow-hidden mb-4">
 						<img
 							src={previewUrl}
 							alt="Selected sprite for rotation"
@@ -638,7 +615,7 @@ function scrollHistory(direction: 'left' | 'right') {
 						/>
 						<button
 							onclick={clearSelection}
-							class="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-lg transition-colors"
+							class="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-lg transition-colors backdrop-blur-sm"
 						>
 							<X class="w-4 h-4 text-white" />
 						</button>
@@ -652,7 +629,7 @@ function scrollHistory(direction: 'left' | 'right') {
 						role="button"
 						tabindex="0"
 						aria-label="Drop zone for image upload"
-						class="relative aspect-square bg-zinc-800/30 border-2 border-dashed border-zinc-700 hover:border-zinc-600 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors mb-4"
+						class="drop-zone mb-4"
 					>
 						<input
 							type="file"
@@ -675,21 +652,21 @@ function scrollHistory(direction: 'left' | 'right') {
 					<div class="relative mb-4">
 						<button
 							onclick={() => showSpriteSelector = !showSpriteSelector}
-							class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-300 transition-colors"
+							class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-800/40 hover:bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-sm text-zinc-300 transition-colors"
 						>
 							<ImagePlus class="w-4 h-4" />
 							Select from your sprites
 						</button>
 
 						{#if showSpriteSelector}
-							<div class="absolute left-0 right-0 mt-2 p-3 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-10 max-h-48 overflow-y-auto">
+							<div class="sprite-selector">
 								<div class="grid grid-cols-5 gap-2">
 									{#each sprites as sprite (sprite.id)}
 										{@const url = getSpriteUrl(sprite)}
 										{#if url}
 											<button
 												onclick={() => selectSprite(url)}
-												class="aspect-square bg-zinc-800 rounded-lg overflow-hidden border border-zinc-700 hover:border-yellow-500/50 transition-colors"
+												class="aspect-square bg-zinc-800 rounded-lg overflow-hidden border border-zinc-700/50 hover:border-amber-500/40 transition-colors"
 											>
 												<img src={url} alt={sprite.prompt} class="w-full h-full object-contain" />
 											</button>
@@ -705,7 +682,7 @@ function scrollHistory(direction: 'left' | 'right') {
 				<div class="mb-4">
 					<div class="flex items-center justify-between mb-2">
 						<label for="elevation" class="text-sm text-zinc-400">Camera Elevation</label>
-						<span class="text-sm text-zinc-300 font-medium">{elevation}°</span>
+						<span class="text-sm text-zinc-300 font-medium">{elevation}&deg;</span>
 					</div>
 					<input
 						type="range"
@@ -714,19 +691,19 @@ function scrollHistory(direction: 'left' | 'right') {
 						min="-90"
 						max="90"
 						step="5"
-						class="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
+						class="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
 					/>
 					<div class="flex justify-between text-xs text-zinc-500 mt-1">
-						<span>-90° (below)</span>
-						<span>0° (level)</span>
-						<span>90° (above)</span>
+						<span>-90&deg; (below)</span>
+						<span>0&deg; (level)</span>
+						<span>90&deg; (above)</span>
 					</div>
 				</div>
 
 				<button
 					onclick={generate}
 					disabled={!hasImageSelected || generating || tokens + bonusTokens < TOKEN_COST}
-					class="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 disabled:from-zinc-700 disabled:to-zinc-700 disabled:cursor-not-allowed text-zinc-900 disabled:text-zinc-400 font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
+					class="btn-generate"
 				>
 					{#if generating}
 						<Loader2 class="w-4 h-4 animate-spin" />
@@ -741,9 +718,8 @@ function scrollHistory(direction: 'left' | 'right') {
 					Upload a front-facing image to generate 8-directional views
 				</p>
 			{:else if selectedJob}
-				<!-- Viewing Existing Job -->
 				<div class="flex items-center justify-between mb-4">
-					<h2 class="text-lg font-semibold text-white">
+					<h2 class="panel-title" style="margin-bottom:0">
 						{#if selectedJob.status === 'processing'}
 							Generating...
 						{:else if selectedJob.status === 'completed'}
@@ -764,40 +740,34 @@ function scrollHistory(direction: 'left' | 'right') {
 				{/if}
 
 				{#if selectedJob.status === 'processing' || selectedJob.status === 'pending'}
-					<!-- Progress View -->
-					<div class="aspect-square bg-zinc-800/30 rounded-lg border border-zinc-700 flex flex-col items-center justify-center mb-4">
-						<Loader2 class="w-12 h-12 animate-spin text-yellow-400 mb-4" />
+					<div class="aspect-square bg-zinc-800/25 rounded-xl border border-zinc-700/40 flex flex-col items-center justify-center mb-4">
+						<Loader2 class="w-12 h-12 animate-spin text-amber-400 mb-4" />
 						<p class="text-sm text-zinc-300">{selectedJob.currentStage || 'Processing...'}</p>
 					</div>
 					<button
 						onclick={() => selectedJob && cancelJob(selectedJob.id)}
-						class="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-red-400 hover:text-red-300 rounded-lg transition-colors flex items-center justify-center gap-2"
+						class="btn-cancel"
 					>
 						<X class="w-4 h-4" />
 						Cancel Generation
 					</button>
 				{:else if selectedJob.status === 'failed'}
-					<!-- Error View -->
-					<div class="aspect-square bg-red-500/5 rounded-lg border border-red-500/20 flex flex-col items-center justify-center mb-4 p-6">
+					<div class="aspect-square bg-red-500/5 rounded-xl border border-red-500/15 flex flex-col items-center justify-center mb-4 p-6">
 						<X class="w-12 h-12 text-red-400 mb-4" />
 						<p class="text-sm text-red-300 text-center mb-2">Generation failed</p>
 						{#if selectedJob.errorMessage}
 							<p class="text-xs text-red-400/70 text-center">{selectedJob.errorMessage}</p>
 						{/if}
 					</div>
-					<button
-						onclick={startNewGeneration}
-						class="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-					>
+					<button onclick={startNewGeneration} class="btn-secondary w-full">
 						<Plus class="w-4 h-4" />
 						Try Again
 					</button>
 				{:else if selectedJob.status === 'completed'}
-					<!-- Input Image Preview (if available) -->
 					{#if selectedJob.inputImageUrl}
 						<div class="mb-4">
 							<span class="text-xs text-zinc-500 mb-2 block">Input Image</span>
-							<div class="aspect-square bg-zinc-800/50 rounded-lg border border-zinc-700 overflow-hidden">
+							<div class="aspect-square bg-zinc-800/40 rounded-xl border border-zinc-700/50 overflow-hidden">
 								<img
 									src={selectedJob.inputImageUrl}
 									alt="Input"
@@ -807,27 +777,19 @@ function scrollHistory(direction: 'left' | 'right') {
 						</div>
 					{/if}
 
-					<!-- Job Info -->
-					<div class="mb-4 p-3 bg-zinc-800/30 rounded-lg border border-zinc-700">
+					<div class="mb-4 p-3 bg-zinc-800/25 rounded-xl border border-zinc-700/40">
 						<div class="flex items-center justify-between text-sm">
 							<span class="text-zinc-400">Camera Elevation</span>
-							<span class="text-white font-medium">{selectedJob.elevation ?? 20}°</span>
+							<span class="text-white font-medium">{selectedJob.elevation ?? 20}&deg;</span>
 						</div>
 					</div>
 
-					<!-- Actions -->
 					<div class="flex gap-2">
-						<button
-							onclick={downloadAll}
-							class="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-						>
+						<button onclick={downloadAll} class="btn-download flex-1">
 							<Download class="w-4 h-4" />
 							Download All
 						</button>
-						<button
-							onclick={startNewGeneration}
-							class="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors"
-						>
+						<button onclick={startNewGeneration} class="btn-secondary px-4">
 							<Plus class="w-4 h-4" />
 						</button>
 					</div>
@@ -836,31 +798,20 @@ function scrollHistory(direction: 'left' | 'right') {
 		</div>
 
 		<!-- Right Panel: 8-Direction Grid -->
-		<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+		<div class="panel">
 			<div class="flex items-center justify-between mb-4">
-				<h2 class="text-lg font-semibold text-white">8-Direction Output</h2>
+				<h2 class="panel-title" style="margin-bottom:0">8-Direction Output</h2>
 				{#if hasAnyRotation}
 					<div class="flex items-center gap-2">
-						<button
-							onclick={openViewer}
-							class="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 text-xs font-medium rounded-lg transition-colors"
-							title="Open viewer"
-						>
+						<button onclick={openViewer} class="btn-sm btn-sm-gold" title="Open viewer">
 							<Expand class="w-3.5 h-3.5" />
 							View
 						</button>
-						<button
-							onclick={exportSpritesheet}
-							class="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-medium rounded-lg transition-colors"
-							title="Export as spritesheet"
-						>
+						<button onclick={exportSpritesheet} class="btn-sm" title="Export as spritesheet">
 							<Grid3x3 class="w-3.5 h-3.5" />
 							Spritesheet
 						</button>
-						<button
-							onclick={downloadAll}
-							class="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-medium rounded-lg transition-colors"
-						>
+						<button onclick={downloadAll} class="btn-sm">
 							<Download class="w-3.5 h-3.5" />
 							Download
 						</button>
@@ -868,11 +819,10 @@ function scrollHistory(direction: 'left' | 'right') {
 				{/if}
 			</div>
 
-			<!-- 3x3 Grid -->
-			<div class="grid grid-cols-3 gap-2">
+			<div class="dir-grid">
 				{#each directions as dir}
 					{#if dir.key === 'center'}
-						<div class="aspect-square bg-zinc-800/50 rounded-lg border border-zinc-600 flex items-center justify-center overflow-hidden">
+						<div class="dir-cell dir-cell-center">
 							<RotateCw class="w-8 h-8 text-zinc-600" />
 						</div>
 					{:else}
@@ -887,17 +837,11 @@ function scrollHistory(direction: 'left' | 'right') {
 									}
 								}
 							}}
-							class="group relative aspect-square bg-zinc-800/50 rounded-lg border border-zinc-700 flex flex-col items-center justify-center overflow-hidden {url ? 'cursor-pointer hover:border-yellow-500/50' : 'cursor-default'} transition-colors"
+							class="dir-cell {url ? 'dir-cell-filled' : 'dir-cell-empty'}"
 						>
 							{#if url}
-								<img
-									src={url}
-									alt={dir.label}
-									class="w-full h-full object-contain"
-								/>
-								<div
-									class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2"
-								>
+								<img src={url} alt={dir.label} class="w-full h-full object-contain" />
+								<div class="dir-cell-hover">
 									<Expand class="w-5 h-5 text-white" />
 								</div>
 							{:else if selectedJob?.status === 'processing'}
@@ -912,21 +856,19 @@ function scrollHistory(direction: 'left' | 'right') {
 				{/each}
 			</div>
 
-			<!-- Legend -->
-			<div class="mt-4 pt-4 border-t border-zinc-800">
+			<div class="mt-4 pt-4 border-t border-zinc-800/50">
 				<p class="text-xs text-zinc-500 text-center">
-					N = Front • S = Back • E = Right • W = Left
+					N = Front &bull; S = Back &bull; E = Right &bull; W = Left
 				</p>
 			</div>
 
-			<!-- Tips (only show when creating new) -->
 			{#if viewMode === 'new'}
-				<div class="mt-4 pt-4 border-t border-zinc-800">
+				<div class="mt-4 pt-4 border-t border-zinc-800/50">
 					<p class="text-xs text-zinc-400 mb-2">Tips for best results:</p>
 					<ul class="text-xs text-zinc-500 space-y-1">
-						<li>• Use front-facing images with clear subjects</li>
-						<li>• White or transparent backgrounds work best</li>
-						<li>• Higher resolution inputs = better results</li>
+						<li>Use front-facing images with clear subjects</li>
+						<li>White or transparent backgrounds work best</li>
+						<li>Higher resolution inputs = better results</li>
 					</ul>
 				</div>
 			{/if}
@@ -938,7 +880,7 @@ function scrollHistory(direction: 'left' | 'right') {
 {#if showViewer}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+		class="modal-backdrop"
 		onclick={(e) => e.target === e.currentTarget && closeViewer()}
 		onkeydown={(e) => {
 			if (e.key === 'Escape') closeViewer();
@@ -950,7 +892,6 @@ function scrollHistory(direction: 'left' | 'right') {
 		tabindex="-1"
 	>
 		<div class="relative w-full max-w-3xl max-h-full flex flex-col">
-			<!-- Close button -->
 			<button
 				onclick={closeViewer}
 				class="absolute -top-2 -right-2 z-10 p-2 bg-zinc-800 hover:bg-zinc-700 rounded-full text-zinc-400 hover:text-white transition-colors"
@@ -958,10 +899,8 @@ function scrollHistory(direction: 'left' | 'right') {
 				<X class="w-5 h-5" />
 			</button>
 
-			<!-- Main viewer -->
-			<div class="bg-zinc-900 border border-zinc-700 rounded-xl overflow-hidden flex flex-col max-h-[calc(100vh-2rem)]">
-				<!-- Image display -->
-				<div class="relative flex-1 min-h-0 bg-zinc-800/50 flex items-center justify-center p-8">
+			<div class="viewer-shell">
+				<div class="viewer-stage">
 					{#if currentViewerImage}
 						<img
 							src={currentViewerImage}
@@ -972,35 +911,29 @@ function scrollHistory(direction: 'left' | 'right') {
 						<div class="text-zinc-500">No image</div>
 					{/if}
 
-					<!-- Direction indicator -->
-					<div class="absolute top-3 left-3 px-3 py-1.5 bg-black/60 rounded-lg">
-						<span class="text-white font-medium">{currentViewerLabel}</span>
-					</div>
+					<div class="viewer-label">{currentViewerLabel}</div>
 
-					<!-- Navigation arrows -->
 					<button
 						onclick={prevDirection}
-						class="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/60 hover:bg-black/80 rounded-full transition-colors"
+						class="viewer-nav viewer-nav-left"
 					>
 						<ChevronLeft class="w-5 h-5 text-white" />
 					</button>
 					<button
 						onclick={nextDirection}
-						class="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/60 hover:bg-black/80 rounded-full transition-colors"
+						class="viewer-nav viewer-nav-right"
 					>
 						<ChevronRight class="w-5 h-5 text-white" />
 					</button>
 				</div>
 
-				<!-- Controls -->
-				<div class="p-4 border-t border-zinc-700 bg-zinc-900 space-y-3">
-					<!-- Direction thumbnails -->
+				<div class="viewer-controls">
 					<div class="flex items-center justify-center gap-1">
 						{#each animationOrder as dir, i}
 							{@const url = displayRotations[dir as keyof typeof displayRotations]}
 							<button
 								onclick={() => { viewerDirection = i; }}
-								class="w-10 h-10 rounded border-2 overflow-hidden transition-all {viewerDirection === i ? 'border-yellow-500' : 'border-zinc-700 hover:border-zinc-600'}"
+								class="viewer-thumb {viewerDirection === i ? 'viewer-thumb-active' : ''}"
 							>
 								{#if url}
 									<img src={url} alt={dir.toUpperCase()} class="w-full h-full object-contain bg-zinc-800" />
@@ -1013,12 +946,10 @@ function scrollHistory(direction: 'left' | 'right') {
 						{/each}
 					</div>
 
-					<!-- Animation and export controls -->
 					<div class="flex items-center justify-center gap-3 flex-wrap">
-						<!-- Animation controls -->
 						<button
 							onclick={togglePlay}
-							class="flex items-center gap-2 px-4 py-2 {isPlaying ? 'bg-yellow-500 text-zinc-900' : 'bg-zinc-800 text-white'} hover:opacity-90 rounded-lg transition-all font-medium"
+							class="btn-sm {isPlaying ? 'btn-sm-gold' : ''}"
 						>
 							{#if isPlaying}
 								<Pause class="w-4 h-4" />
@@ -1029,13 +960,12 @@ function scrollHistory(direction: 'left' | 'right') {
 							{/if}
 						</button>
 
-						<!-- Speed control -->
 						<div class="flex items-center gap-2">
 							<span class="text-xs text-zinc-400">Speed:</span>
 							<select
 								value={animationSpeed}
 								onchange={(e) => changeSpeed(Number((e.target as HTMLSelectElement).value))}
-								class="px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-yellow-500"
+								class="field-select"
 							>
 								<option value={400}>Slow</option>
 								<option value={200}>Normal</option>
@@ -1044,31 +974,23 @@ function scrollHistory(direction: 'left' | 'right') {
 							</select>
 						</div>
 
-						<div class="w-px h-6 bg-zinc-700"></div>
+						<div class="w-px h-6 bg-zinc-700/50"></div>
 
-						<!-- Export buttons -->
-						<button
-							onclick={exportSpritesheet}
-							class="flex items-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium rounded-lg transition-colors"
-						>
+						<button onclick={exportSpritesheet} class="btn-sm">
 							<Grid3x3 class="w-4 h-4" />
 							Spritesheet
 						</button>
-						<button
-							onclick={downloadAll}
-							class="flex items-center gap-1.5 px-3 py-2 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 text-sm font-medium rounded-lg transition-colors"
-						>
+						<button onclick={downloadAll} class="btn-sm btn-sm-gold">
 							<Download class="w-4 h-4" />
 							Download
 						</button>
 					</div>
 
-					<!-- Keyboard hints -->
-					<div class="text-center text-xs text-zinc-500 pt-2 border-t border-zinc-800">
+					<div class="text-center text-xs text-zinc-500 pt-2 border-t border-zinc-800/40">
 						<span class="inline-flex items-center gap-4 flex-wrap justify-center">
-							<span><kbd class="px-1.5 py-0.5 bg-zinc-800 rounded">←</kbd> <kbd class="px-1.5 py-0.5 bg-zinc-800 rounded">→</kbd> Navigate</span>
-							<span><kbd class="px-1.5 py-0.5 bg-zinc-800 rounded">Space</kbd> Play/Pause</span>
-							<span><kbd class="px-1.5 py-0.5 bg-zinc-800 rounded">Esc</kbd> Close</span>
+							<span><kbd class="kbd">&#8592;</kbd> <kbd class="kbd">&#8594;</kbd> Navigate</span>
+							<span><kbd class="kbd">Space</kbd> Play/Pause</span>
+							<span><kbd class="kbd">Esc</kbd> Close</span>
 						</span>
 					</div>
 				</div>
@@ -1076,3 +998,260 @@ function scrollHistory(direction: 'left' | 'right') {
 		</div>
 	</div>
 {/if}
+
+<style>
+	/* Panels */
+	.panel {
+		background: rgba(24,24,27,.5);
+		border: 1px solid rgba(63,63,70,.35);
+		border-radius: 1rem;
+		padding: 1.5rem;
+		backdrop-filter: blur(6px);
+	}
+	.panel-title {
+		font-weight: 700; font-size: 1.05rem;
+		color: #fff; margin-bottom: 1rem;
+	}
+
+	/* History bar */
+	.history-bar {
+		background: rgba(24,24,27,.5);
+		border: 1px solid rgba(63,63,70,.35);
+		border-radius: .85rem;
+		padding: .65rem;
+		backdrop-filter: blur(6px);
+	}
+	.history-new {
+		flex-shrink: 0; width: 4rem; height: 4rem;
+		border-radius: .6rem;
+		border: 2px dashed rgba(63,63,70,.5);
+		display: flex; align-items: center; justify-content: center;
+		background: none; cursor: pointer;
+		transition: border-color .2s, background .2s;
+	}
+	.history-new:hover { border-color: rgba(63,63,70,.7); }
+	.history-new-active {
+		border-color: rgba(245,158,11,.5);
+		background: rgba(245,158,11,.06);
+	}
+	.history-thumb {
+		flex-shrink: 0; position: relative;
+		width: 4rem; height: 4rem;
+		border-radius: .6rem; overflow: hidden;
+		border: 2px solid rgba(63,63,70,.4);
+		background: none; cursor: pointer;
+		transition: border-color .2s;
+	}
+	.history-thumb:hover { border-color: rgba(63,63,70,.6); }
+	.history-thumb-active { border-color: rgba(245,158,11,.5); }
+
+	/* Drop zone */
+	.drop-zone {
+		position: relative;
+		aspect-ratio: 1;
+		background: rgba(39,39,42,.2);
+		border: 2px dashed rgba(63,63,70,.5);
+		border-radius: .85rem;
+		display: flex; flex-direction: column;
+		align-items: center; justify-content: center;
+		cursor: pointer;
+		transition: border-color .2s;
+	}
+	.drop-zone:hover { border-color: rgba(63,63,70,.7); }
+
+	/* Sprite selector */
+	.sprite-selector {
+		position: absolute; left: 0; right: 0; margin-top: .5rem;
+		padding: .75rem;
+		background: rgba(24,24,27,.95);
+		border: 1px solid rgba(63,63,70,.4);
+		border-radius: .75rem;
+		box-shadow: 0 8px 32px rgba(0,0,0,.4);
+		z-index: 10;
+		max-height: 12rem; overflow-y: auto;
+		backdrop-filter: blur(12px);
+	}
+
+	/* Generate button */
+	.btn-generate {
+		width: 100%;
+		display: flex; align-items: center; justify-content: center; gap: .5rem;
+		padding: .75rem 1rem;
+		background: linear-gradient(135deg, #fbbf24, #f59e0b);
+		color: #18181b;
+		font-weight: 600; font-size: .875rem;
+		border-radius: .7rem;
+		border: none; cursor: pointer;
+		box-shadow: 0 0 20px rgba(245,158,11,.15);
+		transition: box-shadow .25s, transform .15s, opacity .2s;
+	}
+	.btn-generate:hover:not(:disabled) {
+		box-shadow: 0 0 28px rgba(245,158,11,.28);
+		transform: translateY(-1px);
+	}
+	.btn-generate:disabled {
+		background: rgba(63,63,70,.4);
+		color: #71717a; cursor: not-allowed; box-shadow: none;
+	}
+
+	/* Buttons */
+	.btn-secondary {
+		display: flex; align-items: center; justify-content: center; gap: .4rem;
+		padding: .6rem 1rem;
+		background: rgba(63,63,70,.3);
+		color: #fff; font-size: .8125rem; font-weight: 500;
+		border-radius: .55rem; border: none; cursor: pointer;
+		transition: background .2s;
+	}
+	.btn-secondary:hover { background: rgba(63,63,70,.5); }
+
+	.btn-cancel {
+		width: 100%;
+		display: flex; align-items: center; justify-content: center; gap: .4rem;
+		padding: .6rem 1rem;
+		background: rgba(63,63,70,.3);
+		color: #f87171; font-size: .875rem; font-weight: 500;
+		border-radius: .55rem; border: none; cursor: pointer;
+		transition: background .2s, color .2s;
+	}
+	.btn-cancel:hover { background: rgba(239,68,68,.1); color: #fca5a5; }
+
+	.btn-download {
+		display: flex; align-items: center; justify-content: center; gap: .4rem;
+		padding: .6rem 1rem;
+		background: linear-gradient(135deg, #fbbf24, #f59e0b);
+		color: #18181b; font-weight: 600; font-size: .8125rem;
+		border-radius: .55rem; border: none; cursor: pointer;
+		transition: box-shadow .2s;
+	}
+	.btn-download:hover { box-shadow: 0 0 16px rgba(245,158,11,.2); }
+
+	.btn-sm {
+		display: flex; align-items: center; gap: .35rem;
+		padding: .35rem .65rem;
+		background: rgba(63,63,70,.3);
+		color: #fff; font-size: .72rem; font-weight: 500;
+		border-radius: .45rem; border: none; cursor: pointer;
+		transition: background .2s;
+	}
+	.btn-sm:hover { background: rgba(63,63,70,.5); }
+	.btn-sm-gold {
+		background: linear-gradient(135deg, #fbbf24, #f59e0b);
+		color: #18181b; font-weight: 600;
+	}
+	.btn-sm-gold:hover { box-shadow: 0 0 12px rgba(245,158,11,.2); }
+
+	/* Direction grid */
+	.dir-grid {
+		display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem;
+	}
+	.dir-cell {
+		aspect-ratio: 1;
+		border-radius: .65rem;
+		overflow: hidden;
+		display: flex; flex-direction: column;
+		align-items: center; justify-content: center;
+		position: relative;
+		border: none; cursor: default;
+		background: rgba(39,39,42,.35);
+		border: 1px solid rgba(63,63,70,.35);
+		transition: border-color .2s;
+	}
+	.dir-cell-center {
+		background: rgba(39,39,42,.25);
+		border-color: rgba(63,63,70,.5);
+	}
+	.dir-cell-filled { cursor: pointer; }
+	.dir-cell-filled:hover { border-color: rgba(245,158,11,.3); }
+	.dir-cell-hover {
+		position: absolute; inset: 0;
+		background: rgba(0,0,0,.55);
+		opacity: 0;
+		display: flex; align-items: center; justify-content: center;
+		transition: opacity .2s;
+	}
+	.dir-cell-filled:hover .dir-cell-hover { opacity: 1; }
+
+	/* Modal */
+	.modal-backdrop {
+		position: fixed; inset: 0;
+		background: rgba(0,0,0,.75);
+		backdrop-filter: blur(6px);
+		z-index: 50;
+		display: flex; align-items: center; justify-content: center;
+		padding: 1rem;
+	}
+
+	/* Viewer */
+	.viewer-shell {
+		background: rgba(24,24,27,.95);
+		border: 1px solid rgba(63,63,70,.4);
+		border-radius: 1rem;
+		overflow: hidden;
+		display: flex; flex-direction: column;
+		max-height: calc(100vh - 2rem);
+		backdrop-filter: blur(12px);
+	}
+	.viewer-stage {
+		position: relative; flex: 1; min-height: 0;
+		background: rgba(39,39,42,.3);
+		display: flex; align-items: center; justify-content: center;
+		padding: 2rem;
+	}
+	.viewer-label {
+		position: absolute; top: .75rem; left: .75rem;
+		padding: .3rem .7rem;
+		background: rgba(0,0,0,.5);
+		border-radius: .5rem;
+		color: #fff; font-weight: 600; font-size: .8125rem;
+		backdrop-filter: blur(8px);
+	}
+	.viewer-nav {
+		position: absolute; top: 50%; transform: translateY(-50%);
+		padding: .5rem;
+		background: rgba(0,0,0,.5);
+		border-radius: 9999px;
+		border: none; cursor: pointer;
+		transition: background .2s;
+		backdrop-filter: blur(8px);
+	}
+	.viewer-nav:hover { background: rgba(0,0,0,.7); }
+	.viewer-nav-left { left: .5rem; }
+	.viewer-nav-right { right: .5rem; }
+	.viewer-controls {
+		padding: 1rem;
+		border-top: 1px solid rgba(63,63,70,.3);
+		display: flex; flex-direction: column; gap: .75rem;
+	}
+	.viewer-thumb {
+		width: 2.5rem; height: 2.5rem;
+		border-radius: .35rem;
+		border: 2px solid rgba(63,63,70,.4);
+		overflow: hidden;
+		background: none; cursor: pointer;
+		transition: border-color .2s;
+	}
+	.viewer-thumb:hover { border-color: rgba(63,63,70,.6); }
+	.viewer-thumb-active { border-color: rgba(245,158,11,.5); }
+
+	/* Select field */
+	.field-select {
+		padding: .25rem .5rem;
+		background: rgba(39,39,42,.5);
+		border: 1px solid rgba(63,63,70,.4);
+		border-radius: .35rem;
+		color: #fff; font-size: .8125rem;
+	}
+	.field-select:focus {
+		outline: none;
+		border-color: rgba(245,158,11,.35);
+	}
+
+	/* Kbd */
+	.kbd {
+		padding: .1rem .35rem;
+		background: rgba(39,39,42,.5);
+		border-radius: .25rem;
+		font-size: .6875rem;
+	}
+</style>

@@ -260,39 +260,33 @@ function getAssetTypeLabel(type: string) {
 }
 </script>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 	<!-- Generation Form -->
 	<div class="lg:col-span-1">
-		<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 sticky top-8">
-			<h2 class="text-lg font-semibold text-white mb-4">Generate Sprite</h2>
+		<div class="panel sticky top-20">
+			<h2 class="panel-title">Generate Sprite</h2>
 
-			<!-- Guest remaining generations badge -->
 			{#if data.isGuest}
 				<div class="mb-4 flex items-center gap-2 text-sm">
-					<span class="px-2 py-1 bg-yellow-500/10 text-yellow-400 rounded-lg border border-yellow-500/20">
+					<span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/8 text-amber-400 rounded-lg border border-amber-500/15 text-xs font-medium">
 						{guestGenerationsRemaining} of {GUEST_CONFIG.maxGenerations} free generations
 					</span>
 				</div>
 			{/if}
 
-			<!-- Prompt -->
 			<div class="mb-4">
-				<label for="prompt" class="block text-sm font-medium text-zinc-400 mb-2">Prompt</label>
+				<label for="prompt" class="field-label">Prompt</label>
 				<textarea
 					id="prompt"
 					bind:value={prompt}
 					placeholder="Describe your sprite..."
 					rows="3"
-					class="w-full px-3 py-2 bg-zinc-800/50 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 resize-none"
+					class="field-textarea"
 				></textarea>
 			</div>
 
-			<!-- Generate Button -->
 			{#if data.isGuest && !canGenerate}
-				<a
-					href="/login"
-					class="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
-				>
+				<a href="/login" class="btn-generate">
 					<Sparkles class="w-4 h-4" />
 					Sign up to continue
 				</a>
@@ -303,7 +297,7 @@ function getAssetTypeLabel(type: string) {
 				<button
 					onclick={generate}
 					disabled={!prompt.trim() || generating || !canGenerate}
-					class="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 disabled:from-zinc-700 disabled:to-zinc-700 disabled:cursor-not-allowed text-zinc-900 disabled:text-zinc-400 font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
+					class="btn-generate"
 				>
 					{#if generating}
 						<Loader2 class="w-4 h-4 animate-spin" />
@@ -318,19 +312,18 @@ function getAssetTypeLabel(type: string) {
 				</button>
 			{/if}
 
-			<!-- Signup prompt for guests -->
 			{#if data.isGuest && showSignupPrompt}
-				<div class="mt-4 p-3 bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border border-yellow-500/20 rounded-lg">
+				<div class="mt-4 p-3 bg-amber-500/5 border border-amber-500/15 rounded-xl">
 					<div class="flex items-start gap-3">
-						<Gift class="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+						<Gift class="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
 						<div>
 							<p class="text-sm text-white font-medium">Save your sprites</p>
-							<p class="text-xs text-zinc-400 mt-1">
+							<p class="text-xs text-zinc-500 mt-1">
 								Sign up to keep your generations and get 50 free tokens.
 							</p>
 							<a
 								href="/login"
-								class="inline-block mt-2 px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 text-xs font-semibold rounded-lg transition-colors"
+								class="inline-block mt-2 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-zinc-900 text-xs font-semibold rounded-lg transition-colors"
 							>
 								Sign up free
 							</a>
@@ -343,20 +336,20 @@ function getAssetTypeLabel(type: string) {
 
 	<!-- Generation History -->
 	<div class="lg:col-span-2">
-		<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-			<h2 class="text-lg font-semibold text-white mb-4">Your Sprites</h2>
+		<div class="panel">
+			<h2 class="panel-title">Your Sprites</h2>
 
 			{#if generations.length === 0}
-				<div class="text-center py-12 text-zinc-500">
-					<Sparkles class="w-12 h-12 mx-auto mb-3 opacity-50" />
-					<p>No sprites yet. Create your first one!</p>
+				<div class="text-center py-16 text-zinc-500">
+					<Sparkles class="w-12 h-12 mx-auto mb-3 opacity-30" />
+					<p class="text-sm">No sprites yet. Create your first one!</p>
 				</div>
 			{:else}
-				<div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+				<div class="grid grid-cols-2 md:grid-cols-3 gap-3">
 					{#each generations as gen (gen.id)}
 						<button
 							onclick={() => openModal(gen)}
-							class="group relative aspect-square bg-zinc-800/50 rounded-lg overflow-hidden border border-zinc-700 cursor-pointer w-full text-left hover:border-zinc-600 transition-colors"
+							class="sprite-thumb"
 						>
 							{#if gen.status === 'completed'}
 								{#if gen.resultUrls?.processed || gen.resultUrls?.raw}
@@ -370,8 +363,8 @@ function getAssetTypeLabel(type: string) {
 										<Check class="w-8 h-8 text-green-400" />
 									</div>
 								{/if}
-								<div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-									<span class="p-2 bg-white/20 rounded-lg">
+								<div class="sprite-thumb-overlay">
+									<span class="p-2 bg-white/15 rounded-lg backdrop-blur-sm">
 										<Info class="w-5 h-5 text-white" />
 									</span>
 								</div>
@@ -390,7 +383,7 @@ function getAssetTypeLabel(type: string) {
 							{:else}
 								<div class="w-full h-full flex flex-col items-center justify-center p-3">
 									<div class="text-center w-full">
-										<Loader2 class="w-6 h-6 mx-auto mb-2 animate-spin text-yellow-400" />
+										<Loader2 class="w-6 h-6 mx-auto mb-2 animate-spin text-amber-400" />
 										<p class="text-xs text-zinc-400 mb-1">{gen.currentStage || getStatusLabel(gen.status)}</p>
 									</div>
 									<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -399,7 +392,7 @@ function getAssetTypeLabel(type: string) {
 										onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); cancelGeneration(gen.id); } }}
 										role="button"
 										tabindex="0"
-										class="mt-2 px-3 py-1 text-xs bg-zinc-700/50 hover:bg-red-500/20 hover:text-red-400 text-zinc-400 rounded transition-colors cursor-pointer inline-block"
+										class="mt-2 px-3 py-1 text-xs bg-zinc-700/40 hover:bg-red-500/15 hover:text-red-400 text-zinc-400 rounded-lg transition-colors cursor-pointer inline-block"
 									>
 										Cancel
 									</span>
@@ -417,7 +410,7 @@ function getAssetTypeLabel(type: string) {
 						<button
 							onclick={loadMoreGenerations}
 							disabled={loadingMore}
-							class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+							class="btn-secondary"
 						>
 							{#if loadingMore}
 								<Loader2 class="w-4 h-4 animate-spin inline mr-2" />
@@ -435,7 +428,7 @@ function getAssetTypeLabel(type: string) {
 {#if selectedGeneration}
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<div
-		class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+		class="modal-backdrop"
 		onclick={closeModal}
 		onkeydown={(e) => e.key === 'Escape' && closeModal()}
 		role="dialog"
@@ -445,26 +438,20 @@ function getAssetTypeLabel(type: string) {
 	>
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
-			class="bg-zinc-900 border border-zinc-700 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-hidden"
+			class="modal-content"
 			onclick={(e) => e.stopPropagation()}
 			onkeydown={(e) => e.stopPropagation()}
 		>
-			<!-- Header -->
-			<div class="flex items-center justify-between p-4 border-b border-zinc-800">
-				<h3 class="text-lg font-semibold text-white">Generation Details</h3>
-				<button
-					onclick={closeModal}
-					class="p-1 hover:bg-zinc-800 rounded-lg transition-colors"
-				>
-					<X class="w-5 h-5 text-zinc-400" />
+			<div class="modal-header">
+				<h3>Generation Details</h3>
+				<button onclick={closeModal} class="modal-close">
+					<X class="w-5 h-5" />
 				</button>
 			</div>
 
-			<!-- Content -->
-			<div class="p-4 overflow-y-auto max-h-[calc(90vh-120px)]">
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<!-- Image Preview -->
-					<div class="aspect-square bg-zinc-800/50 rounded-lg overflow-hidden border border-zinc-700">
+			<div class="p-5 overflow-y-auto max-h-[calc(90vh-120px)]">
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+					<div class="aspect-square bg-zinc-800/40 rounded-xl overflow-hidden border border-zinc-700/50">
 						{#if selectedGeneration.status === 'completed'}
 							{#if selectedGeneration.resultUrls?.processed || selectedGeneration.resultUrls?.raw}
 								<img
@@ -490,19 +477,17 @@ function getAssetTypeLabel(type: string) {
 						{:else}
 							<div class="w-full h-full flex items-center justify-center">
 								<div class="text-center">
-									<Loader2 class="w-12 h-12 mx-auto mb-2 animate-spin text-yellow-400" />
+									<Loader2 class="w-12 h-12 mx-auto mb-2 animate-spin text-amber-400" />
 									<p class="text-sm text-zinc-400">{selectedGeneration.currentStage || getStatusLabel(selectedGeneration.status)}</p>
 								</div>
 							</div>
 						{/if}
 					</div>
 
-					<!-- Details -->
 					<div class="space-y-4">
-						<!-- Prompt -->
 						<div>
 							<div class="flex items-center justify-between mb-1">
-								<span class="text-xs text-zinc-500 uppercase tracking-wide">Prompt</span>
+								<span class="meta-label">Prompt</span>
 								<button
 									onclick={() => copyPrompt(selectedGeneration?.prompt || '')}
 									class="p-1 hover:bg-zinc-800 rounded transition-colors"
@@ -511,48 +496,44 @@ function getAssetTypeLabel(type: string) {
 									<Copy class="w-3.5 h-3.5 text-zinc-500" />
 								</button>
 							</div>
-							<p class="text-sm text-white bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
+							<p class="text-sm text-white bg-zinc-800/40 rounded-xl p-3 border border-zinc-700/50">
 								{selectedGeneration.prompt}
 							</p>
 						</div>
 
-						<!-- Metadata Grid -->
 						<div class="grid grid-cols-2 gap-3">
-							<div class="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
-								<span class="text-xs text-zinc-500 block mb-1">Type</span>
-								<span class="text-sm text-white">{getAssetTypeLabel(selectedGeneration.assetType)}</span>
+							<div class="meta-card">
+								<span class="meta-label">Type</span>
+								<span class="meta-value">{getAssetTypeLabel(selectedGeneration.assetType)}</span>
 							</div>
-							<div class="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
-								<span class="text-xs text-zinc-500 block mb-1">Dimensions</span>
-								<span class="text-sm text-white">{selectedGeneration.width}x{selectedGeneration.height}</span>
+							<div class="meta-card">
+								<span class="meta-label">Dimensions</span>
+								<span class="meta-value">{selectedGeneration.width}x{selectedGeneration.height}</span>
 							</div>
-							<div class="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
-								<span class="text-xs text-zinc-500 block mb-1">Status</span>
-								<span class="text-sm {selectedGeneration.status === 'completed' ? 'text-green-400' : selectedGeneration.status === 'failed' ? 'text-red-400' : 'text-yellow-400'}">
+							<div class="meta-card">
+								<span class="meta-label">Status</span>
+								<span class="meta-value {selectedGeneration.status === 'completed' ? 'text-green-400' : selectedGeneration.status === 'failed' ? 'text-red-400' : 'text-amber-400'}">
 									{getStatusLabel(selectedGeneration.status)}
 								</span>
 							</div>
-							<div class="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
-								<span class="text-xs text-zinc-500 block mb-1">Tokens</span>
-								<span class="text-sm text-white">{selectedGeneration.tokenCost}</span>
+							<div class="meta-card">
+								<span class="meta-label">Tokens</span>
+								<span class="meta-value">{selectedGeneration.tokenCost}</span>
 							</div>
 						</div>
 
-						<!-- Dates -->
 						<div class="flex items-center gap-2 text-xs text-zinc-500">
 							<Calendar class="w-3.5 h-3.5" />
 							<span>Created {formatDate(selectedGeneration.createdAt)}</span>
 						</div>
 
-						<!-- Error Message -->
 						{#if selectedGeneration.errorMessage}
-							<div class="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-								<span class="text-xs text-red-400 uppercase tracking-wide block mb-1">Error</span>
-								<p class="text-sm text-red-300">{selectedGeneration.errorMessage}</p>
+							<div class="bg-red-500/8 border border-red-500/15 rounded-xl p-3">
+								<span class="meta-label text-red-400">Error</span>
+								<p class="text-sm text-red-300 mt-1">{selectedGeneration.errorMessage}</p>
 							</div>
 						{/if}
 
-						<!-- Seed -->
 						{#if selectedGeneration.seed}
 							<div class="text-xs text-zinc-500">
 								Seed: {selectedGeneration.seed}
@@ -567,25 +548,203 @@ function getAssetTypeLabel(type: string) {
 				</div>
 			</div>
 
-			<!-- Footer -->
-			<div class="p-4 border-t border-zinc-800 flex justify-end gap-2">
+			<div class="modal-footer">
 				{#if selectedGeneration.status === 'completed' && (selectedGeneration.resultUrls?.processed || selectedGeneration.resultUrls?.raw)}
 					<a
 						href={selectedGeneration.resultUrls.processed || selectedGeneration.resultUrls.raw}
 						download
-						class="flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 font-medium rounded-lg transition-colors"
+						class="btn-download"
 					>
 						<Download class="w-4 h-4" />
 						Download
 					</a>
 				{/if}
-				<button
-					onclick={closeModal}
-					class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors"
-				>
+				<button onclick={closeModal} class="btn-secondary">
 					Close
 				</button>
 			</div>
 		</div>
 	</div>
 {/if}
+
+<style>
+	/* Panels */
+	.panel {
+		background: rgba(24,24,27,.5);
+		border: 1px solid rgba(63,63,70,.35);
+		border-radius: 1rem;
+		padding: 1.5rem;
+		backdrop-filter: blur(6px);
+	}
+	.panel-title {
+		font-weight: 700;
+		font-size: 1.05rem;
+		color: #fff;
+		margin-bottom: 1rem;
+	}
+
+	/* Form fields */
+	.field-label {
+		display: block;
+		font-size: .8125rem;
+		font-weight: 500;
+		color: #a1a1aa;
+		margin-bottom: .5rem;
+	}
+	.field-textarea {
+		width: 100%;
+		padding: .6rem .75rem;
+		background: rgba(39,39,42,.4);
+		border: 1px solid rgba(63,63,70,.5);
+		border-radius: .65rem;
+		color: #fff;
+		font-size: .875rem;
+		resize: none;
+		transition: border-color .2s, box-shadow .2s;
+	}
+	.field-textarea::placeholder { color: #52525b; }
+	.field-textarea:focus {
+		outline: none;
+		border-color: rgba(245,158,11,.35);
+		box-shadow: 0 0 0 3px rgba(245,158,11,.08);
+	}
+
+	/* Generate button */
+	.btn-generate {
+		width: 100%;
+		display: flex; align-items: center; justify-content: center; gap: .5rem;
+		padding: .75rem 1rem;
+		background: linear-gradient(135deg, #fbbf24, #f59e0b);
+		color: #18181b;
+		font-weight: 600; font-size: .875rem;
+		border-radius: .7rem;
+		border: none; cursor: pointer;
+		text-decoration: none;
+		box-shadow: 0 0 20px rgba(245,158,11,.15);
+		transition: box-shadow .25s, transform .15s, opacity .2s;
+	}
+	.btn-generate:hover:not(:disabled) {
+		box-shadow: 0 0 28px rgba(245,158,11,.28);
+		transform: translateY(-1px);
+	}
+	.btn-generate:disabled {
+		background: rgba(63,63,70,.4);
+		color: #71717a;
+		cursor: not-allowed;
+		box-shadow: none;
+	}
+
+	/* Secondary button */
+	.btn-secondary {
+		padding: .5rem 1rem;
+		background: rgba(63,63,70,.3);
+		color: #fff;
+		font-size: .8125rem; font-weight: 500;
+		border-radius: .55rem;
+		border: none; cursor: pointer;
+		transition: background .2s;
+	}
+	.btn-secondary:hover { background: rgba(63,63,70,.5); }
+	.btn-secondary:disabled { opacity: .5; cursor: not-allowed; }
+
+	/* Sprite thumbnails */
+	.sprite-thumb {
+		position: relative;
+		aspect-ratio: 1;
+		background: rgba(39,39,42,.4);
+		border-radius: .75rem;
+		overflow: hidden;
+		border: 1px solid rgba(63,63,70,.4);
+		cursor: pointer;
+		width: 100%;
+		text-align: left;
+		transition: border-color .2s, box-shadow .2s;
+	}
+	.sprite-thumb:hover {
+		border-color: rgba(63,63,70,.6);
+		box-shadow: 0 2px 12px rgba(0,0,0,.3);
+	}
+	.sprite-thumb-overlay {
+		position: absolute; inset: 0;
+		background: rgba(0,0,0,.55);
+		opacity: 0;
+		display: flex; align-items: center; justify-content: center; gap: .5rem;
+		transition: opacity .2s;
+	}
+	.sprite-thumb:hover .sprite-thumb-overlay { opacity: 1; }
+
+	/* Modal */
+	.modal-backdrop {
+		position: fixed; inset: 0;
+		background: rgba(0,0,0,.75);
+		backdrop-filter: blur(6px);
+		-webkit-backdrop-filter: blur(6px);
+		z-index: 50;
+		display: flex; align-items: center; justify-content: center;
+		padding: 1rem;
+	}
+	.modal-content {
+		background: rgba(24,24,27,.95);
+		border: 1px solid rgba(63,63,70,.4);
+		border-radius: 1rem;
+		max-width: 42rem; width: 100%;
+		max-height: 90vh;
+		overflow: hidden;
+		backdrop-filter: blur(12px);
+	}
+	.modal-header {
+		display: flex; align-items: center; justify-content: space-between;
+		padding: 1rem 1.25rem;
+		border-bottom: 1px solid rgba(63,63,70,.3);
+	}
+	.modal-header h3 {
+		font-weight: 700; font-size: 1.05rem; color: #fff;
+	}
+	.modal-close {
+		padding: .3rem;
+		color: #71717a;
+		border-radius: .4rem;
+		border: none; cursor: pointer; background: none;
+		transition: background .2s, color .2s;
+	}
+	.modal-close:hover { background: rgba(63,63,70,.3); color: #fff; }
+	.modal-footer {
+		padding: 1rem 1.25rem;
+		border-top: 1px solid rgba(63,63,70,.3);
+		display: flex; justify-content: flex-end; gap: .5rem;
+	}
+
+	/* Download button */
+	.btn-download {
+		display: flex; align-items: center; gap: .4rem;
+		padding: .5rem 1rem;
+		background: linear-gradient(135deg, #fbbf24, #f59e0b);
+		color: #18181b;
+		font-weight: 600; font-size: .8125rem;
+		border-radius: .55rem;
+		text-decoration: none;
+		transition: box-shadow .2s;
+	}
+	.btn-download:hover {
+		box-shadow: 0 0 16px rgba(245,158,11,.2);
+	}
+
+	/* Metadata */
+	.meta-label {
+		font-size: .6875rem;
+		text-transform: uppercase;
+		letter-spacing: .04em;
+		color: #52525b;
+		display: block;
+	}
+	.meta-value {
+		font-size: .8125rem; color: #fff;
+	}
+	.meta-card {
+		background: rgba(39,39,42,.35);
+		border: 1px solid rgba(63,63,70,.35);
+		border-radius: .65rem;
+		padding: .7rem;
+	}
+	.meta-card .meta-label { margin-bottom: .25rem; }
+</style>

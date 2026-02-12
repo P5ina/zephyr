@@ -30,6 +30,9 @@ if (browser) {
 	<link rel="icon" href={favicon} />
 	<meta name="theme-color" content="#eab308" />
 	<link rel="canonical" href="https://gensprite.ai{page.url.pathname}" />
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+	<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
 </svelte:head>
 {#key page.url.pathname}
 	<div in:fade={{ duration: 150, delay: 150 }} out:fade={{ duration: 150 }}>
