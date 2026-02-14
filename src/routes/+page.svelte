@@ -199,7 +199,7 @@ function inView(node: HTMLElement) {
 						Characters, items, weapons, UI elements — describe it and get a transparent PNG in seconds. Powered by SDXL with automatic background removal.
 					</p>
 					<div class="feat-foot">
-						<span class="feat-cost">2 tokens</span>
+						<span class="feat-cost">3 tokens</span>
 						<span class="feat-detail">Up to 1024 &times; 1024</span>
 					</div>
 				</div>
@@ -287,13 +287,13 @@ function inView(node: HTMLElement) {
 				<div class="price-card" use:inView style="transition-delay:.1s">
 					<div class="price-head">
 						<h3>Starter</h3>
-						<span class="price-equiv">~150 sprites</span>
+						<span class="price-equiv">~100 sprites</span>
 					</div>
 					<div class="price-amount">
-						<span class="price-dollar">$5</span>
+						<span class="price-dollar">$10</span>
 						<span class="price-tokens">300 tokens</span>
 					</div>
-					<p class="price-per">$0.017 per token</p>
+					<p class="price-per">$0.033 per token</p>
 					<a href={data.user ? '/app/billing' : '/login'} class="price-btn">Buy tokens</a>
 				</div>
 
@@ -301,26 +301,26 @@ function inView(node: HTMLElement) {
 					<div class="price-pop-badge">Best Value</div>
 					<div class="price-head">
 						<h3>Creator</h3>
-						<span class="price-equiv">~600 sprites</span>
+						<span class="price-equiv">~400 sprites</span>
 					</div>
 					<div class="price-amount">
-						<span class="price-dollar">$15</span>
+						<span class="price-dollar">$25</span>
 						<span class="price-tokens">1,200 tokens</span>
 					</div>
-					<p class="price-per price-per-gold">$0.0125 per token — 25% off</p>
+					<p class="price-per price-per-gold">$0.021 per token — 37% off</p>
 					<a href={data.user ? '/app/billing' : '/login'} class="price-btn price-btn-gold">Buy tokens</a>
 				</div>
 
 				<div class="price-card" use:inView style="transition-delay:.3s">
 					<div class="price-head">
 						<h3>Studio</h3>
-						<span class="price-equiv">~2,000 sprites</span>
+						<span class="price-equiv">~1,000 sprites</span>
 					</div>
 					<div class="price-amount">
-						<span class="price-dollar">$35</span>
-						<span class="price-tokens">4,000 tokens</span>
+						<span class="price-dollar">$50</span>
+						<span class="price-tokens">3,000 tokens</span>
 					</div>
-					<p class="price-per price-per-green">$0.00875 per token — 48% off</p>
+					<p class="price-per price-per-green">$0.017 per token — 50% off</p>
 					<a href={data.user ? '/app/billing' : '/login'} class="price-btn">Buy tokens</a>
 				</div>
 			</div>
@@ -328,7 +328,7 @@ function inView(node: HTMLElement) {
 			<div class="token-strip" use:inView style="transition-delay:.12s">
 				<div class="token-chip">
 					<Sparkles class="w-5 h-5" style="color:#fbbf24" />
-					<div><strong>2 tokens</strong><span>per sprite</span></div>
+					<div><strong>3 tokens</strong><span>per sprite</span></div>
 				</div>
 				<div class="token-sep" aria-hidden="true"></div>
 				<div class="token-chip">

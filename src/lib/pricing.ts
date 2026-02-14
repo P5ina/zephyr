@@ -5,7 +5,7 @@ export const PRICING = {
 	freeTokens: 50, // Tokens given on signup
 
 	tokenCosts: {
-		sprite: 2,
+		sprite: 3,
 		texture: 4,
 		rotation: 6,
 		rotationNew: 25,
@@ -17,19 +17,19 @@ export const PRICING = {
 		starter: {
 			name: 'Starter',
 			tokens: 300,
-			price: 5, // $0.017 per token
+			price: 10, // $0.0333 per token
 			popular: false,
 		},
 		creator: {
 			name: 'Creator',
 			tokens: 1200,
-			price: 15, // $0.0125 per token - 25% off
+			price: 25, // $0.0208 per token - 37% off
 			popular: true,
 		},
 		studio: {
 			name: 'Studio',
-			tokens: 4000,
-			price: 35, // $0.00875 per token - 48% off
+			tokens: 3000,
+			price: 50, // $0.0167 per token - 50% off
 			popular: false,
 		},
 	},

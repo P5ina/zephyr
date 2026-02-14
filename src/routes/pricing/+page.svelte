@@ -45,7 +45,7 @@ function getDiscount(
 				<span class="text-xs font-medium text-yellow-300">Free to start</span>
 			</div>
 			<h2 class="text-2xl font-bold text-white mb-2">50 free tokens on signup</h2>
-			<p class="text-zinc-400 text-sm">That's ~25 sprites, ~12 textures, or ~8 rotations to try everything out. No credit card required.</p>
+			<p class="text-zinc-400 text-sm">That's ~16 sprites, ~12 textures, or ~8 rotations to try everything out. No credit card required.</p>
 		</div>
 
 		<!-- Token Packs -->
@@ -57,14 +57,14 @@ function getDiscount(
 					<p class="text-xs text-zinc-500 mt-1">Great for trying out</p>
 				</div>
 				<div class="mb-2">
-					<span class="text-4xl font-bold text-white">$5</span>
+					<span class="text-4xl font-bold text-white">$10</span>
 				</div>
 				<div class="text-sm text-zinc-400 mb-4">300 tokens</div>
-				<div class="text-xs text-zinc-500 mb-6">${getPerTokenPrice(5, 300)} per token</div>
+				<div class="text-xs text-zinc-500 mb-6">${getPerTokenPrice(10, 300)} per token</div>
 				<ul class="space-y-2 mb-6">
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
-						<span>~150 sprites</span>
+						<span>~100 sprites</span>
 					</li>
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
@@ -93,14 +93,14 @@ function getDiscount(
 					<p class="text-xs text-zinc-500 mt-1">Most popular choice</p>
 				</div>
 				<div class="mb-2">
-					<span class="text-4xl font-bold text-white">$15</span>
+					<span class="text-4xl font-bold text-white">$25</span>
 				</div>
 				<div class="text-sm text-zinc-400 mb-1">1,200 tokens</div>
-				<div class="text-xs text-yellow-400 mb-6">${getPerTokenPrice(15, 1200)} per token — 25% off</div>
+				<div class="text-xs text-yellow-400 mb-6">${getPerTokenPrice(25, 1200)} per token — {getDiscount(PRICING.creditPacks.creator)}% off</div>
 				<ul class="space-y-2 mb-6">
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
-						<span>~600 sprites</span>
+						<span>~400 sprites</span>
 					</li>
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
@@ -126,22 +126,22 @@ function getDiscount(
 					<p class="text-xs text-zinc-500 mt-1">For power users</p>
 				</div>
 				<div class="mb-2">
-					<span class="text-4xl font-bold text-white">$35</span>
+					<span class="text-4xl font-bold text-white">$50</span>
 				</div>
-				<div class="text-sm text-zinc-400 mb-1">4,000 tokens</div>
-				<div class="text-xs text-green-400 mb-6">${getPerTokenPrice(35, 4000)} per token — 48% off</div>
+				<div class="text-sm text-zinc-400 mb-1">3,000 tokens</div>
+				<div class="text-xs text-green-400 mb-6">${getPerTokenPrice(50, 3000)} per token — {getDiscount(PRICING.creditPacks.studio)}% off</div>
 				<ul class="space-y-2 mb-6">
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
-						<span>~2,000 sprites</span>
+						<span>~1,000 sprites</span>
 					</li>
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
-						<span>~1,000 textures</span>
+						<span>~750 textures</span>
 					</li>
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
-						<span>~666 rotations</span>
+						<span>~500 rotations</span>
 					</li>
 				</ul>
 				<a
