@@ -2,7 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import { and, eq, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { cancelConceptArtJob } from '$lib/server/fal';
+import { cancelConceptArtJob, cancelConceptArtRemixJob } from '$lib/server/fal';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ params, locals }) => {
@@ -32,7 +32,11 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 	// Cancel the job on fal.ai if it has a request ID
 	if (gen.falRequestId) {
 		try {
-			await cancelConceptArtJob(gen.falRequestId);
+			if (gen.mode === 'remix') {
+				await cancelConceptArtRemixJob(gen.falRequestId);
+			} else {
+				await cancelConceptArtJob(gen.falRequestId, !!gen.referenceImageUrl);
+			}
 		} catch (e) {
 			console.error('Failed to cancel fal.ai job:', e);
 		}

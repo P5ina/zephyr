@@ -388,6 +388,7 @@ export async function cancelSpinJob(requestId: string): Promise<void> {
 // ============================================================================
 
 const FAL_CONCEPT_ART_MODEL = 'fal-ai/z-image/turbo';
+const FAL_CONCEPT_ART_IMG2IMG_MODEL = 'fal-ai/z-image/turbo/image-to-image';
 
 interface FalConceptArtOutput {
 	images?: Array<{ url: string; width: number; height: number }>;
@@ -397,24 +398,34 @@ interface FalConceptArtOutput {
 
 /**
  * Submit a concept art generation job to fal.ai
+ * When imageUrl is provided, uses image-to-image model with strength parameter.
  */
 export async function submitConceptArtJob(params: {
 	prompt: string;
 	imageSize: string;
 	seed?: number;
+	imageUrl?: string;
+	strength?: number;
 }): Promise<{ requestId: string }> {
 	configureFal();
 
-	const { request_id } = await fal.queue.submit(FAL_CONCEPT_ART_MODEL, {
-		input: {
-			prompt: params.prompt,
-			image_size: params.imageSize as 'square_hd' | 'square' | 'portrait_4_3' | 'portrait_16_9' | 'landscape_4_3' | 'landscape_16_9',
-			num_inference_steps: 8,
-			seed: params.seed,
-			enable_safety_checker: true,
-			output_format: 'png',
-		},
-	});
+	const model = params.imageUrl ? FAL_CONCEPT_ART_IMG2IMG_MODEL : FAL_CONCEPT_ART_MODEL;
+
+	const input: Record<string, unknown> = {
+		prompt: params.prompt,
+		image_size: params.imageSize as 'square_hd' | 'square' | 'portrait_4_3' | 'portrait_16_9' | 'landscape_4_3' | 'landscape_16_9',
+		num_inference_steps: 8,
+		seed: params.seed,
+		enable_safety_checker: true,
+		output_format: 'png',
+	};
+
+	if (params.imageUrl) {
+		input.image_url = params.imageUrl;
+		input.strength = params.strength ?? 0.6;
+	}
+
+	const { request_id } = await fal.queue.submit(model, { input });
 
 	return { requestId: request_id };
 }
@@ -422,7 +433,10 @@ export async function submitConceptArtJob(params: {
 /**
  * Get the status of a concept art generation job from fal.ai
  */
-export async function getConceptArtJobStatus(requestId: string): Promise<{
+export async function getConceptArtJobStatus(
+	requestId: string,
+	hasReferenceImage?: boolean,
+): Promise<{
 	status: 'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 	output?: {
 		imageUrl: string;
@@ -432,14 +446,16 @@ export async function getConceptArtJobStatus(requestId: string): Promise<{
 }> {
 	configureFal();
 
+	const model = hasReferenceImage ? FAL_CONCEPT_ART_IMG2IMG_MODEL : FAL_CONCEPT_ART_MODEL;
+
 	try {
-		const status = await fal.queue.status(FAL_CONCEPT_ART_MODEL, {
+		const status = await fal.queue.status(model, {
 			requestId,
 			logs: false,
 		});
 
 		if (status.status === 'COMPLETED') {
-			const result = await fal.queue.result(FAL_CONCEPT_ART_MODEL, {
+			const result = await fal.queue.result(model, {
 				requestId,
 			});
 
@@ -472,8 +488,122 @@ export async function getConceptArtJobStatus(requestId: string): Promise<{
 /**
  * Cancel a concept art generation job on fal.ai
  */
-export async function cancelConceptArtJob(requestId: string): Promise<void> {
+export async function cancelConceptArtJob(
+	requestId: string,
+	hasReferenceImage?: boolean,
+): Promise<void> {
 	configureFal();
 
-	await fal.queue.cancel(FAL_CONCEPT_ART_MODEL, { requestId });
+	const model = hasReferenceImage ? FAL_CONCEPT_ART_IMG2IMG_MODEL : FAL_CONCEPT_ART_MODEL;
+	await fal.queue.cancel(model, { requestId });
+}
+
+// ============================================================================
+// Concept Art Remix (ControlNet + IP-Adapter via flux-general)
+// ============================================================================
+
+const FAL_CONCEPT_ART_REMIX_MODEL = 'fal-ai/flux-general';
+
+/**
+ * Submit a concept art remix job to fal.ai
+ * Uses EasyControl (ControlNet) for composition structure and
+ * built-in reference_image_url for style transfer.
+ */
+export async function submitConceptArtRemixJob(params: {
+	prompt: string;
+	imageSize: string;
+	compositionImageUrl: string;
+	styleImageUrl: string;
+	controlMethod: string; // 'canny' | 'depth'
+	controlStrength: number; // 0-1
+	styleStrength: number; // 0-1
+	seed?: number;
+}): Promise<{ requestId: string }> {
+	configureFal();
+
+	const { request_id } = await fal.queue.submit(FAL_CONCEPT_ART_REMIX_MODEL, {
+		input: {
+			prompt: params.prompt,
+			image_size: params.imageSize as 'square_hd' | 'square' | 'portrait_4_3' | 'portrait_16_9' | 'landscape_4_3' | 'landscape_16_9',
+			seed: params.seed,
+			output_format: 'png',
+			easycontrols: [
+				{
+					control_method_url: params.controlMethod,
+					image_url: params.compositionImageUrl,
+					image_control_type: 'spatial',
+					scale: params.controlStrength,
+				},
+				{
+					control_method_url: 'subject',
+					image_url: params.styleImageUrl,
+					image_control_type: 'subject',
+					scale: params.styleStrength,
+				},
+			],
+		},
+	});
+
+	return { requestId: request_id };
+}
+
+/**
+ * Get the status of a concept art remix job from fal.ai
+ */
+export async function getConceptArtRemixJobStatus(requestId: string): Promise<{
+	status: 'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+	output?: {
+		imageUrl: string;
+		seed?: number;
+	};
+	error?: string;
+}> {
+	configureFal();
+
+	try {
+		const status = await fal.queue.status(FAL_CONCEPT_ART_REMIX_MODEL, {
+			requestId,
+			logs: false,
+		});
+
+		if (status.status === 'COMPLETED') {
+			const result = await fal.queue.result(FAL_CONCEPT_ART_REMIX_MODEL, {
+				requestId,
+			});
+
+			const data = result.data as FalConceptArtOutput;
+			const imageUrl = data?.images?.[0]?.url;
+
+			return {
+				status: 'COMPLETED',
+				output: imageUrl
+					? {
+							imageUrl,
+							seed: data?.seed,
+						}
+					: undefined,
+			};
+		}
+
+		return {
+			status: status.status as 'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
+		};
+	} catch (error: unknown) {
+		const body = (error as { body?: unknown })?.body;
+		console.error('[fal.ai] Error checking concept art remix status:', error);
+		if (body) console.error('[fal.ai] Error body:', JSON.stringify(body, null, 2));
+		return {
+			status: 'FAILED',
+			error: error instanceof Error ? error.message : 'Unknown error',
+		};
+	}
+}
+
+/**
+ * Cancel a concept art remix job on fal.ai
+ */
+export async function cancelConceptArtRemixJob(requestId: string): Promise<void> {
+	configureFal();
+
+	await fal.queue.cancel(FAL_CONCEPT_ART_REMIX_MODEL, { requestId });
 }

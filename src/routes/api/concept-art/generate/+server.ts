@@ -1,13 +1,13 @@
 import { error, json } from '@sveltejs/kit';
+import { put } from '@vercel/blob';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { env } from '$env/dynamic/private';
 import { PRICING } from '$lib/pricing';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { submitConceptArtJob } from '$lib/server/fal';
+import { submitConceptArtJob, submitConceptArtRemixJob } from '$lib/server/fal';
 import type { RequestHandler } from './$types';
-
-const TOKEN_COST = PRICING.tokenCosts.conceptArt;
 
 const VALID_IMAGE_SIZES = [
 	'landscape_16_9',
@@ -28,11 +28,30 @@ const STYLE_PREFIXES: Record<string, string> = {
 	'ink-drawing': 'ink drawing concept art, detailed linework, ',
 };
 
-interface ConceptArtGenerateRequest {
-	prompt: string;
-	imageSize?: string;
-	style?: string;
-	seed?: number;
+async function uploadImage(file: File, userId: string): Promise<string> {
+	if (file.size > 10 * 1024 * 1024) {
+		error(400, 'Image must be less than 10MB');
+	}
+
+	const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+	if (!allowedTypes.includes(file.type)) {
+		error(400, 'Image must be PNG, JPEG, or WebP');
+	}
+
+	if (!env.BLOB_READ_WRITE_TOKEN) {
+		error(500, 'Image upload not configured.');
+	}
+
+	const blob = await put(
+		`concept-art/${userId}/${nanoid()}.png`,
+		file,
+		{
+			access: 'public',
+			contentType: file.type,
+			token: env.BLOB_READ_WRITE_TOKEN,
+		},
+	);
+	return blob.url;
 }
 
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -40,25 +59,128 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		error(401, 'Unauthorized');
 	}
 
-	const body: ConceptArtGenerateRequest = await request.json();
+	const contentType = request.headers.get('content-type') || '';
 
-	if (!body.prompt?.trim()) {
+	let prompt: string | undefined;
+	let imageSize: string = 'square_hd';
+	let style: string | null = null;
+	let seed: number | undefined;
+	let referenceImageUrl: string | null = null;
+	let referenceStrength: number | null = null;
+
+	// Remix fields
+	let mode: string = 'standard';
+	let compositionImageUrl: string | null = null;
+	let styleImageUrl: string | null = null;
+	let controlMethod: string | null = null;
+	let controlStrength: number | null = null;
+	let styleStrengthVal: number | null = null;
+
+	if (contentType.includes('multipart/form-data')) {
+		const formData = await request.formData();
+
+		prompt = (formData.get('prompt') as string | null) || undefined;
+		const imageSizeField = formData.get('imageSize') as string | null;
+		if (imageSizeField) imageSize = imageSizeField;
+		const styleField = formData.get('style') as string | null;
+		if (styleField) style = styleField;
+		const seedField = formData.get('seed') as string | null;
+		if (seedField) {
+			const parsed = parseInt(seedField, 10);
+			if (!Number.isNaN(parsed)) seed = parsed;
+		}
+
+		const modeField = formData.get('mode') as string | null;
+		if (modeField === 'remix') {
+			mode = 'remix';
+
+			// Upload composition image
+			const compositionFile = formData.get('compositionImage') as File | null;
+			if (!compositionFile || compositionFile.size === 0) {
+				error(400, 'Composition image is required for remix mode');
+			}
+			compositionImageUrl = await uploadImage(compositionFile, locals.user.id);
+
+			// Upload style image
+			const styleFile = formData.get('styleImage') as File | null;
+			if (!styleFile || styleFile.size === 0) {
+				error(400, 'Style image is required for remix mode');
+			}
+			styleImageUrl = await uploadImage(styleFile, locals.user.id);
+
+			// Control method
+			const controlMethodField = formData.get('controlMethod') as string | null;
+			if (controlMethodField && ['canny', 'depth'].includes(controlMethodField)) {
+				controlMethod = controlMethodField;
+			} else {
+				controlMethod = 'canny';
+			}
+
+			// Control strength (0-100)
+			const controlStrengthField = formData.get('controlStrength') as string | null;
+			if (controlStrengthField) {
+				const parsed = parseInt(controlStrengthField, 10);
+				if (!Number.isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+					controlStrength = parsed;
+				}
+			}
+			if (controlStrength === null) controlStrength = 70;
+
+			// Style strength (0-100)
+			const styleStrengthField = formData.get('styleStrength') as string | null;
+			if (styleStrengthField) {
+				const parsed = parseInt(styleStrengthField, 10);
+				if (!Number.isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+					styleStrengthVal = parsed;
+				}
+			}
+			if (styleStrengthVal === null) styleStrengthVal = 80;
+		} else {
+			// Standard mode — handle reference image
+			const file = formData.get('image') as File | null;
+			const imageUrlField = formData.get('imageUrl') as string | null;
+			const strengthField = formData.get('strength') as string | null;
+
+			if (imageUrlField) {
+				referenceImageUrl = imageUrlField;
+			} else if (file && file.size > 0) {
+				referenceImageUrl = await uploadImage(file, locals.user.id);
+			}
+
+			if (strengthField) {
+				const parsed = parseInt(strengthField, 10);
+				if (!Number.isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+					referenceStrength = parsed;
+				}
+			}
+		}
+	} else {
+		const body = await request.json();
+		prompt = body.prompt;
+		if (body.imageSize) imageSize = body.imageSize;
+		if (body.style) style = body.style;
+		if (body.seed) seed = body.seed;
+	}
+
+	if (!prompt?.trim()) {
 		error(400, 'Prompt is required');
 	}
 
-	if (body.prompt.length > 2000) {
+	if (prompt.length > 2000) {
 		error(400, 'Prompt must be 2000 characters or less');
 	}
 
-	const imageSize = body.imageSize || 'square_hd';
 	if (!VALID_IMAGE_SIZES.includes(imageSize)) {
 		error(400, 'Invalid image size');
 	}
 
-	const style = body.style || null;
 	if (style && !STYLE_PREFIXES[style]) {
 		error(400, 'Invalid style preset');
 	}
+
+	const TOKEN_COST = mode === 'remix'
+		? PRICING.tokenCosts.conceptArtRemix
+		: PRICING.tokenCosts.conceptArt;
 
 	const total = locals.user.tokens + locals.user.bonusTokens;
 	if (total < TOKEN_COST) {
@@ -84,17 +206,25 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	// Build the full prompt with style prefix
 	const fullPrompt = style && STYLE_PREFIXES[style]
-		? STYLE_PREFIXES[style] + body.prompt.trim()
-		: body.prompt.trim();
+		? STYLE_PREFIXES[style] + prompt.trim()
+		: prompt.trim();
 
 	await db
 		.insert(table.conceptArtGeneration)
 		.values({
 			id: genId,
 			userId: locals.user.id,
-			prompt: body.prompt.trim(),
+			prompt: prompt.trim(),
 			style,
 			imageSize,
+			referenceImageUrl,
+			referenceStrength,
+			mode,
+			compositionImageUrl,
+			styleImageUrl,
+			controlMethod,
+			controlStrength,
+			styleStrength: styleStrengthVal,
 			status: 'pending',
 			tokenCost: TOKEN_COST,
 			bonusTokenCost: bonusDeduct,
@@ -103,18 +233,37 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	// Submit to fal.ai
 	try {
-		const falResponse = await submitConceptArtJob({
-			prompt: fullPrompt,
-			imageSize,
-			seed: body.seed,
-		});
+		let falResponse: { requestId: string };
+
+		if (mode === 'remix') {
+			falResponse = await submitConceptArtRemixJob({
+				prompt: fullPrompt,
+				imageSize,
+				compositionImageUrl: compositionImageUrl!,
+				styleImageUrl: styleImageUrl!,
+				controlMethod: controlMethod!,
+				controlStrength: controlStrength! / 100,
+				styleStrength: styleStrengthVal! / 100,
+				seed,
+			});
+		} else {
+			falResponse = await submitConceptArtJob({
+				prompt: fullPrompt,
+				imageSize,
+				seed,
+				imageUrl: referenceImageUrl ?? undefined,
+				strength: referenceStrength != null ? referenceStrength / 100 : undefined,
+			});
+		}
 
 		await db
 			.update(table.conceptArtGeneration)
 			.set({ falRequestId: falResponse.requestId })
 			.where(eq(table.conceptArtGeneration.id, genId));
-	} catch (err) {
+	} catch (err: unknown) {
+		const body = (err as { body?: unknown })?.body;
 		console.error('fal.ai submission failed:', err);
+		if (body) console.error('fal.ai error body:', JSON.stringify(body, null, 2));
 
 		// Refund tokens
 		await db

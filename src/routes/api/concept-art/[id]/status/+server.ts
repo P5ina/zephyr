@@ -2,7 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import { and, eq, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { getConceptArtJobStatus } from '$lib/server/fal';
+import { getConceptArtJobStatus, getConceptArtRemixJobStatus } from '$lib/server/fal';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
@@ -30,7 +30,9 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 
 	if (needsFalCheck) {
 		try {
-			const falStatus = await getConceptArtJobStatus(gen.falRequestId!);
+			const falStatus = gen.mode === 'remix'
+				? await getConceptArtRemixJobStatus(gen.falRequestId!)
+				: await getConceptArtJobStatus(gen.falRequestId!, !!gen.referenceImageUrl);
 
 			if (falStatus.status === 'IN_PROGRESS' || falStatus.status === 'IN_QUEUE') {
 				if (gen.status !== 'processing') {
@@ -81,7 +83,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 							progress: 100,
 							currentStage: 'Completed',
 							imageUrl: falStatus.output.imageUrl,
-							seed: falStatus.output.seed || null,
+							seed: falStatus.output.seed && falStatus.output.seed <= 9223372036854775807 ? falStatus.output.seed : null,
 							completedAt: new Date(),
 						})
 						.where(eq(table.conceptArtGeneration.id, gen.id));

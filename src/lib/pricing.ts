@@ -12,6 +12,7 @@ export const PRICING = {
 		rotationSingleView: 7,
 		spin: 25,
 		conceptArt: 4,
+		conceptArtRemix: 8,
 	},
 
 	creditPacks: {

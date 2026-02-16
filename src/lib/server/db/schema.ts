@@ -373,6 +373,18 @@ export const conceptArtGeneration = pgTable('concept_art_generation', {
 	style: text('style'),
 	imageSize: text('image_size').notNull().default('square_hd'),
 
+	// Reference image
+	referenceImageUrl: text('reference_image_url'),
+	referenceStrength: integer('reference_strength'), // 0-100, nullable
+
+	// Remix mode
+	mode: text('mode').notNull().default('standard'),
+	compositionImageUrl: text('composition_image_url'),
+	styleImageUrl: text('style_image_url'),
+	controlMethod: text('control_method'),
+	controlStrength: integer('control_strength'),
+	styleStrength: integer('style_strength'),
+
 	// Status
 	status: text('status', {
 		enum: ['pending', 'processing', 'completed', 'failed'],
