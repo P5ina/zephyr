@@ -361,3 +361,40 @@ export const spinJob = pgTable('spin_job', {
 });
 
 export type SpinJob = typeof spinJob.$inferSelect;
+
+export const conceptArtGeneration = pgTable('concept_art_generation', {
+	id: text('id').primaryKey(),
+	userId: text('user_id')
+		.notNull()
+		.references(() => user.id),
+
+	// Configuration
+	prompt: text('prompt').notNull(),
+	style: text('style'),
+	imageSize: text('image_size').notNull().default('square_hd'),
+
+	// Status
+	status: text('status', {
+		enum: ['pending', 'processing', 'completed', 'failed'],
+	})
+		.notNull()
+		.default('pending'),
+	progress: integer('progress').notNull().default(0),
+	currentStage: text('current_stage'),
+	falRequestId: text('fal_request_id'),
+
+	// Results
+	imageUrl: text('image_url'),
+
+	// Metadata
+	seed: bigint('seed', { mode: 'number' }),
+	tokenCost: integer('token_cost').notNull(),
+	bonusTokenCost: integer('bonus_token_cost').notNull().default(0),
+	errorMessage: text('error_message'),
+	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
+		.notNull()
+		.defaultNow(),
+	completedAt: timestamp('completed_at', { withTimezone: true, mode: 'date' }),
+});
+
+export type ConceptArtGeneration = typeof conceptArtGeneration.$inferSelect;

@@ -382,3 +382,98 @@ export async function cancelSpinJob(requestId: string): Promise<void> {
 
 	await fal.queue.cancel(FAL_SPIN_WORKFLOW_ID, { requestId });
 }
+
+// ============================================================================
+// Concept Art Generation
+// ============================================================================
+
+const FAL_CONCEPT_ART_MODEL = 'fal-ai/z-image/turbo';
+
+interface FalConceptArtOutput {
+	images?: Array<{ url: string; width: number; height: number }>;
+	seed?: number;
+	has_nsfw_concepts?: boolean[];
+}
+
+/**
+ * Submit a concept art generation job to fal.ai
+ */
+export async function submitConceptArtJob(params: {
+	prompt: string;
+	imageSize: string;
+	seed?: number;
+}): Promise<{ requestId: string }> {
+	configureFal();
+
+	const { request_id } = await fal.queue.submit(FAL_CONCEPT_ART_MODEL, {
+		input: {
+			prompt: params.prompt,
+			image_size: params.imageSize as 'square_hd' | 'square' | 'portrait_4_3' | 'portrait_16_9' | 'landscape_4_3' | 'landscape_16_9',
+			num_inference_steps: 8,
+			seed: params.seed,
+			enable_safety_checker: true,
+			output_format: 'png',
+		},
+	});
+
+	return { requestId: request_id };
+}
+
+/**
+ * Get the status of a concept art generation job from fal.ai
+ */
+export async function getConceptArtJobStatus(requestId: string): Promise<{
+	status: 'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+	output?: {
+		imageUrl: string;
+		seed?: number;
+	};
+	error?: string;
+}> {
+	configureFal();
+
+	try {
+		const status = await fal.queue.status(FAL_CONCEPT_ART_MODEL, {
+			requestId,
+			logs: false,
+		});
+
+		if (status.status === 'COMPLETED') {
+			const result = await fal.queue.result(FAL_CONCEPT_ART_MODEL, {
+				requestId,
+			});
+
+			const data = result.data as FalConceptArtOutput;
+			const imageUrl = data?.images?.[0]?.url;
+
+			return {
+				status: 'COMPLETED',
+				output: imageUrl
+					? {
+							imageUrl,
+							seed: data?.seed,
+						}
+					: undefined,
+			};
+		}
+
+		return {
+			status: status.status as 'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
+		};
+	} catch (error) {
+		console.error('[fal.ai] Error checking concept art status:', error);
+		return {
+			status: 'FAILED',
+			error: error instanceof Error ? error.message : 'Unknown error',
+		};
+	}
+}
+
+/**
+ * Cancel a concept art generation job on fal.ai
+ */
+export async function cancelConceptArtJob(requestId: string): Promise<void> {
+	configureFal();
+
+	await fal.queue.cancel(FAL_CONCEPT_ART_MODEL, { requestId });
+}
