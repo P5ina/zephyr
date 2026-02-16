@@ -1,15 +1,13 @@
 <script lang="ts">
 import {
 	ArrowLeft,
+	Bell,
 	Check,
-	Clock,
 	Coins,
-	CreditCard,
 	Layers,
 	Package,
 	RotateCw,
 	Sparkles,
-	XCircle,
 } from 'lucide-svelte';
 import { track } from '@vercel/analytics';
 import { PRICING } from '$lib/pricing';
@@ -17,78 +15,33 @@ import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
 
-let purchasing = $state<string | null>(null);
+let joining = $state<string | null>(null);
+let joined = $state(false);
+let alreadyJoined = $state(false);
 let error = $state<string | null>(null);
 
-async function buyCredits(pack: keyof typeof PRICING.creditPacks) {
-	purchasing = pack;
+async function joinWaitlist(pack: keyof typeof PRICING.creditPacks) {
+	joining = pack;
 	error = null;
 
-	// Track purchase initiated
-	const packInfo = PRICING.creditPacks[pack];
-	track('purchase_initiated', {
-		pack,
-		tokens: packInfo.tokens,
-		price: packInfo.price
-	});
+	track('waitlist_join', { pack });
 
 	try {
-		const res = await fetch('/api/billing/buy-credits', {
+		const res = await fetch('/api/billing/join-waitlist', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ pack }),
 		});
-		const data = await res.json();
-		if (data.url) {
-			window.location.href = data.url;
+		const result = await res.json();
+		if (result.success) {
+			joined = true;
+			alreadyJoined = result.alreadyJoined;
 		} else {
-			error = data.message || 'Failed to create checkout';
+			error = result.error || 'Failed to join waitlist';
 		}
 	} catch {
-		error = 'Failed to create checkout';
+		error = 'Failed to join waitlist';
 	} finally {
-		purchasing = null;
-	}
-}
-
-function formatDate(date: Date | string) {
-	return new Date(date).toLocaleDateString('en-US', {
-		year: 'numeric',
-		month: 'short',
-		day: 'numeric',
-		hour: '2-digit',
-		minute: '2-digit',
-	});
-}
-
-function getStatusColor(status: string) {
-	switch (status) {
-		case 'completed':
-			return 'text-green-400 bg-green-400/10';
-		case 'confirmed':
-			return 'text-blue-400 bg-blue-400/10';
-		case 'pending':
-			return 'text-yellow-400 bg-yellow-400/10';
-		case 'failed':
-		case 'expired':
-			return 'text-red-400 bg-red-400/10';
-		default:
-			return 'text-zinc-400 bg-zinc-400/10';
-	}
-}
-
-function getStatusIcon(status: string) {
-	switch (status) {
-		case 'completed':
-		case 'confirmed':
-			return Check;
-		case 'pending':
-			return Clock;
-		case 'failed':
-		case 'expired':
-			return XCircle;
-		default:
-			return Clock;
+		joining = null;
 	}
 }
 
@@ -113,7 +66,7 @@ function getDiscount(
 		<a href="/app" class="back-link">
 			<ArrowLeft class="w-5 h-5" />
 		</a>
-		<h1 class="page-title">Buy Tokens</h1>
+		<h1 class="page-title">Tokens</h1>
 	</div>
 
 	<div class="billing-content">
@@ -122,6 +75,21 @@ function getDiscount(
 				{error}
 			</div>
 		{/if}
+
+		<!-- Waitlist Banner -->
+		<div class="waitlist-banner">
+			<div class="flex items-center gap-3 mb-2">
+				<div class="icon-badge icon-badge-amber">
+					<Bell class="w-5 h-5" />
+				</div>
+				<div>
+					<h2 class="panel-heading">Card payments coming soon</h2>
+				</div>
+			</div>
+			<p class="text-sm text-zinc-400">
+				We're setting up card payments via Stripe. Join the waitlist below and we'll notify you as soon as it's ready.
+			</p>
+		</div>
 
 		<!-- Token Balance -->
 		<div class="panel">
@@ -147,17 +115,32 @@ function getDiscount(
 					<Package class="w-5 h-5" />
 				</div>
 				<div>
-					<h2 class="panel-heading">Buy Token Packs</h2>
+					<h2 class="panel-heading">Token Packs</h2>
 					<p class="panel-sub">One-time purchase, tokens never expire</p>
 				</div>
 			</div>
+
+			{#if joined}
+				<div class="success-banner">
+					<Check class="w-5 h-5 text-green-400 shrink-0" />
+					<div>
+						{#if alreadyJoined}
+							<p class="text-sm font-medium text-green-300">You're already on the list!</p>
+							<p class="text-xs text-zinc-400 mt-0.5">We'll email you when payments are live.</p>
+						{:else}
+							<p class="text-sm font-medium text-green-300">You're on the list!</p>
+							<p class="text-xs text-zinc-400 mt-0.5">Check your email for confirmation.</p>
+						{/if}
+					</div>
+				</div>
+			{/if}
 
 			<div class="packs-grid">
 				{#each Object.entries(PRICING.creditPacks) as [key, pack]}
 					{@const discount = getDiscount(pack)}
 					<button
-						onclick={() => buyCredits(key as keyof typeof PRICING.creditPacks)}
-						disabled={purchasing === key}
+						onclick={() => joinWaitlist(key as keyof typeof PRICING.creditPacks)}
+						disabled={joining === key || joined}
 						class="pack-card {pack.popular ? 'pack-card-pop' : ''}"
 					>
 						{#if pack.popular}
@@ -168,7 +151,7 @@ function getDiscount(
 						<div class="pack-tokens-label">tokens</div>
 						<div class="flex items-baseline gap-2 mt-3">
 							<span class="pack-price {pack.popular ? 'pack-price-gold' : ''}">
-								{purchasing === key ? '...' : `$${pack.price}`}
+								${pack.price}
 							</span>
 							{#if discount > 0}
 								<span class="pack-discount">{discount}% off</span>
@@ -177,13 +160,20 @@ function getDiscount(
 						<div class="pack-per">
 							${getPerTokenPrice(pack.price, pack.tokens)} per token
 						</div>
+						<div class="pack-cta {pack.popular ? 'pack-cta-pop' : ''}">
+							{#if joined}
+								<Check class="w-3.5 h-3.5" />
+								On the list
+							{:else if joining === key}
+								Joining...
+							{:else}
+								<Bell class="w-3.5 h-3.5" />
+								Notify Me
+							{/if}
+						</div>
 					</button>
 				{/each}
 			</div>
-
-			<p class="mt-4 text-xs text-zinc-500 text-center">
-				Pay with crypto (USDT, USDC, LTC, DOGE, SOL, and more)
-			</p>
 		</div>
 
 		<!-- Token Costs Reference -->
@@ -219,58 +209,6 @@ function getDiscount(
 				</div>
 			</div>
 		</div>
-
-		<!-- Transaction History -->
-		{#if data.transactions.length > 0}
-			<div class="panel">
-				<div class="flex items-center gap-3 mb-6">
-					<div class="icon-badge icon-badge-blue">
-						<CreditCard class="w-5 h-5" />
-					</div>
-					<div>
-						<h2 class="panel-heading">Transaction History</h2>
-						<p class="panel-sub">Your past orders</p>
-					</div>
-				</div>
-
-				<div class="space-y-2">
-					{#each data.transactions as tx}
-						{@const StatusIcon = getStatusIcon(tx.status)}
-						<div class="tx-row">
-							<div class="flex items-center gap-4">
-								<div class="icon-badge-sm" style="background:rgba(74,222,128,.08); color:#4ade80">
-									<Package class="w-4 h-4" />
-								</div>
-								<div>
-									<div class="text-sm font-medium text-white">
-										{tx.tokensGranted.toLocaleString()} Tokens
-									</div>
-									<div class="text-xs text-zinc-500">
-										{formatDate(tx.createdAt)}
-									</div>
-								</div>
-							</div>
-							<div class="flex items-center gap-4">
-								<div class="text-right">
-									<div class="text-sm font-medium text-white">
-										${(tx.amount / 100).toFixed(2)}
-									</div>
-									{#if tx.payCurrency}
-										<div class="text-xs text-zinc-500 uppercase">
-											{tx.payAmount} {tx.payCurrency}
-										</div>
-									{/if}
-								</div>
-								<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium {getStatusColor(tx.status)}">
-									<StatusIcon class="w-3.5 h-3.5" />
-									{tx.status}
-								</div>
-							</div>
-						</div>
-					{/each}
-				</div>
-			</div>
-		{/if}
 	</div>
 </div>
 
@@ -304,6 +242,24 @@ function getDiscount(
 		border-radius: .7rem;
 		color: #f87171;
 		font-size: .875rem;
+	}
+
+	/* Waitlist banner */
+	.waitlist-banner {
+		padding: 1.25rem;
+		background: rgba(245,158,11,.04);
+		border: 1px solid rgba(245,158,11,.2);
+		border-radius: 1rem;
+	}
+
+	/* Success banner */
+	.success-banner {
+		display: flex; align-items: center; gap: .75rem;
+		padding: .85rem 1rem;
+		background: rgba(74,222,128,.06);
+		border: 1px solid rgba(74,222,128,.15);
+		border-radius: .7rem;
+		margin-bottom: 1rem;
 	}
 
 	/* Panels */
@@ -401,6 +357,27 @@ function getDiscount(
 	.pack-per {
 		font-size: .6875rem; color: #52525b; margin-top: .25rem;
 	}
+	.pack-cta {
+		display: flex; align-items: center; justify-content: center; gap: .4rem;
+		margin-top: .75rem;
+		padding: .5rem;
+		border-radius: .5rem;
+		background: rgba(63,63,70,.3);
+		font-size: .75rem; font-weight: 500; color: #a1a1aa;
+		transition: background .2s, color .2s;
+	}
+	.pack-card:hover:not(:disabled) .pack-cta {
+		background: rgba(63,63,70,.5);
+		color: #fff;
+	}
+	.pack-cta-pop {
+		background: rgba(245,158,11,.12);
+		color: #fbbf24;
+	}
+	.pack-card:hover:not(:disabled) .pack-cta-pop {
+		background: rgba(245,158,11,.2);
+		color: #fbbf24;
+	}
 
 	/* Costs grid */
 	.costs-grid {
@@ -411,12 +388,4 @@ function getDiscount(
 	.cost-item { display: flex; align-items: center; gap: .7rem; }
 	.cost-name { font-size: .8125rem; font-weight: 500; color: #fff; }
 	.cost-amount { font-size: .72rem; color: #52525b; }
-
-	/* Transaction row */
-	.tx-row {
-		display: flex; align-items: center; justify-content: space-between;
-		padding: .85rem 1rem;
-		background: rgba(39,39,42,.3);
-		border-radius: .65rem;
-	}
 </style>

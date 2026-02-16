@@ -68,7 +68,6 @@ export const transaction = pgTable('transaction', {
 	userId: text('user_id')
 		.notNull()
 		.references(() => user.id),
-	cryptomusUuid: text('cryptomus_uuid').unique(),
 	orderId: text('order_id'),
 	type: text('type', { enum: ['subscription', 'credit_pack'] }).notNull(),
 	amount: integer('amount').notNull(),

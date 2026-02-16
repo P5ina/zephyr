@@ -8,7 +8,7 @@ AI-powered game asset generation platform for sprites, textures, and 8-direction
 - **Database**: Vercel Postgres (Neon) + Drizzle ORM
 - **Image Generation**: SDXL + refiner, SV3D for rotations
 - **3D Preview**: Three.js + Threlte
-- **Payments**: Cryptomus (crypto)
+- **Payments**: Stripe (coming soon), waitlist via Resend
 - **File Storage**: Vercel Blob
 - **Deployment**: Vercel
 
@@ -55,8 +55,7 @@ AI-powered game asset generation platform for sprites, textures, and 8-direction
       /textures
         generate/+server.ts   — POST: Generate PBR textures
       /billing
-        buy-credits/+server.ts — Credit pack purchase
-        webhook/+server.ts    — Payment webhook
+        join-waitlist/+server.ts — Waitlist signup
     /login
       /github                 — GitHub OAuth flow
       /preview                — Demo mode for preview deployments
@@ -136,8 +135,7 @@ POSTGRES_URL=               # Vercel Postgres connection string
 BLOB_READ_WRITE_TOKEN=     # Vercel Blob storage token
 GITHUB_CLIENT_ID=          # GitHub OAuth
 GITHUB_CLIENT_SECRET=
-CRYPTOMUS_MERCHANT_ID=     # Cryptomus crypto payments
-CRYPTOMUS_API_KEY=
+RESEND_SEGMENT_ID=         # Resend segment for waitlist
 PREVIEW_LOGIN_SECRET=      # Secret for preview deployment login
 ```
 

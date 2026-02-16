@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Check, Layers, RotateCw, Sparkles } from 'lucide-svelte';
+import { Bell, Check, Layers, RotateCw, Sparkles } from 'lucide-svelte';
 import Footer from '$lib/components/Footer.svelte';
 import Header from '$lib/components/Header.svelte';
 import { PRICING } from '$lib/pricing';
@@ -28,7 +28,7 @@ function getDiscount(
 </svelte:head>
 
 <div class="min-h-screen bg-zinc-950">
-	<Header variant="simple" showBack user={data.user} ctaText="Buy Tokens" ctaHref="/app/billing" maxWidth="4xl" />
+	<Header variant="simple" showBack user={data.user} ctaText="Get Tokens" ctaHref="/app/billing" maxWidth="4xl" />
 
 	<main class="max-w-4xl mx-auto px-4 py-12">
 		<div class="text-center mb-12">
@@ -36,6 +36,16 @@ function getDiscount(
 			<p class="text-zinc-400 max-w-xl mx-auto">
 				Pay only for what you use. No subscriptions, no monthly fees. Start with 50 free tokens and buy more when you need them.
 			</p>
+		</div>
+
+		<!-- Payments Coming Soon Banner -->
+		<div class="mb-12 p-6 rounded-2xl bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/30 text-center">
+			<div class="inline-flex items-center gap-2 px-3 py-1 mb-3 rounded-full bg-blue-500/20 border border-blue-500/30">
+				<Bell class="w-3.5 h-3.5 text-blue-400" />
+				<span class="text-xs font-medium text-blue-300">Coming soon</span>
+			</div>
+			<h2 class="text-2xl font-bold text-white mb-2">Card payments launching soon</h2>
+			<p class="text-zinc-400 text-sm">We're setting up Stripe payments. Join the waitlist and we'll notify you the moment it's ready.</p>
 		</div>
 
 		<!-- Free Start Banner -->
@@ -77,9 +87,10 @@ function getDiscount(
 				</ul>
 				<a
 					href={data.user ? '/app/billing' : '/login'}
-					class="block text-center px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium rounded-xl transition-colors"
+					class="flex items-center justify-center gap-2 text-center px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium rounded-xl transition-colors"
 				>
-					Get started
+					<Bell class="w-4 h-4" />
+					{data.user ? 'Join Waitlist' : 'Get Started'}
 				</a>
 			</div>
 
@@ -113,9 +124,10 @@ function getDiscount(
 				</ul>
 				<a
 					href={data.user ? '/app/billing' : '/login'}
-					class="block text-center px-4 py-2.5 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 text-sm font-medium rounded-xl transition-all shadow-lg shadow-yellow-500/25"
+					class="flex items-center justify-center gap-2 text-center px-4 py-2.5 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 text-sm font-medium rounded-xl transition-all shadow-lg shadow-yellow-500/25"
 				>
-					Get started
+					<Bell class="w-4 h-4" />
+					{data.user ? 'Join Waitlist' : 'Get Started'}
 				</a>
 			</div>
 
@@ -146,9 +158,10 @@ function getDiscount(
 				</ul>
 				<a
 					href={data.user ? '/app/billing' : '/login'}
-					class="block text-center px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium rounded-xl transition-colors"
+					class="flex items-center justify-center gap-2 text-center px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium rounded-xl transition-colors"
 				>
-					Get started
+					<Bell class="w-4 h-4" />
+					{data.user ? 'Join Waitlist' : 'Get Started'}
 				</a>
 			</div>
 		</div>
@@ -234,7 +247,7 @@ function getDiscount(
 
 				<div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
 					<h4 class="font-medium text-white mb-2">What payment methods do you accept?</h4>
-					<p class="text-sm text-zinc-400">We accept all major credit cards, debit cards, and PayPal through our payment provider Paddle.</p>
+					<p class="text-sm text-zinc-400">We're currently setting up Stripe payments and will support all major credit and debit cards. Join the waitlist to be notified when payments go live.</p>
 				</div>
 			</div>
 		</div>
