@@ -82,7 +82,7 @@ export async function addToWaitlist(email: string, firstName?: string) {
 
 	// Check if contact already exists
 	const existing = await resend.contacts.get({ email });
-	if (existing.data) {
+	if (!existing.error && existing.data?.id) {
 		return { id: existing.data.id, alreadyJoined: true };
 	}
 
