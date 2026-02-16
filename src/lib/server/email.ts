@@ -35,7 +35,7 @@ function emailShell(content: string) {
 <table width="100%" cellpadding="0" cellspacing="0" border="0">
 <tr><td style="padding-bottom:36px;">
   <a href="https://gensprite.ai" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
-    <img src="https://gensprite.ai/icon-64.png" alt="" width="28" height="28" style="display:block; border-radius:6px;" />
+    <img src="https://gensprite.ai/icon-192.png" alt="" width="28" height="28" style="display:block; border-radius:6px;" />
     <span style="font-family:'Syne',system-ui,sans-serif; font-weight:800; font-size:18px; color:#ffffff; letter-spacing:-0.01em;">GenSprite</span>
   </a>
 </td></tr>
