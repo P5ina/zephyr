@@ -17,7 +17,6 @@ let { data }: { data: PageData } = $props();
 
 let joining = $state<string | null>(null);
 let joined = $state(false);
-let alreadyJoined = $state(false);
 let error = $state<string | null>(null);
 
 async function joinWaitlist(pack: keyof typeof PRICING.creditPacks) {
@@ -34,7 +33,6 @@ async function joinWaitlist(pack: keyof typeof PRICING.creditPacks) {
 		const result = await res.json();
 		if (result.success) {
 			joined = true;
-			alreadyJoined = result.alreadyJoined;
 		} else {
 			error = result.error || 'Failed to join waitlist';
 		}
@@ -124,13 +122,8 @@ function getDiscount(
 				<div class="success-banner">
 					<Check class="w-5 h-5 text-green-400 shrink-0" />
 					<div>
-						{#if alreadyJoined}
-							<p class="text-sm font-medium text-green-300">You're already on the list!</p>
-							<p class="text-xs text-zinc-400 mt-0.5">We'll email you when payments are live.</p>
-						{:else}
-							<p class="text-sm font-medium text-green-300">You're on the list!</p>
-							<p class="text-xs text-zinc-400 mt-0.5">Check your email for confirmation.</p>
-						{/if}
+						<p class="text-sm font-medium text-green-300">You're on the list!</p>
+						<p class="text-xs text-zinc-400 mt-0.5">Check your email for confirmation.</p>
 					</div>
 				</div>
 			{/if}

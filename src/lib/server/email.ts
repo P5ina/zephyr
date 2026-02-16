@@ -80,12 +80,6 @@ export async function addToWaitlist(email: string, firstName?: string) {
 	const segmentId = env.RESEND_SEGMENT_ID;
 	if (!segmentId) throw new Error('RESEND_SEGMENT_ID not configured');
 
-	// Check if contact already exists
-	const existing = await resend.contacts.get({ email });
-	if (!existing.error && existing.data?.id) {
-		return { id: existing.data.id, alreadyJoined: true };
-	}
-
 	const { data, error } = await resend.contacts.create({
 		email,
 		firstName: firstName || undefined,
