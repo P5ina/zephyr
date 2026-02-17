@@ -16,6 +16,7 @@ import {
 	X,
 } from 'lucide-svelte';
 import { track } from '@vercel/analytics';
+import JSZip from 'jszip';
 import MaterialPreview from '$lib/components/three/MaterialPreview.svelte';
 import { PRICING } from '$lib/pricing';
 import type { TextureGeneration } from '$lib/server/db/schema';
@@ -288,24 +289,56 @@ async function pollStatus(id: string) {
 	await poll();
 }
 
-function downloadTexture(type: keyof typeof displayTextures) {
+let downloading = $state(false);
+
+async function fetchAsBlob(url: string): Promise<Blob> {
+	const res = await fetch(url);
+	return res.blob();
+}
+
+async function downloadTexture(type: keyof typeof displayTextures) {
 	const url = displayTextures[type];
 	if (!url) return;
 
 	const name = selectedGeneration?.prompt || prompt;
-	const a = document.createElement('a');
-	a.href = url;
-	a.download = `${name.slice(0, 30).replace(/[^a-z0-9]/gi, '_')}_${type}.png`;
-	a.click();
+	try {
+		const blob = await fetchAsBlob(url);
+		const blobUrl = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = blobUrl;
+		a.download = `${name.slice(0, 30).replace(/[^a-z0-9]/gi, '_')}_${type}.png`;
+		a.click();
+		URL.revokeObjectURL(blobUrl);
+	} catch {
+		window.open(url, '_blank');
+	}
 }
 
-function downloadAll() {
-	for (const type of Object.keys(
-		displayTextures,
-	) as (keyof typeof displayTextures)[]) {
-		if (displayTextures[type]) {
-			setTimeout(() => downloadTexture(type), 100);
-		}
+async function downloadAll() {
+	downloading = true;
+	try {
+		const name = (selectedGeneration?.prompt || prompt).slice(0, 30).replace(/[^a-z0-9]/gi, '_') || 'textures';
+		const zip = new JSZip();
+		const entries = Object.entries(displayTextures) as [string, string | null][];
+		await Promise.all(
+			entries
+				.filter(([, url]) => url)
+				.map(async ([type, url]) => {
+					const blob = await fetchAsBlob(url!);
+					zip.file(`${name}_${type}.png`, blob);
+				}),
+		);
+		const zipBlob = await zip.generateAsync({ type: 'blob' });
+		const blobUrl = URL.createObjectURL(zipBlob);
+		const a = document.createElement('a');
+		a.href = blobUrl;
+		a.download = `${name}_pbr.zip`;
+		a.click();
+		URL.revokeObjectURL(blobUrl);
+	} catch {
+		alert('Failed to download. Please try again.');
+	} finally {
+		downloading = false;
 	}
 }
 
@@ -469,10 +502,6 @@ function scrollHistory(direction: 'left' | 'right') {
 				<div class="maps-panel">
 					<div class="flex items-center justify-between mb-3">
 						<h3 class="text-sm font-medium text-white">Generated Maps</h3>
-						<button onclick={downloadAll} class="btn-sm btn-sm-gold">
-							<Download class="w-3.5 h-3.5" />
-							Download All
-						</button>
 					</div>
 					<div class="grid grid-cols-4 gap-2">
 						{#each [
@@ -503,6 +532,15 @@ function scrollHistory(direction: 'left' | 'right') {
 							</div>
 						{/each}
 					</div>
+					<button onclick={downloadAll} disabled={downloading} class="btn-download-all">
+						{#if downloading}
+							<Loader2 class="w-4 h-4 animate-spin" />
+							Preparing zip...
+						{:else}
+							<Download class="w-4 h-4" />
+							Download All
+						{/if}
+					</button>
 				</div>
 			{/if}
 		</div>
@@ -642,15 +680,10 @@ function scrollHistory(direction: 'left' | 'right') {
 							{/if}
 						</div>
 
-						<div class="flex gap-2">
-							<button onclick={downloadAll} class="btn-download flex-1">
-								<Download class="w-4 h-4" />
-								Download All
-							</button>
-							<button onclick={startNewGeneration} class="btn-secondary px-4">
-								<Plus class="w-4 h-4" />
-							</button>
-						</div>
+						<button onclick={startNewGeneration} class="btn-secondary w-full">
+							<Plus class="w-4 h-4" />
+							New Texture
+						</button>
 					{/if}
 				{/if}
 			</div>
@@ -735,6 +768,25 @@ function scrollHistory(direction: 'left' | 'right') {
 	.shape-btn-active {
 		background: linear-gradient(135deg, #fbbf24, #f59e0b);
 		color: #18181b;
+	}
+
+	/* Download All */
+	.btn-download-all {
+		width: 100%; margin-top: .85rem;
+		display: flex; align-items: center; justify-content: center; gap: .5rem;
+		padding: .7rem 1rem;
+		background: linear-gradient(135deg, #fbbf24, #f59e0b);
+		color: #18181b; font-weight: 600; font-size: .875rem;
+		border-radius: .65rem; border: none; cursor: pointer;
+		box-shadow: 0 0 20px rgba(245,158,11,.12);
+		transition: box-shadow .25s, transform .15s;
+	}
+	.btn-download-all:hover:not(:disabled) {
+		box-shadow: 0 0 28px rgba(245,158,11,.25);
+		transform: translateY(-1px);
+	}
+	.btn-download-all:disabled {
+		opacity: .7; cursor: wait;
 	}
 
 	/* Maps panel */

@@ -23,6 +23,7 @@ import {
 	X,
 	Zap,
 } from 'lucide-svelte';
+import JSZip from 'jszip';
 import { PRICING } from '$lib/pricing';
 import type { RotationJobNew } from '$lib/server/db/schema';
 import type { PageData } from './$types';
@@ -403,23 +404,54 @@ async function pollJobStatus(id: string) {
 	await poll();
 }
 
-function downloadRotation(direction: string) {
+let downloading = $state(false);
+
+async function fetchAsBlob(url: string): Promise<Blob> {
+	const res = await fetch(url);
+	return res.blob();
+}
+
+async function downloadRotation(direction: string) {
 	const url = displayRotations[direction as keyof typeof displayRotations];
 	if (!url) return;
 
-	const a = document.createElement('a');
-	a.href = url;
-	a.download = `sprite_${direction}.png`;
-	a.click();
+	try {
+		const blob = await fetchAsBlob(url);
+		const blobUrl = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = blobUrl;
+		a.download = `sprite_${direction}.png`;
+		a.click();
+		URL.revokeObjectURL(blobUrl);
+	} catch {
+		window.open(url, '_blank');
+	}
 }
 
-function downloadAll() {
-	for (const dir of Object.keys(
-		displayRotations,
-	) as (keyof typeof displayRotations)[]) {
-		if (displayRotations[dir]) {
-			setTimeout(() => downloadRotation(dir), 100);
-		}
+async function downloadAll() {
+	downloading = true;
+	try {
+		const zip = new JSZip();
+		const entries = Object.entries(displayRotations) as [string, string | null][];
+		await Promise.all(
+			entries
+				.filter(([, url]) => url)
+				.map(async ([dir, url]) => {
+					const blob = await fetchAsBlob(url!);
+					zip.file(`sprite_${dir}.png`, blob);
+				}),
+		);
+		const zipBlob = await zip.generateAsync({ type: 'blob' });
+		const blobUrl = URL.createObjectURL(zipBlob);
+		const a = document.createElement('a');
+		a.href = blobUrl;
+		a.download = 'rotation_4dir.zip';
+		a.click();
+		URL.revokeObjectURL(blobUrl);
+	} catch {
+		alert('Failed to download. Please try again.');
+	} finally {
+		downloading = false;
 	}
 }
 
@@ -887,15 +919,10 @@ function scrollHistory(direction: 'left' | 'right') {
 					</div>
 
 					<!-- Actions -->
-					<div class="flex gap-2 mt-4">
-						<button onclick={downloadAll} class="btn-sm-gold flex-1">
-							<Download class="w-4 h-4" />
-							Download All
-						</button>
-						<button onclick={startNewGeneration} class="btn-sm">
-							<Plus class="w-4 h-4" />
-						</button>
-					</div>
+					<button onclick={startNewGeneration} class="btn-secondary w-full mt-4">
+						<Plus class="w-4 h-4" />
+						New Rotation
+					</button>
 				{/if}
 			{/if}
 		</div>
@@ -913,10 +940,6 @@ function scrollHistory(direction: 'left' | 'right') {
 						<button onclick={exportSpritesheet} class="btn-sm" title="Export as spritesheet">
 							<Grid3x3 class="w-3.5 h-3.5" />
 							Spritesheet
-						</button>
-						<button onclick={downloadAll} class="btn-sm">
-							<Download class="w-3.5 h-3.5" />
-							Download
 						</button>
 					</div>
 				{/if}
@@ -984,6 +1007,18 @@ function scrollHistory(direction: 'left' | 'right') {
 					</div>
 				{/each}
 			</div>
+
+			{#if hasAnyRotation}
+				<button onclick={downloadAll} disabled={downloading} class="btn-download-all">
+					{#if downloading}
+						<Loader2 class="w-4 h-4 animate-spin" />
+						Preparing zip...
+					{:else}
+						<Download class="w-4 h-4" />
+						Download All
+					{/if}
+				</button>
+			{/if}
 
 			<!-- Legend -->
 			<div class="legend">
@@ -1593,6 +1628,25 @@ function scrollHistory(direction: 'left' | 'right') {
 		display: flex; flex-direction: column;
 		align-items: center; justify-content: center;
 		z-index: 10;
+	}
+
+	/* Download All */
+	.btn-download-all {
+		width: 100%; margin-top: 1rem;
+		display: flex; align-items: center; justify-content: center; gap: .5rem;
+		padding: .7rem 1rem;
+		background: linear-gradient(135deg, #fbbf24, #f59e0b);
+		color: #18181b; font-weight: 600; font-size: .875rem;
+		border-radius: .65rem; border: none; cursor: pointer;
+		box-shadow: 0 0 20px rgba(245,158,11,.12);
+		transition: box-shadow .25s, transform .15s;
+	}
+	.btn-download-all:hover:not(:disabled) {
+		box-shadow: 0 0 28px rgba(245,158,11,.25);
+		transform: translateY(-1px);
+	}
+	.btn-download-all:disabled {
+		opacity: .7; cursor: wait;
 	}
 
 	/* Legend / Tips */

@@ -225,6 +225,13 @@
       "when": 1771267477941,
       "tag": "0031_right_psynapse",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1771289688852,
+      "tag": "0032_quick_ink",
+      "breakpoints": true
     }
   ]
 }

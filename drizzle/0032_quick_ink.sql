@@ -1,0 +1,1 @@
+ALTER TABLE "concept_art_generation" ADD COLUMN "control_image_url" text;

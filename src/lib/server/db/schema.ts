@@ -383,6 +383,7 @@ export const conceptArtGeneration = pgTable('concept_art_generation', {
 	styleImageUrl: text('style_image_url'),
 	controlMethod: text('control_method'),
 	controlStrength: integer('control_strength'),
+	controlImageUrl: text('control_image_url'),
 	styleStrength: integer('style_strength'),
 
 	// Status
