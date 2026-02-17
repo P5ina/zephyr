@@ -388,7 +388,7 @@ export async function cancelSpinJob(requestId: string): Promise<void> {
 // ============================================================================
 
 const FAL_CONCEPT_ART_MODEL = 'fal-ai/z-image/turbo';
-const FAL_CONCEPT_ART_IMG2IMG_MODEL = 'fal-ai/z-image/turbo/image-to-image';
+const FAL_CONCEPT_ART_REF_MODEL = 'fal-ai/flux/dev/image-to-image';
 
 interface FalConceptArtOutput {
 	images?: Array<{ url: string; width: number; height: number }>;
@@ -398,7 +398,9 @@ interface FalConceptArtOutput {
 
 /**
  * Submit a concept art generation job to fal.ai
- * When imageUrl is provided, uses image-to-image model with strength parameter.
+ * When imageUrl is provided, uses flux/dev img2img with 40 steps
+ * for smooth reference control (vs turbo's 8-step quantization).
+ * Strength is inverted: user's "reference influence" maps to (1 - denoising).
  */
 export async function submitConceptArtJob(params: {
 	prompt: string;
@@ -409,23 +411,38 @@ export async function submitConceptArtJob(params: {
 }): Promise<{ requestId: string }> {
 	configureFal();
 
-	const model = params.imageUrl ? FAL_CONCEPT_ART_IMG2IMG_MODEL : FAL_CONCEPT_ART_MODEL;
-
-	const input: Record<string, unknown> = {
-		prompt: params.prompt,
-		image_size: params.imageSize as 'square_hd' | 'square' | 'portrait_4_3' | 'portrait_16_9' | 'landscape_4_3' | 'landscape_16_9',
-		num_inference_steps: 8,
-		seed: params.seed,
-		enable_safety_checker: true,
-		output_format: 'png',
-	};
-
 	if (params.imageUrl) {
-		input.image_url = params.imageUrl;
-		input.strength = params.strength ?? 0.6;
+		// Invert: user's reference strength → denoising strength
+		// 0% reference = 0.95 denoising (almost full regen)
+		// 100% reference = 0.01 denoising (nearly identical)
+		const referenceInfluence = params.strength ?? 0.6;
+		const denoising = Math.max(0.01, 1 - referenceInfluence);
+
+		const { request_id } = await fal.queue.submit(FAL_CONCEPT_ART_REF_MODEL, {
+			input: {
+				prompt: params.prompt,
+				image_url: params.imageUrl,
+				strength: denoising,
+				num_inference_steps: 40,
+				seed: params.seed,
+				// image_size is accepted by the API but missing from the SDK type
+				...({ image_size: params.imageSize, output_format: 'png' } as Record<string, unknown>),
+			},
+		});
+		return { requestId: request_id };
 	}
 
-	const { request_id } = await fal.queue.submit(model, { input });
+	// Text-to-image (no reference) uses z-image/turbo
+	const { request_id } = await fal.queue.submit(FAL_CONCEPT_ART_MODEL, {
+		input: {
+			prompt: params.prompt,
+			image_size: params.imageSize as 'square_hd' | 'square' | 'portrait_4_3' | 'portrait_16_9' | 'landscape_4_3' | 'landscape_16_9',
+			num_inference_steps: 8,
+			seed: params.seed,
+			enable_safety_checker: true,
+			output_format: 'png',
+		},
+	});
 
 	return { requestId: request_id };
 }
@@ -446,7 +463,7 @@ export async function getConceptArtJobStatus(
 }> {
 	configureFal();
 
-	const model = hasReferenceImage ? FAL_CONCEPT_ART_IMG2IMG_MODEL : FAL_CONCEPT_ART_MODEL;
+	const model = hasReferenceImage ? FAL_CONCEPT_ART_REF_MODEL : FAL_CONCEPT_ART_MODEL;
 
 	try {
 		const status = await fal.queue.status(model, {
@@ -494,53 +511,121 @@ export async function cancelConceptArtJob(
 ): Promise<void> {
 	configureFal();
 
-	const model = hasReferenceImage ? FAL_CONCEPT_ART_IMG2IMG_MODEL : FAL_CONCEPT_ART_MODEL;
+	const model = hasReferenceImage ? FAL_CONCEPT_ART_REF_MODEL : FAL_CONCEPT_ART_MODEL;
 	await fal.queue.cancel(model, { requestId });
 }
 
 // ============================================================================
-// Concept Art Remix (ControlNet + IP-Adapter via flux-general)
+// Concept Art Restyle (two-step: preprocess → generate)
 // ============================================================================
 
-const FAL_CONCEPT_ART_REMIX_MODEL = 'fal-ai/flux-general';
+const FAL_CANNY_PREPROCESSOR = 'fal-ai/image-preprocessors/hed';
+const FAL_DEPTH_PREPROCESSOR = 'fal-ai/image-preprocessors/depth-anything/v2';
+const FAL_RESTYLE_CANNY_MODEL = 'fal-ai/flux-control-lora-canny';
+const FAL_RESTYLE_DEPTH_MODEL = 'fal-ai/flux-control-lora-depth';
+
+type ImageSize = 'square_hd' | 'square' | 'portrait_4_3' | 'portrait_16_9' | 'landscape_4_3' | 'landscape_16_9';
+
+function getPreprocessorModel(method: 'canny' | 'depth') {
+	return method === 'depth' ? FAL_DEPTH_PREPROCESSOR : FAL_CANNY_PREPROCESSOR;
+}
 
 /**
- * Submit a concept art remix job to fal.ai
- * Uses EasyControl (ControlNet) for composition structure and
- * built-in reference_image_url for style transfer.
+ * Step 1: Submit a preprocessor job to the queue (non-blocking).
  */
-export async function submitConceptArtRemixJob(params: {
+export async function submitPreprocessorJob(params: {
+	imageUrl: string;
+	method: 'canny' | 'depth';
+}): Promise<{ requestId: string }> {
+	configureFal();
+
+	const model = getPreprocessorModel(params.method);
+
+	const { request_id } = await fal.queue.submit(model, {
+		input: { image_url: params.imageUrl },
+	});
+
+	return { requestId: request_id };
+}
+
+/**
+ * Check the status of a preprocessor job.
+ */
+export async function getPreprocessorJobStatus(
+	requestId: string,
+	method: 'canny' | 'depth',
+): Promise<{
+	status: 'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+	output?: { imageUrl: string };
+	error?: string;
+}> {
+	configureFal();
+
+	const model = getPreprocessorModel(method);
+
+	try {
+		const status = await fal.queue.status(model, {
+			requestId,
+			logs: false,
+		});
+
+		if (status.status === 'COMPLETED') {
+			const result = await fal.queue.result(model, { requestId });
+			const data = result.data as { image?: { url: string } };
+
+			return {
+				status: 'COMPLETED',
+				output: data?.image?.url ? { imageUrl: data.image.url } : undefined,
+			};
+		}
+
+		return {
+			status: status.status as 'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
+		};
+	} catch (error) {
+		console.error('[fal.ai] Error checking preprocessor status:', error);
+		return {
+			status: 'FAILED',
+			error: error instanceof Error ? error.message : 'Unknown error',
+		};
+	}
+}
+
+/**
+ * Step 2: Submit restyle generation using the preprocessed control image.
+ * Uses flux-control-lora-canny or flux-control-lora-depth.
+ */
+export async function submitRestyleGeneration(params: {
 	prompt: string;
 	imageSize: string;
-	compositionImageUrl: string;
-	styleImageUrl: string;
-	controlMethod: string; // 'canny' | 'depth'
-	controlStrength: number; // 0-1
-	styleStrength: number; // 0-1
+	controlImageUrl: string;
+	controlMethod: 'canny' | 'depth';
+	controlStrength: number; // 0-2 (model range)
 	seed?: number;
 }): Promise<{ requestId: string }> {
 	configureFal();
 
-	const { request_id } = await fal.queue.submit(FAL_CONCEPT_ART_REMIX_MODEL, {
+	const model = params.controlMethod === 'depth'
+		? FAL_RESTYLE_DEPTH_MODEL
+		: FAL_RESTYLE_CANNY_MODEL;
+
+	const baseInput = {
+		prompt: params.prompt,
+		control_lora_image_url: params.controlImageUrl,
+		control_lora_strength: params.controlStrength,
+		seed: params.seed,
+		num_inference_steps: 28,
+	};
+
+	const { request_id } = await fal.queue.submit(model, {
 		input: {
-			prompt: params.prompt,
-			image_size: params.imageSize as 'square_hd' | 'square' | 'portrait_4_3' | 'portrait_16_9' | 'landscape_4_3' | 'landscape_16_9',
-			seed: params.seed,
-			output_format: 'png',
-			easycontrols: [
-				{
-					control_method_url: params.controlMethod,
-					image_url: params.compositionImageUrl,
-					image_control_type: 'spatial',
-					scale: params.controlStrength,
-				},
-				{
-					control_method_url: 'subject',
-					image_url: params.styleImageUrl,
-					image_control_type: 'subject',
-					scale: params.styleStrength,
-				},
-			],
+			...baseInput,
+			// image_size and output_format are accepted by the API but may be missing from SDK types
+			...({
+				image_size: params.imageSize,
+				output_format: 'png',
+				...(params.controlMethod === 'depth' ? { preprocess_depth: false } : {}),
+			} as Record<string, unknown>),
 		},
 	});
 
@@ -548,9 +633,12 @@ export async function submitConceptArtRemixJob(params: {
 }
 
 /**
- * Get the status of a concept art remix job from fal.ai
+ * Get the status of a restyle generation job from fal.ai
  */
-export async function getConceptArtRemixJobStatus(requestId: string): Promise<{
+export async function getRestyleJobStatus(
+	requestId: string,
+	controlMethod: 'canny' | 'depth',
+): Promise<{
 	status: 'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 	output?: {
 		imageUrl: string;
@@ -560,14 +648,18 @@ export async function getConceptArtRemixJobStatus(requestId: string): Promise<{
 }> {
 	configureFal();
 
+	const model = controlMethod === 'depth'
+		? FAL_RESTYLE_DEPTH_MODEL
+		: FAL_RESTYLE_CANNY_MODEL;
+
 	try {
-		const status = await fal.queue.status(FAL_CONCEPT_ART_REMIX_MODEL, {
+		const status = await fal.queue.status(model, {
 			requestId,
 			logs: false,
 		});
 
 		if (status.status === 'COMPLETED') {
-			const result = await fal.queue.result(FAL_CONCEPT_ART_REMIX_MODEL, {
+			const result = await fal.queue.result(model, {
 				requestId,
 			});
 
@@ -590,7 +682,7 @@ export async function getConceptArtRemixJobStatus(requestId: string): Promise<{
 		};
 	} catch (error: unknown) {
 		const body = (error as { body?: unknown })?.body;
-		console.error('[fal.ai] Error checking concept art remix status:', error);
+		console.error('[fal.ai] Error checking restyle status:', error);
 		if (body) console.error('[fal.ai] Error body:', JSON.stringify(body, null, 2));
 		return {
 			status: 'FAILED',
@@ -600,10 +692,16 @@ export async function getConceptArtRemixJobStatus(requestId: string): Promise<{
 }
 
 /**
- * Cancel a concept art remix job on fal.ai
+ * Cancel a restyle generation job on fal.ai
  */
-export async function cancelConceptArtRemixJob(requestId: string): Promise<void> {
+export async function cancelRestyleJob(
+	requestId: string,
+	controlMethod: 'canny' | 'depth',
+): Promise<void> {
 	configureFal();
 
-	await fal.queue.cancel(FAL_CONCEPT_ART_REMIX_MODEL, { requestId });
+	const model = controlMethod === 'depth'
+		? FAL_RESTYLE_DEPTH_MODEL
+		: FAL_RESTYLE_CANNY_MODEL;
+	await fal.queue.cancel(model, { requestId });
 }

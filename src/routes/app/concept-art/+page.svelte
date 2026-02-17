@@ -1,17 +1,17 @@
 <script lang="ts">
+import { slide } from 'svelte/transition';
 import {
 	Check,
-	ChevronDown,
 	ChevronLeft,
 	ChevronRight,
 	Download,
 	ImagePlus,
 	Layers,
 	Loader2,
-	Paintbrush,
 	Plus,
 	Sparkles,
 	X,
+	Zap,
 } from 'lucide-svelte';
 import { track } from '@vercel/analytics';
 import { PRICING } from '$lib/pricing';
@@ -38,33 +38,54 @@ let selectedSize = $state('square_hd');
 let generating = $state(false);
 let currentGeneratingId = $state<string | null>(null);
 
-// Reference image state
-let referenceFile = $state<File | null>(null);
-let referencePreviewUrl = $state<string | null>(null);
-let referenceStrength = $state(60);
-let showReferenceSection = $state(false);
+// --- Unified Image State ---
+let sourceFile = $state<File | null>(null);
+let sourcePreviewUrl = $state<string | null>(null);
 
-// Mode toggle: 'generate' | 'remix'
-let activeMode = $state<'generate' | 'remix'>('generate');
+// How source image is used: 'structure' (ControlNet) or 'influence' (img2img)
+let imageMode = $state<'structure' | 'influence'>('structure');
 
-// Remix state
-let compositionFile = $state<File | null>(null);
-let compositionPreviewUrl = $state<string | null>(null);
-let styleFile = $state<File | null>(null);
-let stylePreviewUrl = $state<string | null>(null);
+// Structure mode controls
 let controlMethod = $state<'canny' | 'depth'>('canny');
-let compositionStrength = $state(70);
-let styleStrengthSlider = $state(80);
+let structureStrength = $state(100);
 
-const REMIX_TOKEN_COST = PRICING.tokenCosts.conceptArtRemix;
+// Influence mode controls
+let influenceStrength = $state(60);
 
 let generations = $state<ConceptArtGeneration[]>(initialGenerations);
-
 const pollingSet = new Set<string>();
-
 let status = $state<string | null>(null);
 
-const TOKEN_COST = PRICING.tokenCosts.conceptArt;
+// --- Derived ---
+const effectiveMode = $derived<'standard' | 'restyle'>(
+	sourceFile && imageMode === 'structure'
+		? 'restyle'
+		: 'standard',
+);
+
+const tokenCost = $derived(
+	effectiveMode === 'restyle'
+		? PRICING.tokenCosts.conceptArtRestyle
+		: PRICING.tokenCosts.conceptArt,
+);
+
+const modeLabel = $derived(
+	effectiveMode === 'restyle'
+		? 'Restyle'
+		: sourceFile
+			? 'Img2Img'
+			: 'Generate',
+);
+
+const modeDescription = $derived(
+	effectiveMode === 'restyle'
+		? 'New style, preserved structure'
+		: sourceFile
+			? 'Guided by reference image'
+			: 'Create from text description',
+);
+
+const hasSourceImage = $derived(!!sourceFile);
 
 const selectedGeneration = $derived(
 	viewMode !== 'new' ? generations.find((g) => g.id === viewMode) : null,
@@ -94,50 +115,28 @@ const selectedAspectRatio = $derived(
 	aspectRatios.find((a) => a.id === selectedSize) ?? aspectRatios[2],
 );
 
+// --- Effects ---
 $effect(() => {
 	for (const gen of initialGenerations) {
-		if (
-			gen.status !== 'completed' &&
-			gen.status !== 'failed' &&
-			!pollingSet.has(gen.id)
-		) {
+		if (gen.status !== 'completed' && gen.status !== 'failed' && !pollingSet.has(gen.id)) {
 			pollingSet.add(gen.id);
 			pollStatus(gen.id);
 		}
 	}
 });
 
-// Clean up preview URL when file changes
 $effect(() => {
-	if (referenceFile) {
-		const url = URL.createObjectURL(referenceFile);
-		referencePreviewUrl = url;
+	if (sourceFile) {
+		const url = URL.createObjectURL(sourceFile);
+		sourcePreviewUrl = url;
 		return () => URL.revokeObjectURL(url);
 	} else {
-		referencePreviewUrl = null;
+		sourcePreviewUrl = null;
 	}
 });
 
-$effect(() => {
-	if (compositionFile) {
-		const url = URL.createObjectURL(compositionFile);
-		compositionPreviewUrl = url;
-		return () => URL.revokeObjectURL(url);
-	} else {
-		compositionPreviewUrl = null;
-	}
-});
 
-$effect(() => {
-	if (styleFile) {
-		const url = URL.createObjectURL(styleFile);
-		stylePreviewUrl = url;
-		return () => URL.revokeObjectURL(url);
-	} else {
-		stylePreviewUrl = null;
-	}
-});
-
+// --- Functions ---
 function startNewGeneration() {
 	viewMode = 'new';
 	prompt = '';
@@ -147,73 +146,27 @@ function selectGeneration(id: string) {
 	viewMode = id;
 }
 
-function handleRefFileDrop(event: DragEvent) {
+function handleSourceDrop(event: DragEvent) {
 	event.preventDefault();
 	const file = event.dataTransfer?.files[0];
-	if (file?.type.startsWith('image/')) {
-		referenceFile = file;
-		showReferenceSection = true;
-	}
+	if (file?.type.startsWith('image/')) sourceFile = file;
 }
 
-function handleRefFileSelect(event: Event) {
+function handleSourceSelect(event: Event) {
 	const input = event.target as HTMLInputElement;
-	const file = input.files?.[0];
-	if (file) {
-		referenceFile = file;
-	}
+	if (input.files?.[0]) sourceFile = input.files[0];
 }
 
-function clearReference() {
-	referenceFile = null;
-	referencePreviewUrl = null;
-}
-
-function handleCompositionDrop(event: DragEvent) {
-	event.preventDefault();
-	const file = event.dataTransfer?.files[0];
-	if (file?.type.startsWith('image/')) compositionFile = file;
-}
-
-function handleCompositionSelect(event: Event) {
-	const input = event.target as HTMLInputElement;
-	if (input.files?.[0]) compositionFile = input.files[0];
-}
-
-function clearComposition() {
-	compositionFile = null;
-	compositionPreviewUrl = null;
-}
-
-function handleStyleDrop(event: DragEvent) {
-	event.preventDefault();
-	const file = event.dataTransfer?.files[0];
-	if (file?.type.startsWith('image/')) styleFile = file;
-}
-
-function handleStyleSelect(event: Event) {
-	const input = event.target as HTMLInputElement;
-	if (input.files?.[0]) styleFile = input.files[0];
-}
-
-function clearStyle() {
-	styleFile = null;
-	stylePreviewUrl = null;
+function clearSource() {
+	sourceFile = null;
+	sourcePreviewUrl = null;
 }
 
 async function generate() {
 	if (!prompt.trim() || generating) return;
 
-	const isRemix = activeMode === 'remix';
-	const cost = isRemix ? REMIX_TOKEN_COST : TOKEN_COST;
-
-	if (tokens + bonusTokens < cost) {
+	if (tokens + bonusTokens < tokenCost) {
 		alert('Not enough tokens');
-		return;
-	}
-
-	if (isRemix && (!compositionFile || !styleFile)) {
-		alert('Both composition and style images are required for remix mode');
 		return;
 	}
 
@@ -223,34 +176,24 @@ async function generate() {
 	try {
 		let res: Response;
 
-		if (isRemix) {
+		if (effectiveMode === 'restyle') {
 			const formData = new FormData();
-			formData.append('mode', 'remix');
+			formData.append('mode', 'restyle');
 			formData.append('prompt', prompt.trim());
 			formData.append('imageSize', selectedSize);
 			if (selectedStyle) formData.append('style', selectedStyle);
-			formData.append('compositionImage', compositionFile!);
-			formData.append('styleImage', styleFile!);
+			formData.append('compositionImage', sourceFile!);
 			formData.append('controlMethod', controlMethod);
-			formData.append('controlStrength', String(compositionStrength));
-			formData.append('styleStrength', String(styleStrengthSlider));
-
-			res = await fetch('/api/concept-art/generate', {
-				method: 'POST',
-				body: formData,
-			});
-		} else if (referenceFile) {
+			formData.append('controlStrength', String(structureStrength));
+			res = await fetch('/api/concept-art/generate', { method: 'POST', body: formData });
+		} else if (sourceFile) {
 			const formData = new FormData();
 			formData.append('prompt', prompt.trim());
 			formData.append('imageSize', selectedSize);
 			if (selectedStyle) formData.append('style', selectedStyle);
-			formData.append('image', referenceFile);
-			formData.append('strength', String(referenceStrength));
-
-			res = await fetch('/api/concept-art/generate', {
-				method: 'POST',
-				body: formData,
-			});
+			formData.append('image', sourceFile);
+			formData.append('strength', String(influenceStrength));
+			res = await fetch('/api/concept-art/generate', { method: 'POST', body: formData });
 		} else {
 			res = await fetch('/api/concept-art/generate', {
 				method: 'POST',
@@ -275,7 +218,9 @@ async function generate() {
 		tokens = result.tokensRemaining ?? tokens;
 		bonusTokens = result.bonusTokensRemaining ?? bonusTokens;
 
-		track('generation_started', { type: isRemix ? 'concept_art_remix' : 'concept_art' });
+		track('generation_started', {
+			type: effectiveMode === 'restyle' ? 'concept_art_restyle' : 'concept_art',
+		});
 
 		if (result.id) {
 			const newGen: ConceptArtGeneration = {
@@ -284,21 +229,24 @@ async function generate() {
 				prompt: prompt.trim(),
 				style: selectedStyle,
 				imageSize: selectedSize,
-				referenceImageUrl: isRemix ? null : referencePreviewUrl,
-				referenceStrength: !isRemix && referenceFile ? referenceStrength : null,
-				mode: isRemix ? 'remix' : 'standard',
-				compositionImageUrl: isRemix ? compositionPreviewUrl : null,
-				styleImageUrl: isRemix ? stylePreviewUrl : null,
-				controlMethod: isRemix ? controlMethod : null,
-				controlStrength: isRemix ? compositionStrength : null,
-				styleStrength: isRemix ? styleStrengthSlider : null,
+				referenceImageUrl:
+					effectiveMode === 'standard' && sourceFile ? sourcePreviewUrl : null,
+				referenceStrength:
+					effectiveMode === 'standard' && sourceFile ? influenceStrength : null,
+				mode: effectiveMode,
+				compositionImageUrl: effectiveMode !== 'standard' ? sourcePreviewUrl : null,
+				styleImageUrl: null,
+				controlMethod: effectiveMode !== 'standard' ? controlMethod : null,
+				controlStrength: effectiveMode !== 'standard' ? structureStrength : null,
+				controlImageUrl: null,
+				styleStrength: null,
 				status: 'pending',
 				progress: 0,
 				currentStage: null,
 				falRequestId: null,
 				imageUrl: null,
 				seed: null,
-				tokenCost: cost,
+				tokenCost: tokenCost,
 				bonusTokenCost: 0,
 				errorMessage: null,
 				createdAt: new Date(),
@@ -390,6 +338,7 @@ async function pollStatus(id: string) {
 							progress: result.progress || 0,
 							currentStage: result.statusMessage,
 							imageUrl: result.imageUrl || g.imageUrl,
+							controlImageUrl: result.controlImageUrl || g.controlImageUrl,
 						}
 					: g,
 			);
@@ -571,8 +520,21 @@ function scrollHistory(direction: 'left' | 'right') {
 								class="w-full h-full object-contain"
 							/>
 						{:else if selectedGeneration && (selectedGeneration.status === 'pending' || selectedGeneration.status === 'processing')}
-							<Loader2 class="w-12 h-12 animate-spin text-amber-400 mb-4" />
-							<p class="text-sm text-zinc-300">{selectedGeneration.currentStage || 'Processing...'}</p>
+							{#if selectedGeneration.controlImageUrl}
+								<img
+									src={selectedGeneration.controlImageUrl}
+									alt="Control image ({selectedGeneration.controlMethod})"
+									class="w-full h-full object-contain opacity-50"
+								/>
+								<div class="absolute inset-0 flex flex-col items-center justify-center">
+									<Loader2 class="w-10 h-10 animate-spin text-amber-400 mb-3" />
+									<p class="text-sm text-zinc-200 font-medium">{selectedGeneration.currentStage || 'Generating...'}</p>
+									<p class="text-xs text-zinc-400 mt-1 capitalize">{selectedGeneration.controlMethod} structure extracted</p>
+								</div>
+							{:else}
+								<Loader2 class="w-12 h-12 animate-spin text-amber-400 mb-4" />
+								<p class="text-sm text-zinc-300">{selectedGeneration.currentStage || 'Processing...'}</p>
+							{/if}
 						{:else if selectedGeneration?.status === 'failed'}
 							<X class="w-12 h-12 text-red-400 mb-4" />
 							<p class="text-sm text-red-300 text-center mb-2">Generation failed</p>
@@ -592,41 +554,172 @@ function scrollHistory(direction: 'left' | 'right') {
 		<div class="order-1 lg:order-2">
 			<div class="panel sticky top-20">
 				{#if viewMode === 'new'}
-					<!-- Mode Toggle Tabs -->
-					<div class="mode-tabs mb-5">
-						<button
-							onclick={() => (activeMode = 'generate')}
-							class="mode-tab {activeMode === 'generate' ? 'mode-tab-active' : ''}"
-						>
-							<Sparkles class="w-3.5 h-3.5" />
-							Generate
-						</button>
-						<button
-							onclick={() => (activeMode = 'remix')}
-							class="mode-tab {activeMode === 'remix' ? 'mode-tab-active' : ''}"
-						>
-							<Layers class="w-3.5 h-3.5" />
-							Remix
-							<span class="beta-badge">Beta</span>
-						</button>
-					</div>
+					<!-- UNIFIED FORM -->
 
-					{#if activeMode === 'generate'}
-					<h2 class="panel-title">Generate Concept Art</h2>
-					<p class="text-sm text-zinc-400 mb-5">
-						Create concept art for environments, characters, props, and more.
-						Choose a style preset and aspect ratio to match your vision.
-					</p>
-
+					<!-- Prompt -->
 					<div class="mb-4">
 						<label for="prompt" class="field-label">Description</label>
 						<textarea
 							id="prompt"
 							bind:value={prompt}
-							placeholder="e.g., a mystical forest temple overgrown with vines, golden hour lighting..."
-							rows="4"
+							placeholder="Describe your concept art... environments, characters, props, scenes"
+							rows="3"
 							class="field-textarea"
 						></textarea>
+					</div>
+
+					<!-- Example chips when prompt is empty -->
+					{#if !prompt.trim()}
+						<div class="mb-4" transition:slide={{ duration: 150 }}>
+							<p class="text-xs text-zinc-500 mb-2">Try these:</p>
+							<div class="flex flex-wrap gap-1.5">
+								{#each [
+									'medieval castle on a cliff at sunset',
+									'cyberpunk street market at night',
+									'underwater coral kingdom',
+									'cozy witch cottage in autumn forest',
+									'space station interior, control room',
+								] as example}
+									<button
+										onclick={() => (prompt = example)}
+										class="example-chip"
+									>
+										{example}
+									</button>
+								{/each}
+							</div>
+						</div>
+					{/if}
+
+					<!-- Image Inputs -->
+					<div class="images-section">
+						<div class="images-header">
+							<span class="field-label" style="margin-bottom: 0">Images</span>
+							<span class="text-[10px] text-zinc-600">optional</span>
+						</div>
+
+						<!-- Source Image -->
+						<div>
+							<p class="img-zone-label">
+								<Layers class="w-3 h-3" />
+								Source
+							</p>
+							{#if sourcePreviewUrl}
+								<div class="img-zone img-zone-filled">
+									<img src={sourcePreviewUrl} alt="Source" class="img-zone-img" />
+									<button onclick={clearSource} class="img-zone-clear">
+										<X class="w-3 h-3" />
+									</button>
+								</div>
+							{:else}
+								<!-- svelte-ignore a11y_no_static_element_interactions -->
+								<div
+									ondrop={handleSourceDrop}
+									ondragover={(e) => e.preventDefault()}
+									role="button"
+									tabindex="0"
+									aria-label="Drop zone for source image"
+									class="img-zone"
+								>
+									<input
+										type="file"
+										accept="image/png,image/jpeg,image/webp"
+										onchange={handleSourceSelect}
+										class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+									/>
+									<ImagePlus class="w-5 h-5 text-zinc-500 mb-1" />
+									<p class="text-[10px] text-zinc-500">Drop or click to add image</p>
+								</div>
+							{/if}
+						</div>
+
+						<!-- Contextual Image Controls -->
+						{#if hasSourceImage}
+							<div class="img-controls" transition:slide={{ duration: 200 }}>
+								<!-- Image Mode Toggle -->
+								<div class="mb-3">
+									<p class="text-[10px] text-zinc-500 mb-1.5 uppercase tracking-wider font-medium">Image mode</p>
+									<div class="toggle-group">
+										<button
+											onclick={() => (imageMode = 'structure')}
+											class="toggle-btn {imageMode === 'structure' ? 'toggle-btn-active' : ''}"
+										>
+											<Layers class="w-3.5 h-3.5" />
+											Structure
+										</button>
+										<button
+											onclick={() => (imageMode = 'influence')}
+											class="toggle-btn {imageMode === 'influence' ? 'toggle-btn-active' : ''}"
+										>
+											<Zap class="w-3.5 h-3.5" />
+											Influence
+										</button>
+									</div>
+									<p class="text-[10px] text-zinc-600 mt-1">
+										{imageMode === 'structure'
+											? 'Preserves composition layout via ControlNet'
+											: 'Loosely guides the generation (img2img)'}
+									</p>
+								</div>
+
+								{#if imageMode === 'structure'}
+									<!-- Control Method -->
+									<div class="mb-3" transition:slide={{ duration: 150 }}>
+										<p class="text-[10px] text-zinc-500 mb-1.5 uppercase tracking-wider font-medium">Control method</p>
+										<div class="flex gap-1.5">
+											<button
+												onclick={() => (controlMethod = 'canny')}
+												class="pill {controlMethod === 'canny' ? 'pill-active' : ''}"
+											>
+												Canny (edges)
+											</button>
+											<button
+												onclick={() => (controlMethod = 'depth')}
+												class="pill {controlMethod === 'depth' ? 'pill-active' : ''}"
+											>
+												Depth (3D)
+											</button>
+										</div>
+									</div>
+
+									<!-- Structure Strength -->
+									<div class="mb-1">
+										<div class="flex items-center justify-between mb-1">
+											<label for="structure-str" class="text-[11px] text-zinc-400">Structure strength</label>
+											<span class="text-[11px] text-zinc-500 font-mono">{structureStrength}%</span>
+										</div>
+										<input
+											id="structure-str"
+											type="range"
+											min="0"
+											max="100"
+											bind:value={structureStrength}
+											class="ctrl-slider"
+										/>
+									</div>
+
+									{:else}
+									<!-- Influence Strength -->
+									<div class="mb-1" transition:slide={{ duration: 150 }}>
+										<div class="flex items-center justify-between mb-1">
+											<label for="influence-str" class="text-[11px] text-zinc-400">Reference strength</label>
+											<span class="text-[11px] text-zinc-500 font-mono">{influenceStrength}%</span>
+										</div>
+										<input
+											id="influence-str"
+											type="range"
+											min="0"
+											max="100"
+											bind:value={influenceStrength}
+											class="ctrl-slider"
+										/>
+										<p class="text-[10px] text-zinc-600 mt-1">
+											Lower = more creative freedom &middot; Higher = closer to source
+										</p>
+									</div>
+								{/if}
+							</div>
+						{/if}
 					</div>
 
 					<!-- Style Presets -->
@@ -644,84 +737,8 @@ function scrollHistory(direction: 'left' | 'right') {
 						</div>
 					</div>
 
-					<!-- Reference Image (collapsible) -->
-					<div class="mb-4">
-						<button
-							onclick={() => (showReferenceSection = !showReferenceSection)}
-							class="ref-toggle"
-						>
-							<div class="flex items-center gap-2">
-								<ImagePlus class="w-4 h-4 text-zinc-400" />
-								<span class="text-[.8125rem] font-medium text-zinc-300">Reference Image</span>
-								{#if referenceFile}
-									<span class="ref-badge">1 image</span>
-								{/if}
-							</div>
-							<ChevronDown class="w-4 h-4 text-zinc-500 transition-transform {showReferenceSection ? 'rotate-180' : ''}" />
-						</button>
-
-						{#if showReferenceSection}
-							<div class="ref-content">
-								{#if referencePreviewUrl}
-									<!-- Thumbnail preview with clear button -->
-									<div class="ref-preview">
-										<img
-											src={referencePreviewUrl}
-											alt="Reference"
-											class="ref-preview-img"
-										/>
-										<button onclick={clearReference} class="ref-clear">
-											<X class="w-3.5 h-3.5" />
-										</button>
-									</div>
-								{:else}
-									<!-- Drop zone -->
-									<!-- svelte-ignore a11y_no_static_element_interactions -->
-									<div
-										ondrop={handleRefFileDrop}
-										ondragover={(e) => e.preventDefault()}
-										ondragleave={(e) => e.preventDefault()}
-										role="button"
-										tabindex="0"
-										aria-label="Drop zone for reference image upload"
-										class="ref-dropzone"
-									>
-										<input
-											type="file"
-											accept="image/png,image/jpeg,image/webp"
-											onchange={handleRefFileSelect}
-											class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-										/>
-										<ImagePlus class="w-6 h-6 text-zinc-500 mb-2" />
-										<p class="text-xs text-zinc-500">Drop image or click to upload</p>
-										<p class="text-[10px] text-zinc-600 mt-1">PNG, JPEG, WebP &middot; Max 10MB</p>
-									</div>
-								{/if}
-
-								<!-- Strength slider -->
-								<div class="mt-3">
-									<div class="flex items-center justify-between mb-1.5">
-										<label for="strength" class="text-xs text-zinc-400">Strength</label>
-										<span class="text-xs text-zinc-500 font-mono">{referenceStrength}%</span>
-									</div>
-									<input
-										id="strength"
-										type="range"
-										min="0"
-										max="100"
-										bind:value={referenceStrength}
-										class="ref-slider"
-									/>
-									<p class="text-[10px] text-zinc-600 mt-1">
-										Lower = style influence &middot; Higher = composition influence
-									</p>
-								</div>
-							</div>
-						{/if}
-					</div>
-
 					<!-- Aspect Ratio -->
-					<div class="mb-4">
+					<div class="mb-5">
 						<label class="field-label">Aspect Ratio</label>
 						<div class="flex gap-2">
 							{#each aspectRatios as ratio}
@@ -736,27 +753,18 @@ function scrollHistory(direction: 'left' | 'right') {
 						</div>
 					</div>
 
-					<!-- Example Chips -->
-					<div class="mb-5">
-						<p class="text-xs text-zinc-500 mb-2">Try these:</p>
-						<div class="flex flex-wrap gap-2">
-							{#each [
-								'medieval castle on a cliff at sunset',
-								'cyberpunk street market at night',
-								'underwater coral kingdom',
-								'cozy witch cottage in autumn forest',
-								'space station interior, control room',
-							] as example}
-								<button
-									onclick={() => (prompt = example)}
-									class="example-chip"
-								>
-									{example}
-								</button>
-							{/each}
+					<!-- Mode Indicator -->
+					<div class="mode-indicator">
+						<div class="flex items-center gap-2">
+							<span class="mode-badge mode-badge-{effectiveMode === 'restyle' ? 'restyle' : 'generate'}">
+								{modeLabel}
+							</span>
+							<span class="text-[11px] text-zinc-500">{modeDescription}</span>
 						</div>
+						<span class="text-[11px] text-zinc-400 font-medium">{tokenCost} tokens</span>
 					</div>
 
+					<!-- Status -->
 					{#if status}
 						<div class="mb-4 px-3 py-2 bg-amber-500/6 border border-amber-500/15 rounded-xl">
 							<div class="flex items-center gap-2">
@@ -766,9 +774,10 @@ function scrollHistory(direction: 'left' | 'right') {
 						</div>
 					{/if}
 
+					<!-- Generate Button -->
 					<button
 						onclick={generate}
-						disabled={!prompt.trim() || generating || tokens + bonusTokens < TOKEN_COST}
+						disabled={!prompt.trim() || generating || tokens + bonusTokens < tokenCost}
 						class="btn-generate"
 					>
 						{#if generating}
@@ -776,216 +785,12 @@ function scrollHistory(direction: 'left' | 'right') {
 							Generating...
 						{:else}
 							<Sparkles class="w-4 h-4" />
-							Generate Concept Art ({TOKEN_COST} tokens)
+							Generate ({tokenCost} tokens)
 						{/if}
 					</button>
 
-					<p class="mt-4 text-xs text-zinc-500 text-center">
-						Generates a full-scene concept art image. Output varies by aspect ratio.
-					</p>
-					{:else}
-					<!-- REMIX MODE -->
-					<p class="text-sm text-zinc-400 mb-5">
-						Combine the structure of one image with the visual style of another.
-						Upload a composition reference and a style reference, then describe what you want.
-					</p>
-
-					<div class="mb-4">
-						<label for="remix-prompt" class="field-label">Description</label>
-						<textarea
-							id="remix-prompt"
-							bind:value={prompt}
-							placeholder="e.g., a warrior standing at the gates of a dark fortress..."
-							rows="4"
-							class="field-textarea"
-						></textarea>
-					</div>
-
-					<!-- Style Presets -->
-					<div class="mb-4">
-						<label class="field-label">Style</label>
-						<div class="flex flex-wrap gap-1.5">
-							{#each stylePresets as preset}
-								<button
-									onclick={() => (selectedStyle = preset.id)}
-									class="pill {selectedStyle === preset.id ? 'pill-active' : ''}"
-								>
-									{preset.label}
-								</button>
-							{/each}
-						</div>
-					</div>
-
-					<!-- Dual Image Upload -->
-					<div class="mb-4 grid grid-cols-2 gap-3">
-						<!-- Composition Image -->
-						<div>
-							<label class="field-label flex items-center gap-1.5">
-								<Layers class="w-3.5 h-3.5 text-zinc-500" />
-								Composition
-							</label>
-							{#if compositionPreviewUrl}
-								<div class="ref-preview">
-									<img src={compositionPreviewUrl} alt="Composition" class="remix-preview-img" />
-									<button onclick={clearComposition} class="ref-clear">
-										<X class="w-3.5 h-3.5" />
-									</button>
-								</div>
-							{:else}
-								<!-- svelte-ignore a11y_no_static_element_interactions -->
-								<div
-									ondrop={handleCompositionDrop}
-									ondragover={(e) => e.preventDefault()}
-									role="button"
-									tabindex="0"
-									aria-label="Drop zone for composition image"
-									class="remix-dropzone"
-								>
-									<input
-										type="file"
-										accept="image/png,image/jpeg,image/webp"
-										onchange={handleCompositionSelect}
-										class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-									/>
-									<Layers class="w-5 h-5 text-zinc-500 mb-1" />
-									<p class="text-[10px] text-zinc-500">Structure</p>
-								</div>
-							{/if}
-						</div>
-
-						<!-- Style Image -->
-						<div>
-							<label class="field-label flex items-center gap-1.5">
-								<Paintbrush class="w-3.5 h-3.5 text-zinc-500" />
-								Style
-							</label>
-							{#if stylePreviewUrl}
-								<div class="ref-preview">
-									<img src={stylePreviewUrl} alt="Style" class="remix-preview-img" />
-									<button onclick={clearStyle} class="ref-clear">
-										<X class="w-3.5 h-3.5" />
-									</button>
-								</div>
-							{:else}
-								<!-- svelte-ignore a11y_no_static_element_interactions -->
-								<div
-									ondrop={handleStyleDrop}
-									ondragover={(e) => e.preventDefault()}
-									role="button"
-									tabindex="0"
-									aria-label="Drop zone for style image"
-									class="remix-dropzone"
-								>
-									<input
-										type="file"
-										accept="image/png,image/jpeg,image/webp"
-										onchange={handleStyleSelect}
-										class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-									/>
-									<Paintbrush class="w-5 h-5 text-zinc-500 mb-1" />
-									<p class="text-[10px] text-zinc-500">Visual style</p>
-								</div>
-							{/if}
-						</div>
-					</div>
-
-					<!-- Control Method -->
-					<div class="mb-4">
-						<label class="field-label">Control Method</label>
-						<div class="flex gap-2">
-							<button
-								onclick={() => (controlMethod = 'canny')}
-								class="pill {controlMethod === 'canny' ? 'pill-active' : ''}"
-							>
-								Canny (edges)
-							</button>
-							<button
-								onclick={() => (controlMethod = 'depth')}
-								class="pill {controlMethod === 'depth' ? 'pill-active' : ''}"
-							>
-								Depth (3D structure)
-							</button>
-						</div>
-					</div>
-
-					<!-- Strength Sliders -->
-					<div class="mb-4 grid grid-cols-2 gap-3">
-						<div>
-							<div class="flex items-center justify-between mb-1.5">
-								<label for="comp-strength" class="text-xs text-zinc-400">Composition</label>
-								<span class="text-xs text-zinc-500 font-mono">{compositionStrength}%</span>
-							</div>
-							<input
-								id="comp-strength"
-								type="range"
-								min="0"
-								max="100"
-								bind:value={compositionStrength}
-								class="ref-slider"
-							/>
-							<p class="text-[10px] text-zinc-600 mt-1">Structure adherence</p>
-						</div>
-						<div>
-							<div class="flex items-center justify-between mb-1.5">
-								<label for="style-strength" class="text-xs text-zinc-400">Style</label>
-								<span class="text-xs text-zinc-500 font-mono">{styleStrengthSlider}%</span>
-							</div>
-							<input
-								id="style-strength"
-								type="range"
-								min="0"
-								max="100"
-								bind:value={styleStrengthSlider}
-								class="ref-slider"
-							/>
-							<p class="text-[10px] text-zinc-600 mt-1">Style transfer</p>
-						</div>
-					</div>
-
-					<!-- Aspect Ratio -->
-					<div class="mb-4">
-						<label class="field-label">Aspect Ratio</label>
-						<div class="flex gap-2">
-							{#each aspectRatios as ratio}
-								<button
-									onclick={() => (selectedSize = ratio.id)}
-									class="ratio-btn {selectedSize === ratio.id ? 'ratio-btn-active' : ''}"
-								>
-									<div class="ratio-icon" style="aspect-ratio: {ratio.cssRatio}"></div>
-									<span class="text-[10px]">{ratio.label}</span>
-								</button>
-							{/each}
-						</div>
-					</div>
-
-					{#if status}
-						<div class="mb-4 px-3 py-2 bg-amber-500/6 border border-amber-500/15 rounded-xl">
-							<div class="flex items-center gap-2">
-								<Loader2 class="w-4 h-4 animate-spin text-amber-400" />
-								<span class="text-sm text-amber-300">{status}</span>
-							</div>
-						</div>
-					{/if}
-
-					<button
-						onclick={generate}
-						disabled={!prompt.trim() || generating || !compositionFile || !styleFile || tokens + bonusTokens < REMIX_TOKEN_COST}
-						class="btn-generate"
-					>
-						{#if generating}
-							<Loader2 class="w-4 h-4 animate-spin" />
-							Generating...
-						{:else}
-							<Layers class="w-4 h-4" />
-							Remix ({REMIX_TOKEN_COST} tokens)
-						{/if}
-					</button>
-
-					<p class="mt-4 text-xs text-zinc-500 text-center">
-						Combines structure from composition image with the visual style of another.
-					</p>
-					{/if}
 				{:else if selectedGeneration}
+					<!-- DETAIL VIEW -->
 					<div class="flex items-center justify-between mb-4">
 						<h2 class="panel-title" style="margin-bottom:0">
 							{#if selectedGeneration.status === 'processing' || selectedGeneration.status === 'pending'}
@@ -1022,37 +827,33 @@ function scrollHistory(direction: 'left' | 'right') {
 							</p>
 						</div>
 
-						{#if selectedGeneration.mode === 'remix' && (selectedGeneration.compositionImageUrl || selectedGeneration.styleImageUrl)}
+						{#if selectedGeneration.mode === 'restyle' && selectedGeneration.compositionImageUrl}
 							<div class="mb-4">
-								<span class="text-xs text-zinc-500 mb-2 block">Remix References</span>
+								<span class="text-xs text-zinc-500 mb-2 block">References</span>
 								<div class="grid grid-cols-2 gap-2">
-									{#if selectedGeneration.compositionImageUrl}
+									<div class="p-2 bg-zinc-800/30 rounded-xl border border-zinc-700/40">
+										<img
+											src={selectedGeneration.compositionImageUrl}
+											alt="Source"
+											class="w-full aspect-square rounded-lg object-cover mb-1.5"
+										/>
+										<p class="text-[10px] text-zinc-500">Source</p>
+									</div>
+									{#if selectedGeneration.controlImageUrl}
 										<div class="p-2 bg-zinc-800/30 rounded-xl border border-zinc-700/40">
 											<img
-												src={selectedGeneration.compositionImageUrl}
-												alt="Composition"
+												src={selectedGeneration.controlImageUrl}
+												alt="Control"
 												class="w-full aspect-square rounded-lg object-cover mb-1.5"
 											/>
-											<p class="text-[10px] text-zinc-500">Composition</p>
-											<p class="text-xs text-white font-medium">{selectedGeneration.controlStrength ?? 70}%</p>
-										</div>
-									{/if}
-									{#if selectedGeneration.styleImageUrl}
-										<div class="p-2 bg-zinc-800/30 rounded-xl border border-zinc-700/40">
-											<img
-												src={selectedGeneration.styleImageUrl}
-												alt="Style"
-												class="w-full aspect-square rounded-lg object-cover mb-1.5"
-											/>
-											<p class="text-[10px] text-zinc-500">Style</p>
-											<p class="text-xs text-white font-medium">{selectedGeneration.styleStrength ?? 80}%</p>
+											<p class="text-[10px] text-zinc-500 capitalize">{selectedGeneration.controlMethod} map</p>
 										</div>
 									{/if}
 								</div>
 							</div>
 						{:else if selectedGeneration.referenceImageUrl}
 							<div class="mb-4">
-								<span class="text-xs text-zinc-500 mb-2 block">Reference Image</span>
+								<span class="text-xs text-zinc-500 mb-2 block">Reference</span>
 								<div class="flex items-center gap-3 p-2 bg-zinc-800/30 rounded-xl border border-zinc-700/40">
 									<img
 										src={selectedGeneration.referenceImageUrl}
@@ -1072,10 +873,10 @@ function scrollHistory(direction: 'left' | 'right') {
 								<span class="text-zinc-400">Token Cost</span>
 								<span class="text-white font-medium">{selectedGeneration.tokenCost}</span>
 							</div>
-							{#if selectedGeneration.mode === 'remix'}
+							{#if selectedGeneration.mode !== 'standard'}
 								<div class="flex items-center justify-between text-sm mt-2">
 									<span class="text-zinc-400">Mode</span>
-									<span class="text-white font-medium">Remix</span>
+									<span class="text-white font-medium capitalize">{selectedGeneration.mode}</span>
 								</div>
 							{/if}
 							{#if selectedGeneration.controlMethod}
@@ -1115,67 +916,7 @@ function scrollHistory(direction: 'left' | 'right') {
 </div>
 
 <style>
-	/* Mode tabs */
-	.mode-tabs {
-		display: flex;
-		gap: .25rem;
-		padding: .25rem;
-		background: rgba(39,39,42,.3);
-		border: 1px solid rgba(63,63,70,.3);
-		border-radius: .6rem;
-	}
-	.mode-tab {
-		flex: 1;
-		display: flex; align-items: center; justify-content: center; gap: .4rem;
-		padding: .5rem .75rem;
-		font-size: .8125rem; font-weight: 500;
-		color: #a1a1aa;
-		background: none; border: none; border-radius: .45rem;
-		cursor: pointer;
-		transition: all .2s;
-	}
-	.mode-tab:hover { color: #fff; background: rgba(63,63,70,.3); }
-	.mode-tab-active {
-		color: #fbbf24;
-		background: rgba(245,158,11,.1);
-		box-shadow: 0 0 0 1px rgba(245,158,11,.25);
-	}
-	.beta-badge {
-		font-size: .6rem;
-		font-weight: 700;
-		letter-spacing: .04em;
-		text-transform: uppercase;
-		padding: .1rem .35rem;
-		border-radius: 2rem;
-		background: rgba(139,92,246,.15);
-		color: #a78bfa;
-		line-height: 1;
-	}
-
-	/* Remix dropzone */
-	.remix-dropzone {
-		position: relative;
-		aspect-ratio: 1/1;
-		background: rgba(39,39,42,.25);
-		border: 2px dashed rgba(63,63,70,.5);
-		border-radius: .5rem;
-		display: flex; flex-direction: column;
-		align-items: center; justify-content: center;
-		cursor: pointer;
-		transition: border-color .2s, background .2s;
-	}
-	.remix-dropzone:hover {
-		border-color: rgba(63,63,70,.8);
-		background: rgba(39,39,42,.4);
-	}
-	.remix-preview-img {
-		width: 100%; aspect-ratio: 1/1;
-		object-fit: cover;
-		border-radius: .5rem;
-		border: 1px solid rgba(63,63,70,.4);
-	}
-
-	/* Panels */
+	/* ═══ Panels ═══ */
 	.panel {
 		background: rgba(24,24,27,.5);
 		border: 1px solid rgba(63,63,70,.35);
@@ -1188,7 +929,7 @@ function scrollHistory(direction: 'left' | 'right') {
 		color: #fff; margin-bottom: 1rem;
 	}
 
-	/* History bar */
+	/* ═══ History Bar ═══ */
 	.history-bar {
 		background: rgba(24,24,27,.5);
 		border: 1px solid rgba(63,63,70,.35);
@@ -1220,7 +961,7 @@ function scrollHistory(direction: 'left' | 'right') {
 	.history-thumb:hover { border-color: rgba(63,63,70,.6); }
 	.history-thumb-active { border-color: rgba(245,158,11,.5); }
 
-	/* Preview panel */
+	/* ═══ Preview Panel ═══ */
 	.preview-panel {
 		background: rgba(24,24,27,.5);
 		border: 1px solid rgba(63,63,70,.35);
@@ -1241,15 +982,12 @@ function scrollHistory(direction: 'left' | 'right') {
 		position: relative;
 	}
 	.preview-inner {
-		position: absolute;
-		inset: 0;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
+		position: absolute; inset: 0;
+		display: flex; flex-direction: column;
+		align-items: center; justify-content: center;
 	}
 
-	/* Form fields */
+	/* ═══ Form Fields ═══ */
 	.field-label {
 		display: block;
 		font-size: .8125rem;
@@ -1275,7 +1013,128 @@ function scrollHistory(direction: 'left' | 'right') {
 		box-shadow: 0 0 0 3px rgba(245,158,11,.08);
 	}
 
-	/* Style pill buttons */
+	/* ═══ Image Upload Zones ═══ */
+	.images-section {
+		margin-bottom: 1rem;
+		padding: .75rem;
+		background: rgba(39,39,42,.15);
+		border: 1px solid rgba(63,63,70,.25);
+		border-radius: .75rem;
+	}
+	.images-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: .5rem;
+	}
+	.img-zone-label {
+		display: flex; align-items: center; gap: .3rem;
+		font-size: .6875rem; font-weight: 500;
+		color: #71717a;
+		margin-bottom: .35rem;
+		text-transform: uppercase;
+		letter-spacing: .03em;
+	}
+	.img-zone {
+		position: relative;
+		aspect-ratio: 1/1;
+		background: rgba(24,24,27,.4);
+		border: 2px dashed rgba(63,63,70,.45);
+		border-radius: .6rem;
+		display: flex; flex-direction: column;
+		align-items: center; justify-content: center;
+		cursor: pointer;
+		transition: border-color .25s, background .25s, box-shadow .25s;
+		overflow: hidden;
+	}
+	.img-zone:hover:not(.img-zone-locked) {
+		border-color: rgba(245,158,11,.35);
+		background: rgba(24,24,27,.6);
+		box-shadow: 0 0 12px rgba(245,158,11,.06);
+	}
+	.img-zone-filled {
+		border-style: solid;
+		border-color: rgba(63,63,70,.4);
+		cursor: default;
+	}
+	.img-zone-filled:hover {
+		border-color: rgba(63,63,70,.5) !important;
+		box-shadow: none !important;
+	}
+	.img-zone-img {
+		width: 100%; height: 100%;
+		object-fit: cover;
+	}
+	.img-zone-clear {
+		position: absolute; top: .35rem; right: .35rem;
+		width: 1.35rem; height: 1.35rem;
+		border-radius: 50%;
+		background: rgba(0,0,0,.7);
+		border: 1px solid rgba(255,255,255,.15);
+		display: flex; align-items: center; justify-content: center;
+		color: #fff; cursor: pointer;
+		opacity: 0;
+		transition: opacity .2s, background .2s;
+	}
+	.img-zone-filled:hover .img-zone-clear { opacity: 1; }
+	.img-zone-clear:hover { background: rgba(239,68,68,.8); }
+
+	/* ═══ Image Controls ═══ */
+	.img-controls {
+		margin-top: .75rem;
+		padding-top: .75rem;
+		border-top: 1px solid rgba(63,63,70,.2);
+	}
+	.toggle-group {
+		display: flex; gap: .25rem;
+		padding: .2rem;
+		background: rgba(24,24,27,.5);
+		border: 1px solid rgba(63,63,70,.3);
+		border-radius: .5rem;
+	}
+	.toggle-btn {
+		flex: 1;
+		display: flex; align-items: center; justify-content: center; gap: .35rem;
+		padding: .4rem .5rem;
+		font-size: .75rem; font-weight: 500;
+		color: #71717a;
+		background: none; border: none; border-radius: .35rem;
+		cursor: pointer;
+		transition: all .2s;
+	}
+	.toggle-btn:hover { color: #a1a1aa; background: rgba(63,63,70,.2); }
+	.toggle-btn-active {
+		color: #fbbf24;
+		background: rgba(245,158,11,.1);
+		box-shadow: 0 0 0 1px rgba(245,158,11,.2);
+	}
+
+	/* ═══ Sliders ═══ */
+	.ctrl-slider {
+		width: 100%;
+		height: .3rem;
+		appearance: none;
+		background: rgba(63,63,70,.4);
+		border-radius: .15rem;
+		outline: none;
+	}
+	.ctrl-slider::-webkit-slider-thumb {
+		appearance: none;
+		width: .8rem; height: .8rem;
+		border-radius: 50%;
+		background: #fbbf24;
+		cursor: pointer;
+		border: 2px solid #18181b;
+	}
+	.ctrl-slider::-moz-range-thumb {
+		width: .8rem; height: .8rem;
+		border-radius: 50%;
+		background: #fbbf24;
+		cursor: pointer;
+		border: 2px solid #18181b;
+	}
+
+	/* ═══ Style Pills ═══ */
 	.pill {
 		padding: .3rem .65rem;
 		font-size: .75rem;
@@ -1293,94 +1152,7 @@ function scrollHistory(direction: 'left' | 'right') {
 		color: #fbbf24;
 	}
 
-	/* Reference image section */
-	.ref-toggle {
-		width: 100%;
-		display: flex; align-items: center; justify-content: space-between;
-		padding: .55rem .75rem;
-		background: rgba(39,39,42,.3);
-		border: 1px solid rgba(63,63,70,.35);
-		border-radius: .6rem;
-		cursor: pointer;
-		transition: background .2s;
-	}
-	.ref-toggle:hover { background: rgba(39,39,42,.5); }
-	.ref-badge {
-		font-size: .65rem;
-		padding: .1rem .4rem;
-		background: rgba(245,158,11,.15);
-		color: #fbbf24;
-		border-radius: 2rem;
-	}
-	.ref-content {
-		margin-top: .5rem;
-		padding: .75rem;
-		background: rgba(39,39,42,.2);
-		border: 1px solid rgba(63,63,70,.25);
-		border-radius: .6rem;
-	}
-	.ref-dropzone {
-		position: relative;
-		aspect-ratio: 16/9;
-		background: rgba(39,39,42,.25);
-		border: 2px dashed rgba(63,63,70,.5);
-		border-radius: .5rem;
-		display: flex; flex-direction: column;
-		align-items: center; justify-content: center;
-		cursor: pointer;
-		transition: border-color .2s, background .2s;
-	}
-	.ref-dropzone:hover {
-		border-color: rgba(63,63,70,.8);
-		background: rgba(39,39,42,.4);
-	}
-	.ref-preview {
-		position: relative;
-		display: inline-block;
-	}
-	.ref-preview-img {
-		width: 5rem; height: 5rem;
-		object-fit: cover;
-		border-radius: .5rem;
-		border: 1px solid rgba(63,63,70,.4);
-	}
-	.ref-clear {
-		position: absolute; top: -.35rem; right: -.35rem;
-		width: 1.25rem; height: 1.25rem;
-		border-radius: 50%;
-		background: #27272a;
-		border: 1px solid rgba(63,63,70,.5);
-		display: flex; align-items: center; justify-content: center;
-		color: #a1a1aa;
-		cursor: pointer;
-		transition: background .2s, color .2s;
-	}
-	.ref-clear:hover { background: #3f3f46; color: #fff; }
-	.ref-slider {
-		width: 100%;
-		height: .35rem;
-		appearance: none;
-		background: rgba(63,63,70,.4);
-		border-radius: .2rem;
-		outline: none;
-	}
-	.ref-slider::-webkit-slider-thumb {
-		appearance: none;
-		width: .85rem; height: .85rem;
-		border-radius: 50%;
-		background: #fbbf24;
-		cursor: pointer;
-		border: 2px solid #18181b;
-	}
-	.ref-slider::-moz-range-thumb {
-		width: .85rem; height: .85rem;
-		border-radius: 50%;
-		background: #fbbf24;
-		cursor: pointer;
-		border: 2px solid #18181b;
-	}
-
-	/* Aspect ratio buttons */
+	/* ═══ Aspect Ratio ═══ */
 	.ratio-btn {
 		display: flex; flex-direction: column; align-items: center; gap: .3rem;
 		padding: .45rem .6rem;
@@ -1404,7 +1176,36 @@ function scrollHistory(direction: 'left' | 'right') {
 		border-radius: .2rem;
 	}
 
-	/* Example chips */
+	/* ═══ Mode Indicator ═══ */
+	.mode-indicator {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: .5rem .65rem;
+		margin-bottom: 1rem;
+		background: rgba(39,39,42,.2);
+		border: 1px solid rgba(63,63,70,.2);
+		border-radius: .55rem;
+	}
+	.mode-badge {
+		font-size: .65rem;
+		font-weight: 700;
+		letter-spacing: .04em;
+		text-transform: uppercase;
+		padding: .15rem .45rem;
+		border-radius: 2rem;
+		line-height: 1.2;
+	}
+	.mode-badge-generate {
+		background: rgba(161,161,170,.12);
+		color: #a1a1aa;
+	}
+	.mode-badge-restyle {
+		background: rgba(245,158,11,.12);
+		color: #fbbf24;
+	}
+
+	/* ═══ Example Chips ═══ */
 	.example-chip {
 		padding: .25rem .55rem;
 		font-size: .72rem;
@@ -1415,7 +1216,7 @@ function scrollHistory(direction: 'left' | 'right') {
 	}
 	.example-chip:hover { background: rgba(63,63,70,.5); }
 
-	/* Buttons */
+	/* ═══ Buttons ═══ */
 	.btn-generate {
 		width: 100%;
 		display: flex; align-items: center; justify-content: center; gap: .5rem;
@@ -1436,7 +1237,6 @@ function scrollHistory(direction: 'left' | 'right') {
 		background: rgba(63,63,70,.4);
 		color: #71717a; cursor: not-allowed; box-shadow: none;
 	}
-
 	.btn-secondary {
 		display: flex; align-items: center; justify-content: center; gap: .4rem;
 		padding: .6rem 1rem;
@@ -1446,7 +1246,6 @@ function scrollHistory(direction: 'left' | 'right') {
 		transition: background .2s;
 	}
 	.btn-secondary:hover { background: rgba(63,63,70,.5); }
-
 	.btn-cancel {
 		width: 100%;
 		display: flex; align-items: center; justify-content: center; gap: .4rem;
@@ -1457,7 +1256,6 @@ function scrollHistory(direction: 'left' | 'right') {
 		transition: background .2s, color .2s;
 	}
 	.btn-cancel:hover { background: rgba(239,68,68,.1); color: #fca5a5; }
-
 	.btn-download {
 		display: flex; align-items: center; justify-content: center; gap: .4rem;
 		padding: .6rem 1rem;
@@ -1467,7 +1265,6 @@ function scrollHistory(direction: 'left' | 'right') {
 		transition: box-shadow .2s;
 	}
 	.btn-download:hover { box-shadow: 0 0 16px rgba(245,158,11,.2); }
-
 	.btn-sm {
 		display: flex; align-items: center; gap: .35rem;
 		padding: .35rem .65rem;

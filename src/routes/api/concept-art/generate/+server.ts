@@ -6,7 +6,7 @@ import { env } from '$env/dynamic/private';
 import { PRICING } from '$lib/pricing';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { submitConceptArtJob, submitConceptArtRemixJob } from '$lib/server/fal';
+import { submitConceptArtJob, submitPreprocessorJob } from '$lib/server/fal';
 import type { RequestHandler } from './$types';
 
 const VALID_IMAGE_SIZES = [
@@ -68,13 +68,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	let referenceImageUrl: string | null = null;
 	let referenceStrength: number | null = null;
 
-	// Remix fields
 	let mode: string = 'standard';
 	let compositionImageUrl: string | null = null;
-	let styleImageUrl: string | null = null;
 	let controlMethod: string | null = null;
 	let controlStrength: number | null = null;
-	let styleStrengthVal: number | null = null;
 
 	if (contentType.includes('multipart/form-data')) {
 		const formData = await request.formData();
@@ -91,22 +88,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 
 		const modeField = formData.get('mode') as string | null;
-		if (modeField === 'remix') {
-			mode = 'remix';
+		if (modeField === 'restyle') {
+			mode = 'restyle';
 
 			// Upload composition image
 			const compositionFile = formData.get('compositionImage') as File | null;
 			if (!compositionFile || compositionFile.size === 0) {
-				error(400, 'Composition image is required for remix mode');
+				error(400, 'Composition image is required for restyle mode');
 			}
 			compositionImageUrl = await uploadImage(compositionFile, locals.user.id);
-
-			// Upload style image
-			const styleFile = formData.get('styleImage') as File | null;
-			if (!styleFile || styleFile.size === 0) {
-				error(400, 'Style image is required for remix mode');
-			}
-			styleImageUrl = await uploadImage(styleFile, locals.user.id);
 
 			// Control method
 			const controlMethodField = formData.get('controlMethod') as string | null;
@@ -125,16 +115,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				}
 			}
 			if (controlStrength === null) controlStrength = 70;
-
-			// Style strength (0-100)
-			const styleStrengthField = formData.get('styleStrength') as string | null;
-			if (styleStrengthField) {
-				const parsed = parseInt(styleStrengthField, 10);
-				if (!Number.isNaN(parsed) && parsed >= 0 && parsed <= 100) {
-					styleStrengthVal = parsed;
-				}
-			}
-			if (styleStrengthVal === null) styleStrengthVal = 80;
 		} else {
 			// Standard mode — handle reference image
 			const file = formData.get('image') as File | null;
@@ -178,8 +158,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		error(400, 'Invalid style preset');
 	}
 
-	const TOKEN_COST = mode === 'remix'
-		? PRICING.tokenCosts.conceptArtRemix
+	const TOKEN_COST = mode === 'restyle'
+		? PRICING.tokenCosts.conceptArtRestyle
 		: PRICING.tokenCosts.conceptArt;
 
 	const total = locals.user.tokens + locals.user.bonusTokens;
@@ -221,30 +201,25 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			referenceStrength,
 			mode,
 			compositionImageUrl,
-			styleImageUrl,
 			controlMethod,
 			controlStrength,
-			styleStrength: styleStrengthVal,
 			status: 'pending',
 			tokenCost: TOKEN_COST,
 			bonusTokenCost: bonusDeduct,
-			currentStage: 'Queued for processing...',
+			currentStage: mode === 'restyle' ? 'Extracting structure...' : 'Queued for processing...',
 		});
 
 	// Submit to fal.ai
 	try {
 		let falResponse: { requestId: string };
 
-		if (mode === 'remix') {
-			falResponse = await submitConceptArtRemixJob({
-				prompt: fullPrompt,
-				imageSize,
-				compositionImageUrl: compositionImageUrl!,
-				styleImageUrl: styleImageUrl!,
-				controlMethod: controlMethod!,
-				controlStrength: controlStrength! / 100,
-				styleStrength: styleStrengthVal! / 100,
-				seed,
+		if (mode === 'restyle') {
+			// Two-phase: preprocessor → generation.
+			// Submit the preprocessor job to the queue and return immediately.
+			// The status endpoint drives phase transitions.
+			falResponse = await submitPreprocessorJob({
+				imageUrl: compositionImageUrl!,
+				method: controlMethod as 'canny' | 'depth',
 			});
 		} else {
 			falResponse = await submitConceptArtJob({
