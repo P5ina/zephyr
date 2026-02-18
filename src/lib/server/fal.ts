@@ -41,8 +41,8 @@ export async function submitSpriteJob(params: {
 	const { request_id } = await fal.queue.submit(FAL_SPRITE_WORKFLOW_ID, {
 		input: {
 			prompt: params.prompt,
-			width: params.width ?? 1024,
-			height: params.height ?? 1024,
+			width: params.width ?? 512,
+			height: params.height ?? 512,
 			seed: params.seed,
 		},
 	});

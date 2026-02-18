@@ -14,9 +14,28 @@ const TOKEN_COSTS: Record<string, number> = {
 	texture: PRICING.tokenCosts.texture,
 };
 
+const SPRITE_BASE_SUFFIX = ', game asset, centered, single object, white background';
+
+const SPRITE_STYLE_PREFIXES: Record<string, string> = {
+	'hand-painted': 'hand-painted 2D art, stylized, painted texture, ',
+	'anime': 'anime style, cel-shaded, clean lines, ',
+	'cartoon': 'cartoon style, bold outlines, vibrant colors, ',
+	'realistic': 'realistic 3D rendered, high detail, PBR shading, studio lighting, ',
+	'vector': 'vector art, flat colors, clean shapes, minimal shading, SVG style, ',
+	'outline': 'black outline drawing, lineart, clean strokes, minimal fill, ',
+};
+
+const SPRITE_DEFAULT_PREFIX = '';
+
+function buildSpritePrompt(userPrompt: string, style?: string): string {
+	const prefix = style && SPRITE_STYLE_PREFIXES[style] ? SPRITE_STYLE_PREFIXES[style] : SPRITE_DEFAULT_PREFIX;
+	return prefix + userPrompt + SPRITE_BASE_SUFFIX;
+}
+
 interface AssetGenerateRequest {
 	assetType?: 'sprite' | 'texture';
 	prompt: string;
+	style?: string;
 	width?: number;
 	height?: number;
 	seed?: number;
@@ -61,8 +80,8 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 		// Create asset record for guest
 		const assetId = nanoid();
 		const assetVisibleId = nanoid(10);
-		const width = body.width || 1024;
-		const height = body.height || 1024;
+		const width = body.width || 512;
+		const height = body.height || 512;
 
 		const [asset] = await db
 			.insert(table.assetGeneration)
@@ -82,9 +101,11 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 			.returning();
 
 		// Submit to fal.ai
+		const generationPrompt = buildSpritePrompt(body.prompt, body.style);
+		console.log('[sprite] Final prompt:', generationPrompt, '| style:', body.style);
 		try {
 			const falResponse = await submitSpriteJob({
-				prompt: body.prompt,
+				prompt: generationPrompt,
 				width,
 				height,
 				seed: body.seed,
@@ -147,8 +168,8 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 	// Create asset record with 'pending' status - worker will pick it up
 	const assetId = nanoid();
 	const assetVisibleId = nanoid(10);
-	const width = body.width || 1024;
-	const height = body.height || 1024;
+	const width = body.width || 512;
+	const height = body.height || 512;
 
 	const [asset] = await db
 		.insert(table.assetGeneration)
@@ -168,9 +189,11 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 		.returning();
 
 	// Submit to fal.ai for processing
+	const authGenerationPrompt = buildSpritePrompt(body.prompt, body.style);
+	console.log('[sprite] Final prompt:', authGenerationPrompt, '| style:', body.style);
 	try {
 		const falResponse = await submitSpriteJob({
-			prompt: body.prompt,
+			prompt: authGenerationPrompt,
 			width,
 			height,
 			seed: body.seed,

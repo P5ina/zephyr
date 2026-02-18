@@ -31,6 +31,17 @@ const guestGenerationsRemaining = $derived(
 // Generation form
 let prompt = $state('');
 let generating = $state(false);
+let selectedStyle = $state<string | null>(null);
+
+const stylePresets = [
+	{ id: null, label: 'Default' },
+	{ id: 'hand-painted', label: 'Hand-Painted' },
+	{ id: 'anime', label: 'Anime' },
+	{ id: 'cartoon', label: 'Cartoon' },
+	{ id: 'realistic', label: 'Realistic' },
+	{ id: 'vector', label: 'Vector' },
+	{ id: 'outline', label: 'Outline' },
+] as const;
 
 // Modal state
 let selectedGeneration = $state<AssetGeneration | null>(null);
@@ -82,6 +93,7 @@ async function generate() {
 			body: JSON.stringify({
 				assetType: 'sprite',
 				prompt: prompt.trim(),
+				...(selectedStyle && { style: selectedStyle }),
 			}),
 		});
 
@@ -292,6 +304,20 @@ function getAssetTypeLabel(type: string) {
 							onclick={() => { prompt = suggestion; }}
 						>
 							{suggestion}
+						</button>
+					{/each}
+				</div>
+			</div>
+
+			<div class="mb-4">
+				<label class="field-label">Style</label>
+				<div class="flex flex-wrap gap-1.5">
+					{#each stylePresets as preset}
+						<button
+							onclick={() => (selectedStyle = preset.id)}
+							class="pill {selectedStyle === preset.id ? 'pill-active' : ''}"
+						>
+							{preset.label}
 						</button>
 					{/each}
 				</div>
@@ -643,6 +669,24 @@ function getAssetTypeLabel(type: string) {
 		background: rgba(63,63,70,.5);
 		color: #e4e4e7;
 		border-color: rgba(63,63,70,.65);
+	}
+
+	/* Style pills */
+	.pill {
+		padding: .3rem .65rem;
+		font-size: .75rem;
+		background: rgba(39,39,42,.4);
+		border: 1px solid rgba(63,63,70,.4);
+		border-radius: 2rem;
+		color: #a1a1aa;
+		cursor: pointer;
+		transition: all .2s;
+	}
+	.pill:hover { background: rgba(63,63,70,.5); color: #fff; }
+	.pill-active {
+		background: rgba(245,158,11,.1);
+		border-color: rgba(245,158,11,.4);
+		color: #fbbf24;
 	}
 
 	/* Generate button */
