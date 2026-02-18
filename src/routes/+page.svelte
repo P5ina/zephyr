@@ -735,10 +735,8 @@ function inView(node: HTMLElement) {
 
 	/* ===== Mobile sprite grid ===== */
 	.sprites-mobile {
-		display: grid; grid-template-columns: repeat(3,1fr); gap: .85rem;
-		max-width: 22rem; margin: 2.5rem auto 0; padding: 0 1rem;
+		display: none;
 	}
-	@media (min-width: 768px) { .sprites-mobile { display: none; } }
 	.sprite-cell {
 		aspect-ratio: 1; padding: .6rem;
 		background: rgba(245,158,11,.04);
