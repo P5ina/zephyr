@@ -15,6 +15,7 @@ import {
 } from 'lucide-svelte';
 import { track } from '@vercel/analytics';
 import { PRICING } from '$lib/pricing';
+import { tokenState } from '$lib/token-state.svelte';
 import type { ConceptArtGeneration } from '$lib/server/db/schema';
 import type { PageData } from './$types';
 
@@ -22,11 +23,6 @@ let { data }: { data: PageData } = $props();
 
 // svelte-ignore state_referenced_locally
 const initialGenerations = data.generations;
-
-// svelte-ignore state_referenced_locally
-let tokens = $state(data.user?.tokens ?? 0);
-// svelte-ignore state_referenced_locally
-let bonusTokens = $state(data.user?.bonusTokens ?? 0);
 
 let viewMode = $state<'new' | string>(
 	initialGenerations.length > 0 ? initialGenerations[0].id : 'new',
@@ -165,7 +161,7 @@ function clearSource() {
 async function generate() {
 	if (!prompt.trim() || generating) return;
 
-	if (tokens + bonusTokens < tokenCost) {
+	if (tokenState.total < tokenCost) {
 		alert('Not enough tokens');
 		return;
 	}
@@ -215,8 +211,8 @@ async function generate() {
 		}
 
 		const result = await res.json();
-		tokens = result.tokensRemaining ?? tokens;
-		bonusTokens = result.bonusTokensRemaining ?? bonusTokens;
+		tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
+		tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;
 
 		track('generation_started', {
 			type: effectiveMode === 'restyle' ? 'concept_art_restyle' : 'concept_art',
@@ -777,7 +773,7 @@ function scrollHistory(direction: 'left' | 'right') {
 					<!-- Generate Button -->
 					<button
 						onclick={generate}
-						disabled={!prompt.trim() || generating || tokens + bonusTokens < tokenCost}
+						disabled={!prompt.trim() || generating || tokenState.total < tokenCost}
 						class="btn-generate"
 					>
 						{#if generating}

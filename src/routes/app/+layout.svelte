@@ -3,23 +3,22 @@ import { Coins, Layers, Lock, Menu, Palette, Rotate3d, RotateCw, Sparkles, X } f
 import type { Snippet } from 'svelte';
 import { page } from '$app/state';
 import { GUEST_CONFIG } from '$lib/guest-config';
+import { tokenState } from '$lib/token-state.svelte';
 import type { LayoutData } from './$types';
 
 let { data, children }: { data: LayoutData; children: Snippet } = $props();
 
-// Capture initial values for local state management
-// svelte-ignore state_referenced_locally
-const initialUser = data.user;
-// svelte-ignore state_referenced_locally
-const initialGuestSession = data.guestSession;
+// Initialize shared token state from server data
+tokenState.init(
+	data.user?.tokens ?? 0,
+	data.user?.bonusTokens ?? 0,
+	data.guestSession?.generationsUsed ?? 0,
+);
 
-let tokens = $state(initialUser?.tokens ?? 0);
-let bonusTokens = $state(initialUser?.bonusTokens ?? 0);
-let guestGenerationsUsed = $state(initialGuestSession?.generationsUsed ?? 0);
 let mobileMenuOpen = $state(false);
 
 const guestGenerationsRemaining = $derived(
-	GUEST_CONFIG.maxGenerations - guestGenerationsUsed
+	GUEST_CONFIG.maxGenerations - tokenState.guestGenerationsUsed
 );
 
 const tabs = [
@@ -82,7 +81,7 @@ function closeMobileMenu() {
 				{:else if data.user}
 					<a href="/app/billing" class="token-badge token-badge-link" title="Tokens available">
 						<Coins class="w-4 h-4 text-amber-400" />
-						<span>{tokens + bonusTokens}</span>
+						<span>{tokenState.total}</span>
 					</a>
 					{#if data.user.avatarUrl}
 						<img
@@ -105,7 +104,7 @@ function closeMobileMenu() {
 				{:else if data.user}
 					<a href="/app/billing" class="token-badge token-badge-link" title="Tokens available">
 						<Coins class="w-4 h-4 text-amber-400" />
-						<span>{tokens + bonusTokens}</span>
+						<span>{tokenState.total}</span>
 					</a>
 				{/if}
 				<button

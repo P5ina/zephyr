@@ -13,6 +13,7 @@ import {
 import { track } from '@vercel/analytics';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import { PRICING } from '$lib/pricing';
+import { tokenState } from '$lib/token-state.svelte';
 import type { AssetGeneration } from '$lib/server/db/schema';
 import type { PageData } from './$types';
 
@@ -21,19 +22,10 @@ let { data }: { data: PageData } = $props();
 // svelte-ignore state_referenced_locally
 const initialGenerations = data.assetGenerations;
 
-// User token state (only used when not a guest)
-// svelte-ignore state_referenced_locally
-let tokens = $state(data.user?.tokens ?? 0);
-// svelte-ignore state_referenced_locally
-let bonusTokens = $state(data.user?.bonusTokens ?? 0);
-
-// Guest state
-// svelte-ignore state_referenced_locally
-let guestGenerationsUsed = $state(data.guestSession?.generationsUsed ?? 0);
 let showSignupPrompt = $state(false);
 
 const guestGenerationsRemaining = $derived(
-	GUEST_CONFIG.maxGenerations - guestGenerationsUsed
+	GUEST_CONFIG.maxGenerations - tokenState.guestGenerationsUsed
 );
 
 // Generation form
@@ -59,7 +51,7 @@ const TOKEN_COST = PRICING.tokenCosts.sprite;
 const canGenerate = $derived(
 	data.isGuest
 		? guestGenerationsRemaining > 0
-		: tokens + bonusTokens >= TOKEN_COST
+		: tokenState.total >= TOKEN_COST
 );
 
 // Track which generations we're already polling
@@ -107,12 +99,12 @@ async function generate() {
 
 		if (result.isGuest) {
 			// Update guest state
-			guestGenerationsUsed = GUEST_CONFIG.maxGenerations - result.generationsRemaining;
+			tokenState.guestGenerationsUsed = GUEST_CONFIG.maxGenerations - result.generationsRemaining;
 			// Show signup prompt after first generation
 			showSignupPrompt = true;
 		} else {
-			tokens = result.tokensRemaining;
-			bonusTokens = result.bonusTokensRemaining;
+			tokenState.tokens = result.tokensRemaining;
+			tokenState.bonusTokens = result.bonusTokensRemaining;
 		}
 
 		// Start polling for status if needed
@@ -213,7 +205,7 @@ async function cancelGeneration(id: string) {
 					: g,
 			);
 			if (!data.isGuest && result.tokensRefunded > 0) {
-				tokens = tokens + result.tokensRefunded;
+				tokenState.tokens = tokenState.tokens + result.tokensRefunded;
 			}
 		} else {
 			const error = await res.json();
@@ -283,6 +275,26 @@ function getAssetTypeLabel(type: string) {
 					rows="3"
 					class="field-textarea"
 				></textarea>
+				<div class="suggestions">
+					{#each [
+						'Medieval knight with sword and shield',
+						'Fire mage casting a spell',
+						'Pixel treasure chest',
+						'Green slime enemy',
+						'Health potion bottle',
+						'Wooden barrel',
+						'Fantasy dragon',
+						'Space marine with laser rifle',
+					] as suggestion}
+						<button
+							type="button"
+							class="suggestion-chip"
+							onclick={() => { prompt = suggestion; }}
+						>
+							{suggestion}
+						</button>
+					{/each}
+				</div>
 			</div>
 
 			{#if data.isGuest && !canGenerate}
@@ -607,6 +619,30 @@ function getAssetTypeLabel(type: string) {
 		outline: none;
 		border-color: rgba(245,158,11,.35);
 		box-shadow: 0 0 0 3px rgba(245,158,11,.08);
+	}
+
+	/* Suggestion chips */
+	.suggestions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: .35rem;
+		margin-top: .5rem;
+	}
+	.suggestion-chip {
+		padding: .3rem .6rem;
+		font-size: .7rem;
+		color: #a1a1aa;
+		background: rgba(39,39,42,.45);
+		border: 1px solid rgba(63,63,70,.4);
+		border-radius: 999px;
+		cursor: pointer;
+		transition: background .15s, color .15s, border-color .15s;
+		white-space: nowrap;
+	}
+	.suggestion-chip:hover {
+		background: rgba(63,63,70,.5);
+		color: #e4e4e7;
+		border-color: rgba(63,63,70,.65);
 	}
 
 	/* Generate button */

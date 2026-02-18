@@ -25,6 +25,7 @@ import {
 } from 'lucide-svelte';
 import JSZip from 'jszip';
 import { PRICING } from '$lib/pricing';
+import { tokenState } from '$lib/token-state.svelte';
 import type { RotationJobNew } from '$lib/server/db/schema';
 import type { PageData } from './$types';
 
@@ -34,11 +35,6 @@ let { data }: { data: PageData } = $props();
 const initialJobs = data.rotationJobs;
 // svelte-ignore state_referenced_locally
 const sprites = data.sprites;
-
-// svelte-ignore state_referenced_locally
-let tokens = $state(data.user?.tokens ?? 0);
-// svelte-ignore state_referenced_locally
-let bonusTokens = $state(data.user?.bonusTokens ?? 0);
 
 // View mode: 'new' for creating new generation, or job ID for viewing existing
 let viewMode = $state<'new' | string>(
@@ -108,7 +104,7 @@ async function regenerateView() {
 	const sourceDir = regenerateSourceDirection;
 	const jobId = selectedJob.id;
 
-	if (tokens + bonusTokens < SINGLE_VIEW_TOKEN_COST) {
+	if (tokenState.total < SINGLE_VIEW_TOKEN_COST) {
 		alert('Not enough tokens');
 		return;
 	}
@@ -135,8 +131,8 @@ async function regenerateView() {
 		}
 
 		const result = await res.json();
-		tokens = result.tokensRemaining ?? tokens;
-		bonusTokens = result.bonusTokensRemaining ?? bonusTokens;
+		tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
+		tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;
 
 		// Update the job with the new image
 		const columnName = `rotation${targetDir.charAt(0).toUpperCase() + targetDir.slice(1)}` as keyof RotationJobNew;
@@ -282,7 +278,7 @@ function selectJob(jobId: string) {
 
 async function generate() {
 	if (!hasImageSelected || generating) return;
-	if (tokens + bonusTokens < TOKEN_COST) {
+	if (tokenState.total < TOKEN_COST) {
 		alert('Not enough tokens');
 		return;
 	}
@@ -312,8 +308,8 @@ async function generate() {
 		}
 
 		const result = await res.json();
-		tokens = result.tokensRemaining ?? tokens;
-		bonusTokens = result.bonusTokensRemaining ?? bonusTokens;
+		tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
+		tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;
 
 		if (result.job) {
 			rotationJobs = [result.job, ...rotationJobs];
@@ -833,7 +829,7 @@ function scrollHistory(direction: 'left' | 'right') {
 
 				<button
 					onclick={generate}
-					disabled={!hasImageSelected || generating || tokens + bonusTokens < TOKEN_COST}
+					disabled={!hasImageSelected || generating || tokenState.total < TOKEN_COST}
 					class="btn-generate"
 				>
 					{#if generating}
@@ -1242,7 +1238,7 @@ function scrollHistory(direction: 'left' | 'right') {
 				</button>
 				<button
 					onclick={regenerateView}
-					disabled={regenerating || tokens + bonusTokens < SINGLE_VIEW_TOKEN_COST}
+					disabled={regenerating || tokenState.total < SINGLE_VIEW_TOKEN_COST}
 					class="btn-generate flex-1"
 					style="padding-top:.65rem;padding-bottom:.65rem"
 				>

@@ -19,6 +19,7 @@ import { track } from '@vercel/analytics';
 import JSZip from 'jszip';
 import MaterialPreview from '$lib/components/three/MaterialPreview.svelte';
 import { PRICING } from '$lib/pricing';
+import { tokenState } from '$lib/token-state.svelte';
 import type { TextureGeneration } from '$lib/server/db/schema';
 import type { PageData } from './$types';
 
@@ -26,11 +27,6 @@ let { data }: { data: PageData } = $props();
 
 // svelte-ignore state_referenced_locally
 const initialGenerations = data.textureGenerations;
-
-// svelte-ignore state_referenced_locally
-let tokens = $state(data.user?.tokens ?? 0);
-// svelte-ignore state_referenced_locally
-let bonusTokens = $state(data.user?.bonusTokens ?? 0);
 
 let viewMode = $state<'new' | string>(
 	initialGenerations.length > 0 ? initialGenerations[0].id : 'new',
@@ -99,7 +95,7 @@ function selectGeneration(id: string) {
 
 async function generate() {
 	if (!prompt.trim() || generating) return;
-	if (tokens + bonusTokens < TOKEN_COST) {
+	if (tokenState.total < TOKEN_COST) {
 		alert('Not enough tokens');
 		return;
 	}
@@ -123,8 +119,8 @@ async function generate() {
 		}
 
 		const result = await res.json();
-		tokens = result.tokensRemaining ?? tokens;
-		bonusTokens = result.bonusTokensRemaining ?? bonusTokens;
+		tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
+		tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;
 
 		track('generation_started', { type: 'texture' });
 
@@ -244,8 +240,8 @@ async function pollStatus(id: string) {
 
 			if (result.status === 'completed') {
 				pollingSet.delete(id);
-				tokens = result.tokensRemaining ?? tokens;
-				bonusTokens = result.bonusTokensRemaining ?? bonusTokens;
+				tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
+				tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;
 
 				track('generation_completed', { type: 'texture' });
 
@@ -597,7 +593,7 @@ function scrollHistory(direction: 'left' | 'right') {
 
 					<button
 						onclick={generate}
-						disabled={!prompt.trim() || generating || tokens + bonusTokens < TOKEN_COST}
+						disabled={!prompt.trim() || generating || tokenState.total < TOKEN_COST}
 						class="btn-generate"
 					>
 						{#if generating}
