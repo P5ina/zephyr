@@ -1,10 +1,10 @@
 <script lang="ts">
 import {
 	ArrowLeft,
-	Bell,
-	Check,
 	Coins,
+	CreditCard,
 	Layers,
+	Loader2,
 	Package,
 	RotateCw,
 	Sparkles,
@@ -15,31 +15,31 @@ import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
 
-let joining = $state<string | null>(null);
-let joined = $state(false);
+let buying = $state<string | null>(null);
 let error = $state<string | null>(null);
 
-async function joinWaitlist(pack: keyof typeof PRICING.creditPacks) {
-	joining = pack;
+async function buyPack(packType: keyof typeof PRICING.creditPacks) {
+	buying = packType;
 	error = null;
 
-	track('waitlist_join', { pack });
+	track('checkout_start', { pack: packType });
 
 	try {
-		const res = await fetch('/api/billing/join-waitlist', {
+		const res = await fetch('/api/billing/checkout', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ packType }),
 		});
 		const result = await res.json();
-		if (result.success) {
-			joined = true;
+		if (result.url) {
+			window.location.href = result.url;
 		} else {
-			error = result.error || 'Failed to join waitlist';
+			error = result.error || 'Failed to create checkout session';
+			buying = null;
 		}
 	} catch {
-		error = 'Failed to join waitlist';
-	} finally {
-		joining = null;
+		error = 'Failed to create checkout session';
+		buying = null;
 	}
 }
 
@@ -74,21 +74,6 @@ function getDiscount(
 			</div>
 		{/if}
 
-		<!-- Waitlist Banner -->
-		<div class="waitlist-banner">
-			<div class="flex items-center gap-3 mb-2">
-				<div class="icon-badge icon-badge-amber">
-					<Bell class="w-5 h-5" />
-				</div>
-				<div>
-					<h2 class="panel-heading">Card payments coming soon</h2>
-				</div>
-			</div>
-			<p class="text-sm text-zinc-400">
-				We're setting up card payments via Stripe. Join the waitlist below and we'll notify you as soon as it's ready.
-			</p>
-		</div>
-
 		<!-- Token Balance -->
 		<div class="panel">
 			<div class="flex items-center gap-3 mb-4">
@@ -118,22 +103,12 @@ function getDiscount(
 				</div>
 			</div>
 
-			{#if joined}
-				<div class="success-banner">
-					<Check class="w-5 h-5 text-green-400 shrink-0" />
-					<div>
-						<p class="text-sm font-medium text-green-300">You're on the list!</p>
-						<p class="text-xs text-zinc-400 mt-0.5">Check your email for confirmation.</p>
-					</div>
-				</div>
-			{/if}
-
 			<div class="packs-grid">
 				{#each Object.entries(PRICING.creditPacks) as [key, pack]}
 					{@const discount = getDiscount(pack)}
 					<button
-						onclick={() => joinWaitlist(key as keyof typeof PRICING.creditPacks)}
-						disabled={joining === key || joined}
+						onclick={() => buyPack(key as keyof typeof PRICING.creditPacks)}
+						disabled={buying !== null}
 						class="pack-card {pack.popular ? 'pack-card-pop' : ''}"
 					>
 						{#if pack.popular}
@@ -154,14 +129,12 @@ function getDiscount(
 							${getPerTokenPrice(pack.price, pack.tokens)} per token
 						</div>
 						<div class="pack-cta {pack.popular ? 'pack-cta-pop' : ''}">
-							{#if joined}
-								<Check class="w-3.5 h-3.5" />
-								On the list
-							{:else if joining === key}
-								Joining...
+							{#if buying === key}
+								<Loader2 class="w-3.5 h-3.5 animate-spin" />
+								Redirecting...
 							{:else}
-								<Bell class="w-3.5 h-3.5" />
-								Notify Me
+								<CreditCard class="w-3.5 h-3.5" />
+								Buy Now
 							{/if}
 						</div>
 					</button>
@@ -235,24 +208,6 @@ function getDiscount(
 		border-radius: .7rem;
 		color: #f87171;
 		font-size: .875rem;
-	}
-
-	/* Waitlist banner */
-	.waitlist-banner {
-		padding: 1.25rem;
-		background: rgba(245,158,11,.04);
-		border: 1px solid rgba(245,158,11,.2);
-		border-radius: 1rem;
-	}
-
-	/* Success banner */
-	.success-banner {
-		display: flex; align-items: center; gap: .75rem;
-		padding: .85rem 1rem;
-		background: rgba(74,222,128,.06);
-		border: 1px solid rgba(74,222,128,.15);
-		border-radius: .7rem;
-		margin-bottom: 1rem;
 	}
 
 	/* Panels */
