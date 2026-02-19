@@ -19,6 +19,7 @@ import {
 	Pause,
 	Play,
 	Plus,
+	RefreshCw,
 	RotateCw,
 	Sparkles,
 	Upload,
@@ -50,7 +51,7 @@ let selectedImageUrl = $state<string | null>(null);
 let uploadedFile = $state<File | null>(null);
 let uploadPreviewUrl = $state<string | null>(null);
 let showSpriteSelector = $state(false);
-let elevation = $state(20);
+let elevation = $state(0);
 
 // Generation state
 let generating = $state(false);
@@ -73,6 +74,125 @@ const canGenerate = $derived(
 		? guestGenerationsRemaining > 0
 		: tokenState.total >= TOKEN_COST
 );
+
+// Regeneration state
+const SINGLE_VIEW_TOKEN_COST = PRICING.tokenCosts.rotationSingleView;
+type Direction8 = 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw';
+type SourceDirection8 = Direction8 | 'input';
+let showRegenerateModal = $state(false);
+let regenerateTargetDirection = $state<Direction8 | null>(null);
+let regenerateSourceDirection = $state<SourceDirection8>('input');
+let regenerating = $state(false);
+let regeneratingDirection = $state<Direction8 | null>(null);
+
+const directionAngles8: Record<SourceDirection8, number> = {
+	input: 0,
+	n: 0,
+	ne: 45,
+	e: 90,
+	se: 135,
+	s: 180,
+	sw: 225,
+	w: 270,
+	nw: 315,
+};
+
+function calculateAngle8(source: SourceDirection8, target: Direction8): number {
+	let angle = directionAngles8[target] - directionAngles8[source];
+	if (angle < 0) angle += 360;
+	return angle;
+}
+
+function openRegenerateModal(direction: Direction8) {
+	if (regenerating) return;
+	regenerateTargetDirection = direction;
+	regenerateSourceDirection = 'input';
+	showRegenerateModal = true;
+}
+
+function closeRegenerateModal() {
+	showRegenerateModal = false;
+	regenerateTargetDirection = null;
+}
+
+const directionColumnMap: Record<Direction8, keyof RotationJob> = {
+	n: 'rotationN',
+	ne: 'rotationNE',
+	e: 'rotationE',
+	se: 'rotationSE',
+	s: 'rotationS',
+	sw: 'rotationSW',
+	w: 'rotationW',
+	nw: 'rotationNW',
+};
+
+const availableSources8 = $derived(() => {
+	if (!selectedJob) return [];
+	const sources: { key: SourceDirection8; label: string; url: string | null }[] = [
+		{ key: 'input', label: 'Original Input', url: selectedJob.inputImageUrl },
+		{ key: 'n', label: 'N (Front)', url: selectedJob.rotationN },
+		{ key: 'ne', label: 'NE', url: selectedJob.rotationNE },
+		{ key: 'e', label: 'E (Right)', url: selectedJob.rotationE },
+		{ key: 'se', label: 'SE', url: selectedJob.rotationSE },
+		{ key: 's', label: 'S (Back)', url: selectedJob.rotationS },
+		{ key: 'sw', label: 'SW', url: selectedJob.rotationSW },
+		{ key: 'w', label: 'W (Left)', url: selectedJob.rotationW },
+		{ key: 'nw', label: 'NW', url: selectedJob.rotationNW },
+	];
+	return sources.filter((s) => s.url);
+});
+
+async function regenerateView() {
+	if (!selectedJob || !regenerateTargetDirection || regenerating) return;
+
+	const targetDir = regenerateTargetDirection;
+	const sourceDir = regenerateSourceDirection;
+	const jobId = selectedJob.id;
+
+	if (tokenState.total < SINGLE_VIEW_TOKEN_COST) {
+		alert('Not enough tokens');
+		return;
+	}
+
+	regenerating = true;
+	regeneratingDirection = targetDir;
+	closeRegenerateModal();
+
+	try {
+		const res = await fetch(`/api/rotate/${jobId}/regenerate`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				targetDirection: targetDir,
+				sourceDirection: sourceDir,
+			}),
+		});
+
+		if (!res.ok) {
+			const error = await res.json();
+			alert(error.message || 'Failed to regenerate');
+			regenerating = false;
+			return;
+		}
+
+		const result = await res.json();
+		tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
+		tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;
+
+		const columnName = directionColumnMap[targetDir];
+		rotationJobs = rotationJobs.map((j) =>
+			j.id === jobId
+				? { ...j, [columnName]: result.url }
+				: j,
+		);
+	} catch (e) {
+		console.error('Regeneration error:', e);
+		alert('Failed to regenerate view');
+	} finally {
+		regenerating = false;
+		regeneratingDirection = null;
+	}
+}
 
 // Viewer state
 let showViewer = $state(false);
@@ -884,10 +1004,30 @@ function scrollHistory(direction: 'left' | 'right') {
 							}}
 							class="dir-cell {url ? 'dir-cell-filled' : 'dir-cell-empty'}"
 						>
-							{#if url}
+							{#if regeneratingDirection === dir.key}
+								<div class="w-full h-full bg-zinc-800/80 flex flex-col items-center justify-center">
+									<Loader2 class="w-6 h-6 animate-spin text-amber-400" />
+								</div>
+							{:else if url}
 								<img src={url} alt={dir.label} class="w-full h-full object-contain" />
 								<div class="dir-cell-hover">
-									<Expand class="w-5 h-5 text-white" />
+									<button
+										onclick={(e) => { e.stopPropagation(); const idx = animationOrder.indexOf(dir.key as typeof animationOrder[number]); if (idx !== -1) { viewerDirection = idx; showViewer = true; } }}
+										class="dir-action"
+										title="View"
+									>
+										<Expand class="w-5 h-5 text-white" />
+									</button>
+									{#if !data.isGuest && selectedJob?.status === 'completed'}
+									<button
+										onclick={(e) => { e.stopPropagation(); openRegenerateModal(dir.key as Direction8); }}
+										disabled={regenerating}
+										class="dir-action-gold"
+										title="Regenerate this view"
+									>
+										<RefreshCw class="w-5 h-5 text-zinc-900" />
+									</button>
+									{/if}
 								</div>
 							{:else if selectedJob?.status === 'processing'}
 								<Loader2 class="w-5 h-5 animate-spin text-zinc-600" />
@@ -1051,6 +1191,88 @@ function scrollHistory(direction: 'left' | 'right') {
 						</span>
 					</div>
 				</div>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Regenerate Modal -->
+{#if showRegenerateModal && regenerateTargetDirection}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="modal-backdrop"
+		onclick={(e) => e.target === e.currentTarget && closeRegenerateModal()}
+		onkeydown={(e) => e.key === 'Escape' && closeRegenerateModal()}
+		role="dialog"
+		tabindex="-1"
+	>
+		<div class="regen-modal">
+			<div class="regen-modal-header">
+				<h3 class="text-lg font-semibold text-white">
+					Regenerate {regenerateTargetDirection.toUpperCase()} View
+				</h3>
+				<button onclick={closeRegenerateModal} class="regen-modal-close">
+					<X class="w-5 h-5 text-zinc-400" />
+				</button>
+			</div>
+
+			<div class="regen-modal-body">
+				<div>
+					<label class="text-sm font-medium text-zinc-400 mb-2 block">Source Image</label>
+					<p class="text-xs text-zinc-500 mb-3">
+						Choose which image to rotate from. The angle will be calculated automatically.
+					</p>
+					<div class="grid grid-cols-3 gap-2">
+						{#each availableSources8() as source}
+							<button
+								onclick={() => regenerateSourceDirection = source.key}
+								class="source-card {regenerateSourceDirection === source.key ? 'source-card-active' : ''}"
+							>
+								{#if source.url}
+									<img src={source.url} alt={source.label} class="w-full h-full object-contain" />
+								{/if}
+								<div class="source-card-label">{source.label}</div>
+								{#if regenerateSourceDirection === source.key}
+									<div class="source-card-check">
+										<Check class="w-3 h-3 text-zinc-900" />
+									</div>
+								{/if}
+							</button>
+						{/each}
+					</div>
+				</div>
+
+				<div class="flex items-center justify-between px-3 py-2 bg-zinc-800/30 rounded-lg border border-zinc-700/30">
+					<span class="text-zinc-400">Rotation Angle</span>
+					<span class="text-white font-medium">
+						{calculateAngle8(regenerateSourceDirection, regenerateTargetDirection)}°
+					</span>
+				</div>
+
+				<div class="flex items-center justify-between px-3 py-2 bg-amber-500/5 rounded-lg border border-amber-500/15">
+					<span class="text-sm text-zinc-300">Cost</span>
+					<span class="text-sm font-semibold text-amber-400">{SINGLE_VIEW_TOKEN_COST} tokens</span>
+				</div>
+			</div>
+
+			<div class="regen-modal-footer">
+				<button onclick={closeRegenerateModal} class="btn-secondary flex-1">
+					Cancel
+				</button>
+				<button
+					onclick={regenerateView}
+					disabled={regenerating || tokenState.total < SINGLE_VIEW_TOKEN_COST}
+					class="btn-generate flex-1"
+					style="padding-top:.65rem;padding-bottom:.65rem"
+				>
+					{#if regenerating}
+						<Loader2 class="w-4 h-4 animate-spin" />
+						Regenerating...
+					{:else}
+						<RefreshCw class="w-4 h-4" />
+						Regenerate
+					{/if}
+				</button>
 			</div>
 		</div>
 	</div>
@@ -1329,5 +1551,82 @@ function scrollHistory(direction: 'left' | 'right') {
 		background: rgba(39,39,42,.5);
 		border-radius: .25rem;
 		font-size: .6875rem;
+	}
+
+	/* Direction cell action buttons */
+	.dir-action {
+		padding: .4rem;
+		background: rgba(0,0,0,.5);
+		border-radius: 9999px;
+		border: none; cursor: pointer;
+		transition: background .2s;
+		backdrop-filter: blur(8px);
+	}
+	.dir-action:hover { background: rgba(0,0,0,.7); }
+	.dir-action-gold {
+		padding: .4rem;
+		background: linear-gradient(135deg, #fbbf24, #f59e0b);
+		border-radius: 9999px;
+		border: none; cursor: pointer;
+		transition: box-shadow .2s;
+	}
+	.dir-action-gold:hover { box-shadow: 0 0 12px rgba(245,158,11,.3); }
+	.dir-action-gold:disabled { opacity: .5; cursor: not-allowed; }
+
+	/* Regenerate modal */
+	.regen-modal {
+		background: rgba(24,24,27,.95);
+		border: 1px solid rgba(63,63,70,.4);
+		border-radius: 1rem;
+		width: 100%; max-width: 28rem;
+		max-height: 90vh; overflow-y: auto;
+		margin: auto;
+		backdrop-filter: blur(12px);
+	}
+	.regen-modal-header {
+		display: flex; align-items: center; justify-content: space-between;
+		padding: 1rem 1.25rem;
+		border-bottom: 1px solid rgba(63,63,70,.3);
+	}
+	.regen-modal-close {
+		padding: .35rem;
+		background: none; border: none; cursor: pointer;
+		border-radius: .5rem;
+		transition: background .2s;
+	}
+	.regen-modal-close:hover { background: rgba(63,63,70,.3); }
+	.regen-modal-body {
+		padding: 1.25rem;
+		display: flex; flex-direction: column; gap: 1rem;
+	}
+	.regen-modal-footer {
+		display: flex; gap: .75rem;
+		padding: 1rem 1.25rem;
+		border-top: 1px solid rgba(63,63,70,.3);
+		background: rgba(39,39,42,.15);
+	}
+
+	/* Source cards */
+	.source-card {
+		position: relative; aspect-ratio: 1;
+		border-radius: .6rem; overflow: hidden;
+		border: 2px solid rgba(63,63,70,.4);
+		background: rgba(39,39,42,.4);
+		cursor: pointer;
+		transition: border-color .2s;
+	}
+	.source-card:hover { border-color: rgba(63,63,70,.7); }
+	.source-card-active { border-color: rgba(245,158,11,.5); }
+	.source-card-label {
+		position: absolute; bottom: 0; left: 0; right: 0;
+		padding: .25rem .5rem;
+		background: rgba(0,0,0,.6);
+		font-size: .65rem; color: #fff; text-align: center;
+	}
+	.source-card-check {
+		position: absolute; top: .25rem; right: .25rem;
+		width: 1.25rem; height: 1.25rem;
+		background: #f59e0b; border-radius: 9999px;
+		display: flex; align-items: center; justify-content: center;
 	}
 </style>

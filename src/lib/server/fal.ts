@@ -320,6 +320,33 @@ export const DIRECTION_ANGLES = {
 export type SourceDirection = keyof typeof DIRECTION_ANGLES;
 export type RotationDirection = 'front' | 'right' | 'back' | 'left';
 
+// 8-direction angles for the 8-dir rotation feature
+export const DIRECTION_ANGLES_8DIR = {
+	input: 0,
+	n: 0,
+	ne: 45,
+	e: 90,
+	se: 135,
+	s: 180,
+	sw: 225,
+	w: 270,
+	nw: 315,
+} as const;
+
+export type SourceDirection8Dir = keyof typeof DIRECTION_ANGLES_8DIR;
+export type RotationDirection8Dir = 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw';
+
+export function calculateHorizontalAngle8Dir(
+	sourceDirection: SourceDirection8Dir,
+	targetDirection: RotationDirection8Dir,
+): number {
+	const sourceAngle = DIRECTION_ANGLES_8DIR[sourceDirection];
+	const targetAngle = DIRECTION_ANGLES_8DIR[targetDirection];
+	let angle = targetAngle - sourceAngle;
+	if (angle < 0) angle += 360;
+	return angle;
+}
+
 /**
  * Calculate the horizontal angle needed to rotate from source direction to target direction
  */

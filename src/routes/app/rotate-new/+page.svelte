@@ -48,7 +48,7 @@ let selectedImageUrl = $state<string | null>(null);
 let uploadedFile = $state<File | null>(null);
 let uploadPreviewUrl = $state<string | null>(null);
 let showSpriteSelector = $state(false);
-let elevation = $state(20);
+let elevation = $state(0);
 
 // Generation state
 let generating = $state(false);

@@ -16,7 +16,7 @@ const TOKEN_COST = PRICING.tokenCosts.rotationNew;
 async function parseInput(request: Request, ownerId: string) {
 	const contentType = request.headers.get('content-type') || '';
 	let inputImageUrl: string | undefined;
-	let elevation: number = 20;
+	let elevation: number = 0;
 
 	if (contentType.includes('multipart/form-data')) {
 		const formData = await request.formData();
