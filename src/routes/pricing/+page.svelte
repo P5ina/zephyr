@@ -42,7 +42,7 @@ function getDiscount(
 		<div class="mb-8 p-6 rounded-2xl bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-500/25">
 			<div class="flex flex-col md:flex-row items-center gap-6">
 				<div class="flex-1 text-center md:text-left">
-					<h2 class="text-xl font-bold text-white mb-2">8-Direction Rotation: ~$0.20 per character</h2>
+					<h2 class="text-xl font-bold text-white mb-2">8-Direction Rotation: from $0.42 per character</h2>
 					<p class="text-zinc-400 text-sm mb-3">Convert your entire character set to 8-direction sprites for less than the cost of a coffee.</p>
 					<div class="flex flex-wrap gap-3 justify-center md:justify-start">
 						<div class="flex items-center gap-1.5 text-sm">
@@ -71,7 +71,7 @@ function getDiscount(
 				<span class="text-xs font-medium text-yellow-300">Free to start</span>
 			</div>
 			<h2 class="text-2xl font-bold text-white mb-2">50 free tokens on signup</h2>
-			<p class="text-zinc-400 text-sm">That's ~8 rotations, ~16 sprites, or ~12 textures to try everything out. No credit card required.</p>
+			<p class="text-zinc-400 text-sm">That's ~2 rotations, ~16 sprites, or ~12 textures to try everything out. No credit card required.</p>
 		</div>
 
 		<!-- Token Packs -->
@@ -90,7 +90,7 @@ function getDiscount(
 				<ul class="space-y-2 mb-6">
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
-						<span>~50 rotations</span>
+						<span>~12 rotations</span>
 					</li>
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
@@ -127,7 +127,7 @@ function getDiscount(
 				<ul class="space-y-2 mb-6">
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
-						<span>~200 rotations</span>
+						<span>~48 rotations</span>
 					</li>
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
@@ -161,7 +161,7 @@ function getDiscount(
 				<ul class="space-y-2 mb-6">
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
-						<span>~500 rotations</span>
+						<span>~120 rotations</span>
 					</li>
 					<li class="flex items-center gap-2 text-sm text-zinc-400">
 						<Check class="w-4 h-4 text-green-400" />
@@ -192,7 +192,7 @@ function getDiscount(
 					</div>
 					<p class="text-2xl font-bold text-white mb-1">{PRICING.tokenCosts.rotation}</p>
 					<p class="text-sm text-zinc-400">tokens per rotation</p>
-					<p class="text-xs text-orange-400 mt-1">~$0.20 per character</p>
+					<p class="text-xs text-orange-400 mt-1">from $0.42 per character</p>
 				</div>
 				<div class="p-4 rounded-xl bg-zinc-800/50">
 					<div class="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center mx-auto mb-3">

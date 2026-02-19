@@ -1,6 +1,7 @@
 import { and, desc, eq, isNotNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
+import * as guestAuth from '$lib/server/guest-auth';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -32,7 +33,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 
 	if (locals.guestSession) {
-		const [rotationJobs, sprites] = await Promise.all([
+		const [rotationJobs, sprites, guestRotationsUsed] = await Promise.all([
 			db.query.rotationJobNew.findMany({
 				where: eq(table.rotationJobNew.guestSessionId, locals.guestSession.id),
 				orderBy: [desc(table.rotationJobNew.createdAt)],
@@ -53,9 +54,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 					createdAt: true,
 				},
 			}),
+			guestAuth.countGuestRotations(locals.guestSession.id),
 		]);
 
-		return { rotationJobs, sprites };
+		return { rotationJobs, sprites, guestRotationsUsed };
 	}
 
 	return { rotationJobs: [], sprites: [] };

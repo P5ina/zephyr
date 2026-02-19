@@ -62,6 +62,28 @@ export function canGuestGenerate(session: table.GuestSession): boolean {
 	return session.generationsUsed < GUEST_CONFIG.maxGenerations;
 }
 
+export async function countGuestRotations(guestSessionId: string): Promise<number> {
+	const rotations8dir = await db.query.rotationJob.findMany({
+		where: eq(table.rotationJob.guestSessionId, guestSessionId),
+		columns: { id: true },
+	});
+	const rotations4dir = await db.query.rotationJobNew.findMany({
+		where: eq(table.rotationJobNew.guestSessionId, guestSessionId),
+		columns: { id: true },
+	});
+	return rotations8dir.length + rotations4dir.length;
+}
+
+export async function canGuestRotate(guestSessionId: string): Promise<boolean> {
+	const count = await countGuestRotations(guestSessionId);
+	return count < GUEST_CONFIG.maxRotationGenerations;
+}
+
+export async function getGuestRotationsRemaining(guestSessionId: string): Promise<number> {
+	const count = await countGuestRotations(guestSessionId);
+	return Math.max(0, GUEST_CONFIG.maxRotationGenerations - count);
+}
+
 export function setGuestSessionCookie(
 	event: RequestEvent,
 	sessionId: string,

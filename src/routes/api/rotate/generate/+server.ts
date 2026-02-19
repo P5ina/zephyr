@@ -85,8 +85,8 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 			guestSession = await guestAuth.createGuestSession(ipAddress);
 		}
 
-		if (!guestAuth.canGuestGenerate(guestSession)) {
-			error(429, 'Free generation limit reached. Sign up to continue.');
+		if (!(await guestAuth.canGuestRotate(guestSession.id))) {
+			error(429, 'Free rotation limit reached. Sign up to continue.');
 		}
 
 		const { inputImageUrl, prompt, elevation } = await parseInput(request, `guest-${guestSession.id}`);
@@ -132,7 +132,7 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 		}
 
 		await guestAuth.incrementGuestUsage(guestSession.id);
-		const generationsRemaining = guestAuth.getGuestRemainingGenerations(guestSession) - 1;
+		const generationsRemaining = await guestAuth.getGuestRotationsRemaining(guestSession.id);
 
 		return json({
 			id: job.id,

@@ -63,8 +63,11 @@ const pollingSet = new Set<string>();
 const TOKEN_COST = PRICING.tokenCosts.rotationNew;
 const SINGLE_VIEW_TOKEN_COST = PRICING.tokenCosts.rotationSingleView;
 
+// svelte-ignore state_referenced_locally
+let guestRotationsUsed = $state(data.guestRotationsUsed ?? 0);
+
 const guestGenerationsRemaining = $derived(
-	GUEST_CONFIG.maxGenerations - tokenState.guestGenerationsUsed
+	GUEST_CONFIG.maxRotationGenerations - guestRotationsUsed
 );
 
 const canGenerate = $derived(
@@ -318,7 +321,7 @@ async function generate() {
 		const result = await res.json();
 
 		if (result.isGuest) {
-			tokenState.guestGenerationsUsed = GUEST_CONFIG.maxGenerations - result.generationsRemaining;
+			guestRotationsUsed = GUEST_CONFIG.maxRotationGenerations - result.generationsRemaining;
 		} else {
 			tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
 			tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;

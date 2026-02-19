@@ -1,5 +1,6 @@
 export const GUEST_CONFIG = {
 	maxGenerations: 3,
+	maxRotationGenerations: 1,
 	sessionDurationDays: 7,
 	allowedAssetTypes: ['sprite'] as const,
 	cookieName: 'guest-session',
