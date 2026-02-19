@@ -6,14 +6,21 @@ import { cancelRotationJob } from '$lib/server/fal';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ params, locals }) => {
-	if (!locals.user) {
+	let ownershipCondition;
+	const isGuest = !locals.user;
+
+	if (locals.user) {
+		ownershipCondition = eq(table.rotationJobNew.userId, locals.user.id);
+	} else if (locals.guestSession) {
+		ownershipCondition = eq(table.rotationJobNew.guestSessionId, locals.guestSession.id);
+	} else {
 		error(401, 'Unauthorized');
 	}
 
 	const rotation = await db.query.rotationJobNew.findFirst({
 		where: and(
 			eq(table.rotationJobNew.id, params.id),
-			eq(table.rotationJobNew.userId, locals.user.id),
+			ownershipCondition,
 		),
 	});
 
@@ -49,20 +56,29 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 		})
 		.where(eq(table.rotationJobNew.id, rotation.id));
 
-	// Refund both regular and bonus tokens correctly
-	const regularTokens = rotation.tokenCost - rotation.bonusTokenCost;
-	await db
-		.update(table.user)
-		.set({
-			tokens: sql`${table.user.tokens} + ${regularTokens}`,
-			bonusTokens: sql`${table.user.bonusTokens} + ${rotation.bonusTokenCost}`,
-		})
-		.where(eq(table.user.id, rotation.userId));
+	// Only refund tokens for authenticated users (guests have tokenCost: 0)
+	if (!isGuest && rotation.userId) {
+		const regularTokens = rotation.tokenCost - rotation.bonusTokenCost;
+		await db
+			.update(table.user)
+			.set({
+				tokens: sql`${table.user.tokens} + ${regularTokens}`,
+				bonusTokens: sql`${table.user.bonusTokens} + ${rotation.bonusTokenCost}`,
+			})
+			.where(eq(table.user.id, rotation.userId));
+
+		return json({
+			success: true,
+			tokensRefunded: rotation.tokenCost,
+			regularTokensRefunded: regularTokens,
+			bonusTokensRefunded: rotation.bonusTokenCost,
+		});
+	}
 
 	return json({
 		success: true,
-		tokensRefunded: rotation.tokenCost,
-		regularTokensRefunded: regularTokens,
-		bonusTokensRefunded: rotation.bonusTokenCost,
+		tokensRefunded: 0,
+		regularTokensRefunded: 0,
+		bonusTokensRefunded: 0,
 	});
 };

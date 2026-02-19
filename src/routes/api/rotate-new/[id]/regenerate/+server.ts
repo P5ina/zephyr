@@ -19,8 +19,9 @@ const DIRECTION_COLUMNS = {
 } as const;
 
 export const POST: RequestHandler = async ({ params, request, locals }) => {
+	// Regeneration requires tokens, so only authenticated users can use it
 	if (!locals.user) {
-		error(401, 'Unauthorized');
+		error(401, 'Sign up to regenerate individual views');
 	}
 
 	const body = await request.json();

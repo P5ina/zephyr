@@ -26,7 +26,7 @@ const tabs = [
 	{ href: '/app', label: 'Generate Sprite', icon: Sparkles, guestAllowed: true },
 	{ href: '/app/textures', label: 'Textures', icon: Layers, guestAllowed: false },
 	{ href: '/app/concept-art', label: 'Concept Art', icon: Palette, guestAllowed: false },
-	{ href: '/app/rotate-new', label: 'Rotate 4', icon: Rotate3d, guestAllowed: false },
+	{ href: '/app/rotate-new', label: 'Rotate 4', icon: Rotate3d, guestAllowed: true },
 ];
 
 function isActive(href: string) {

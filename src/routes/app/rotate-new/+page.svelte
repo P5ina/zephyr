@@ -24,12 +24,14 @@ import {
 	Zap,
 } from 'lucide-svelte';
 import JSZip from 'jszip';
+import { GUEST_CONFIG } from '$lib/guest-config';
 import { PRICING } from '$lib/pricing';
 import { tokenState } from '$lib/token-state.svelte';
 import type { RotationJobNew } from '$lib/server/db/schema';
+import type { LayoutData } from '../$types';
 import type { PageData } from './$types';
 
-let { data }: { data: PageData } = $props();
+let { data }: { data: PageData & LayoutData } = $props();
 
 // svelte-ignore state_referenced_locally
 const initialJobs = data.rotationJobs;
@@ -60,6 +62,16 @@ const pollingSet = new Set<string>();
 
 const TOKEN_COST = PRICING.tokenCosts.rotationNew;
 const SINGLE_VIEW_TOKEN_COST = PRICING.tokenCosts.rotationSingleView;
+
+const guestGenerationsRemaining = $derived(
+	GUEST_CONFIG.maxGenerations - tokenState.guestGenerationsUsed
+);
+
+const canGenerate = $derived(
+	data.isGuest
+		? guestGenerationsRemaining > 0
+		: tokenState.total >= TOKEN_COST
+);
 
 // Regeneration state
 type Direction = 'front' | 'right' | 'back' | 'left';
@@ -277,11 +289,7 @@ function selectJob(jobId: string) {
 }
 
 async function generate() {
-	if (!hasImageSelected || generating) return;
-	if (tokenState.total < TOKEN_COST) {
-		alert('Not enough tokens');
-		return;
-	}
+	if (!hasImageSelected || generating || !canGenerate) return;
 
 	generating = true;
 
@@ -308,8 +316,13 @@ async function generate() {
 		}
 
 		const result = await res.json();
-		tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
-		tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;
+
+		if (result.isGuest) {
+			tokenState.guestGenerationsUsed = GUEST_CONFIG.maxGenerations - result.generationsRemaining;
+		} else {
+			tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
+			tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;
+		}
 
 		if (result.job) {
 			rotationJobs = [result.job, ...rotationJobs];
@@ -619,8 +632,8 @@ async function cancelJob(id: string) {
 				generating = false;
 				currentGeneratingId = null;
 			}
-			tokens = tokens + (result.regularTokensRefunded ?? 0);
-			bonusTokens = bonusTokens + (result.bonusTokensRefunded ?? 0);
+			tokenState.tokens = tokenState.tokens + (result.regularTokensRefunded ?? 0);
+			tokenState.bonusTokens = tokenState.bonusTokens + (result.bonusTokensRefunded ?? 0);
 		} else {
 			const error = await res.json();
 			alert(error.message || 'Failed to cancel');
@@ -829,17 +842,30 @@ function scrollHistory(direction: 'left' | 'right') {
 
 				<button
 					onclick={generate}
-					disabled={!hasImageSelected || generating || tokenState.total < TOKEN_COST}
+					disabled={!hasImageSelected || generating || !canGenerate}
 					class="btn-generate"
 				>
 					{#if generating}
 						<Loader2 class="w-4 h-4 animate-spin" />
 						Generating...
+					{:else if data.isGuest}
+						<Sparkles class="w-4 h-4" />
+						Generate (free)
 					{:else}
 						<Sparkles class="w-4 h-4" />
 						Generate ({TOKEN_COST} tokens)
 					{/if}
 				</button>
+
+				{#if data.isGuest && !canGenerate}
+				<a href="/login" class="btn-generate" style="text-decoration:none; text-align:center; margin-top:0.5rem">
+					<Sparkles class="w-4 h-4" />
+					Sign up to continue
+				</a>
+				<p class="text-xs text-zinc-500 mt-2 text-center">
+					Get 50 free tokens when you sign up
+				</p>
+				{/if}
 
 				<p class="text-xs text-zinc-500 mt-3 text-center">
 					Upload a front-facing image to generate 4-directional views (Front, Right, Back, Left)

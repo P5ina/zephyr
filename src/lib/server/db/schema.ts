@@ -281,9 +281,8 @@ export type RotationJob = typeof rotationJob.$inferSelect;
 
 export const rotationJobNew = pgTable('rotation_job_new', {
 	id: text('id').primaryKey(),
-	userId: text('user_id')
-		.notNull()
-		.references(() => user.id),
+	userId: text('user_id').references(() => user.id),
+	guestSessionId: text('guest_session_id').references(() => guestSession.id),
 
 	// Status
 	status: text('status', {

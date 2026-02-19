@@ -7,8 +7,8 @@ export const PRICING = {
 	tokenCosts: {
 		sprite: 3,
 		texture: 4,
-		rotation: 6,
-		rotationNew: 25,
+		rotation: 25,
+		rotationNew: 12,
 		rotationSingleView: 7,
 		spin: 25,
 		conceptArt: 4,

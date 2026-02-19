@@ -6,14 +6,19 @@ import { getRotationJobStatus } from '$lib/server/fal';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
-	if (!locals.user) {
+	let ownershipCondition;
+	if (locals.user) {
+		ownershipCondition = eq(table.rotationJobNew.userId, locals.user.id);
+	} else if (locals.guestSession) {
+		ownershipCondition = eq(table.rotationJobNew.guestSessionId, locals.guestSession.id);
+	} else {
 		error(401, 'Unauthorized');
 	}
 
 	let job = await db.query.rotationJobNew.findFirst({
 		where: and(
 			eq(table.rotationJobNew.id, params.id),
-			eq(table.rotationJobNew.userId, locals.user.id),
+			ownershipCondition,
 		),
 	});
 
@@ -51,14 +56,17 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 				falStatus.status === 'CANCELLED'
 			) {
 				if (job.status !== 'failed') {
-					const regularTokens = job.tokenCost - job.bonusTokenCost;
-					await db
-						.update(table.user)
-						.set({
-							tokens: sql`${table.user.tokens} + ${regularTokens}`,
-							bonusTokens: sql`${table.user.bonusTokens} + ${job.bonusTokenCost}`,
-						})
-						.where(eq(table.user.id, job.userId));
+					// Only refund tokens for authenticated users
+					if (job.userId) {
+						const regularTokens = job.tokenCost - job.bonusTokenCost;
+						await db
+							.update(table.user)
+							.set({
+								tokens: sql`${table.user.tokens} + ${regularTokens}`,
+								bonusTokens: sql`${table.user.bonusTokens} + ${job.bonusTokenCost}`,
+							})
+							.where(eq(table.user.id, job.userId));
+					}
 				}
 
 				await db
