@@ -232,6 +232,13 @@
       "when": 1771289688852,
       "tag": "0032_quick_ink",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1771493519465,
+      "tag": "0033_vengeful_human_robot",
+      "breakpoints": true
     }
   ]
 }

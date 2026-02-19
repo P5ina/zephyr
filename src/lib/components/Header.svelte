@@ -61,8 +61,8 @@ function closeMobileMenu() {
 		{#if variant === 'full' || showAuth}
 			<div class="hidden sm:flex items-center gap-6">
 				{#if variant === 'full'}
-					<a href="/spin" class="text-sm font-medium text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 hover:from-purple-300 hover:to-pink-300 transition-colors">
-						OIIA Spin
+					<a href="/app/rotate" class="text-sm font-medium text-orange-400 hover:text-orange-300 transition-colors">
+						8-Dir Rotation
 					</a>
 					<a href="/#features" class="text-sm text-zinc-400 hover:text-white transition-colors">
 						Features
@@ -75,7 +75,7 @@ function closeMobileMenu() {
 				{#if showAuth}
 					{#if user}
 						<a
-							href={ctaHref || '/app'}
+							href={ctaHref || '/app/rotate'}
 							class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 text-sm font-medium rounded-lg transition-colors"
 						>
 							{ctaText || (variant === 'full' ? 'Go to App' : 'Open App')}
@@ -114,11 +114,11 @@ function closeMobileMenu() {
 			<div class="{maxWidthClass[maxWidth]} mx-auto px-4 py-4 flex flex-col gap-4">
 				{#if variant === 'full'}
 					<a
-						href="/spin"
+						href="/app/rotate"
 						onclick={closeMobileMenu}
-						class="text-sm font-medium text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 py-2"
+						class="text-sm font-medium text-orange-400 py-2"
 					>
-						OIIA Spin
+						8-Dir Rotation
 					</a>
 					<a
 						href="/#features"
@@ -139,7 +139,7 @@ function closeMobileMenu() {
 				{#if showAuth}
 					{#if user}
 						<a
-							href={ctaHref || '/app'}
+							href={ctaHref || '/app/rotate'}
 							onclick={closeMobileMenu}
 							class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 text-sm font-medium rounded-lg transition-colors text-center"
 						>

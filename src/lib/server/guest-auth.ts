@@ -96,6 +96,17 @@ export async function convertGuestToUser(
 			),
 		);
 
+	// Transfer all guest rotation jobs to the user
+	await db
+		.update(table.rotationJob)
+		.set({ userId })
+		.where(
+			and(
+				eq(table.rotationJob.guestSessionId, guestSessionId),
+				isNull(table.rotationJob.userId),
+			),
+		);
+
 	// Mark the guest session as converted
 	await db
 		.update(table.guestSession)

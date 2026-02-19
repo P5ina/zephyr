@@ -202,6 +202,110 @@ export async function cancelRotationJob(requestId: string): Promise<void> {
 	await fal.queue.cancel(FAL_WORKFLOW_ID, { requestId });
 }
 
+// ============================================================================
+// Rotation (8-direction)
+// ============================================================================
+
+const FAL_ROTATION_8DIR_WORKFLOW_ID = 'workflows/P5ina/rotate';
+
+interface FalRotation8DirOutput {
+	image?: { url: string; content_type: string; width: number; height: number };
+	image_2?: { url: string; content_type: string; width: number; height: number };
+	image_3?: { url: string; content_type: string; width: number; height: number };
+	image_4?: { url: string; content_type: string; width: number; height: number };
+	image_5?: { url: string; content_type: string; width: number; height: number };
+	image_6?: { url: string; content_type: string; width: number; height: number };
+	image_7?: { url: string; content_type: string; width: number; height: number };
+	image_8?: { url: string; content_type: string; width: number; height: number };
+}
+
+/**
+ * Submit an 8-direction rotation job to fal.ai
+ */
+export async function submitRotation8DirJob(params: {
+	imageUrl: string;
+	elevation?: number;
+}): Promise<{ requestId: string }> {
+	configureFal();
+
+	const { request_id } = await fal.queue.submit(FAL_ROTATION_8DIR_WORKFLOW_ID, {
+		input: {
+			image_url: params.imageUrl,
+			elevation: params.elevation ?? 20,
+		},
+	});
+
+	return { requestId: request_id };
+}
+
+/**
+ * Get the status of an 8-direction rotation job from fal.ai
+ * Maps: image=S, image_2=SW, image_3=W, image_4=NW, image_5=N, image_6=NE, image_7=E, image_8=SE
+ */
+export async function getRotation8DirJobStatus(requestId: string): Promise<{
+	status: 'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+	output?: {
+		n?: string;
+		ne?: string;
+		e?: string;
+		se?: string;
+		s?: string;
+		sw?: string;
+		w?: string;
+		nw?: string;
+	};
+	error?: string;
+}> {
+	configureFal();
+
+	try {
+		const status = await fal.queue.status(FAL_ROTATION_8DIR_WORKFLOW_ID, {
+			requestId,
+			logs: false,
+		});
+
+		if (status.status === 'COMPLETED') {
+			const result = await fal.queue.result(FAL_ROTATION_8DIR_WORKFLOW_ID, {
+				requestId,
+			});
+
+			const data = result.data as FalRotation8DirOutput;
+			return {
+				status: 'COMPLETED',
+				output: {
+					s: data?.image?.url,
+					sw: data?.image_2?.url,
+					w: data?.image_3?.url,
+					nw: data?.image_4?.url,
+					n: data?.image_5?.url,
+					ne: data?.image_6?.url,
+					e: data?.image_7?.url,
+					se: data?.image_8?.url,
+				},
+			};
+		}
+
+		return {
+			status: status.status as 'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
+		};
+	} catch (error) {
+		console.error('[fal.ai] Error checking 8-dir rotation status:', error);
+		return {
+			status: 'FAILED',
+			error: error instanceof Error ? error.message : 'Unknown error',
+		};
+	}
+}
+
+/**
+ * Cancel an 8-direction rotation job on fal.ai
+ */
+export async function cancelRotation8DirJob(requestId: string): Promise<void> {
+	configureFal();
+
+	await fal.queue.cancel(FAL_ROTATION_8DIR_WORKFLOW_ID, { requestId });
+}
+
 const FAL_SINGLE_VIEW_WORKFLOW_ID = 'workflows/P5ina/rotate-one-view';
 
 // Direction angles for calculating relative rotation

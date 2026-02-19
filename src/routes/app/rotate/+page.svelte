@@ -26,12 +26,14 @@ import {
 } from 'lucide-svelte';
 import { track } from '@vercel/analytics';
 import JSZip from 'jszip';
+import { GUEST_CONFIG } from '$lib/guest-config';
 import { PRICING } from '$lib/pricing';
 import { tokenState } from '$lib/token-state.svelte';
 import type { RotationJob } from '$lib/server/db/schema';
+import type { LayoutData } from '../$types';
 import type { PageData } from './$types';
 
-let { data }: { data: PageData } = $props();
+let { data }: { data: PageData & LayoutData } = $props();
 
 // svelte-ignore state_referenced_locally
 const initialJobs = data.rotationJobs;
@@ -61,6 +63,16 @@ let rotationJobs = $state<RotationJob[]>(initialJobs);
 const pollingSet = new Set<string>();
 
 const TOKEN_COST = PRICING.tokenCosts.rotation;
+
+const guestGenerationsRemaining = $derived(
+	GUEST_CONFIG.maxGenerations - tokenState.guestGenerationsUsed
+);
+
+const canGenerate = $derived(
+	data.isGuest
+		? guestGenerationsRemaining > 0
+		: tokenState.total >= TOKEN_COST
+);
 
 // Viewer state
 let showViewer = $state(false);
@@ -184,11 +196,7 @@ function selectJob(jobId: string) {
 }
 
 async function generate() {
-	if (!hasImageSelected || generating) return;
-	if (tokenState.total < TOKEN_COST) {
-		alert('Not enough tokens');
-		return;
-	}
+	if (!hasImageSelected || generating || !canGenerate) return;
 
 	generating = true;
 
@@ -215,8 +223,13 @@ async function generate() {
 		}
 
 		const result = await res.json();
-		tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
-		tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;
+
+		if (result.isGuest) {
+			tokenState.guestGenerationsUsed = GUEST_CONFIG.maxGenerations - result.generationsRemaining;
+		} else {
+			tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
+			tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;
+		}
 
 		if (result.job) {
 			rotationJobs = [result.job, ...rotationJobs];
@@ -225,7 +238,7 @@ async function generate() {
 			pollingSet.add(result.job.id);
 			clearSelection();
 
-			track('generation_started', { type: 'rotation' });
+			track('generation_started', { type: 'rotation', is_guest: result.isGuest });
 
 			pollJobStatus(result.job.id);
 		}
@@ -528,8 +541,8 @@ async function cancelJob(id: string) {
 				generating = false;
 				currentGeneratingId = null;
 			}
-			tokens = tokens + (result.regularTokensRefunded ?? 0);
-			bonusTokens = bonusTokens + (result.bonusTokensRefunded ?? 0);
+			tokenState.tokens = tokenState.tokens + (result.regularTokensRefunded ?? 0);
+			tokenState.bonusTokens = tokenState.bonusTokens + (result.bonusTokensRefunded ?? 0);
 		} else {
 			const error = await res.json();
 			alert(error.message || 'Failed to cancel');
@@ -728,19 +741,32 @@ function scrollHistory(direction: 'left' | 'right') {
 					</div>
 				</div>
 
-				<button
-					onclick={generate}
-					disabled={!hasImageSelected || generating || tokenState.total < TOKEN_COST}
-					class="btn-generate"
-				>
-					{#if generating}
-						<Loader2 class="w-4 h-4 animate-spin" />
-						Generating...
-					{:else}
+				{#if data.isGuest && !canGenerate}
+					<a href="/login" class="btn-generate" style="text-decoration:none; text-align:center">
 						<Sparkles class="w-4 h-4" />
-						Generate ({TOKEN_COST} tokens)
-					{/if}
-				</button>
+						Sign up to continue
+					</a>
+					<p class="text-xs text-zinc-500 mt-2 text-center">
+						Get 50 free tokens when you sign up
+					</p>
+				{:else}
+					<button
+						onclick={generate}
+						disabled={!hasImageSelected || generating || !canGenerate}
+						class="btn-generate"
+					>
+						{#if generating}
+							<Loader2 class="w-4 h-4 animate-spin" />
+							Generating...
+						{:else if data.isGuest}
+							<Sparkles class="w-4 h-4" />
+							Generate (free)
+						{:else}
+							<Sparkles class="w-4 h-4" />
+							Generate ({TOKEN_COST} tokens)
+						{/if}
+					</button>
+				{/if}
 
 				<p class="text-xs text-zinc-500 mt-3 text-center">
 					Upload a front-facing image to generate 8-directional views

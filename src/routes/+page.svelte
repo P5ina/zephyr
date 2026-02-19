@@ -3,7 +3,6 @@ import {
 	ArrowRight,
 	Layers,
 	Paintbrush,
-	Play,
 	RotateCw,
 	Sparkles,
 } from 'lucide-svelte';
@@ -14,9 +13,9 @@ import type { PageData } from './$types';
 let { data }: { data: PageData } = $props();
 
 const title =
-	'GenSprite - AI Game Asset Generator | Sprites, Textures & 8-Direction Rotation';
+	'GenSprite - One Sprite, 8 Directions in Seconds | AI Sprite Rotation';
 const description =
-	'Generate game-ready sprites, PBR textures, and 8-directional character rotations with AI. Start free with 50 tokens.';
+	'Upload any character sprite and get all 8 cardinal directions instantly. No 3D modeling, no manual redrawing. Start free.';
 const url = 'https://gensprite.ai';
 const image = 'https://gensprite.ai/og-image.png';
 
@@ -34,14 +33,14 @@ const jsonLd = {
 				'@type': 'Offer',
 				price: '0',
 				priceCurrency: 'USD',
-				description: '3 free generations, no signup required',
+				description: '3 free rotations, no signup required',
 			},
 			featureList: [
+				'8-Direction Character Rotation',
 				'AI Sprite Generation',
 				'PBR Texture Generation',
-				'8-Direction Character Rotation',
 				'Concept Art Generation',
-					'Automatic Background Removal',
+				'Automatic Background Removal',
 				'Normal, Roughness, Height Maps',
 			],
 		},
@@ -105,15 +104,15 @@ function inView(node: HTMLElement) {
 
 	<Header user={data.user} />
 
-	<!-- OIIA Promo -->
+	<!-- Promo Bar -->
 	<div class="oiia-bar">
-		<a href="/spin" class="oiia-link">
-			<span class="oiia-badge">
-				<Play class="w-3 h-3" />
-				NEW
+		<a href="/app/rotate" class="oiia-link">
+			<span class="oiia-badge" style="background:rgba(249,115,22,.15);border-color:rgba(249,115,22,.25);color:#fb923c">
+				<RotateCw class="w-3 h-3" />
+				HOT
 			</span>
 			<span class="oiia-text">
-				<strong>OIIA Spin Generator</strong> — Create viral spinning videos
+				<strong>8-Direction Rotation</strong> — Upload a sprite, get all 8 directions instantly
 			</span>
 			<ArrowRight class="w-3.5 h-3.5 oiia-arrow" />
 		</a>
@@ -121,64 +120,66 @@ function inView(node: HTMLElement) {
 
 	<!-- Hero -->
 	<section class="hero">
-		<!-- Floating sprites (desktop) -->
-		<div class="sprites-constellation">
-			<div class="sprite-float sprite-fl-1 hero-reveal" style="animation-delay:.4s">
-				<img src="/showcase/knight.png" alt="Knight sprite" />
-			</div>
-			<div class="sprite-float sprite-fl-2 hero-reveal" style="animation-delay:.55s">
-				<img src="/showcase/crystal.png" alt="Crystal sprite" />
-			</div>
-			<div class="sprite-float sprite-fl-3 hero-reveal" style="animation-delay:.7s">
-				<img src="/showcase/shield.png" alt="Shield sprite" />
-			</div>
-			<div class="sprite-float sprite-fl-4 hero-reveal" style="animation-delay:.85s">
-				<img src="/showcase/robot.png" alt="Robot sprite" />
-			</div>
-			<div class="sprite-float sprite-fl-5 hero-reveal" style="animation-delay:1s">
-				<img src="/showcase/sword.png" alt="Sword sprite" />
-			</div>
-			<div class="sprite-float sprite-fl-6 hero-reveal" style="animation-delay:1.15s">
-				<img src="/showcase/chest.png" alt="Treasure chest" />
-			</div>
-		</div>
-
 		<div class="hero-inner">
 			<h1 class="hero-title hero-reveal">
-				Generate game assets
-				<span class="hero-accent">that feel alive</span>
+				One sprite, 8 directions
+				<span class="hero-accent">in seconds</span>
 			</h1>
 			<p class="hero-sub hero-reveal" style="animation-delay:.12s">
-				AI-powered sprites, PBR textures, and 8-directional rotations.
-				Built for indie devs who ship fast.
+				Upload any character sprite and get all cardinal directions.
+				No 3D modeling, no manual redrawing.
 			</p>
 			<div class="hero-ctas hero-reveal" style="animation-delay:.22s">
-				<a href="/app" class="btn-primary">
+				<a href="/app/rotate" class="btn-primary">
 					{#if data.user}
-						Generate
+						Upload & Rotate
 					{:else}
-						Try free — no signup
+						Upload & Rotate FREE
 					{/if}
 					<ArrowRight class="w-4 h-4" />
 				</a>
-				<a href="#pricing" class="btn-ghost">View pricing</a>
+				<a href="/app" class="btn-ghost">Or generate a sprite first</a>
 			</div>
 		</div>
 
-		<!-- Mobile sprite grid -->
-		<div class="sprites-mobile hero-reveal" style="animation-delay:.45s">
-			{#each [
-				{ src: '/showcase/knight.png', alt: 'Knight' },
-				{ src: '/showcase/robot.png', alt: 'Robot' },
-				{ src: '/showcase/sword.png', alt: 'Sword' },
-				{ src: '/showcase/chest.png', alt: 'Chest' },
-				{ src: '/showcase/shield.png', alt: 'Shield' },
-				{ src: '/showcase/crystal.png', alt: 'Crystal' },
-			] as sprite}
-				<div class="sprite-cell">
-					<img src={sprite.src} alt={sprite.alt} />
+		<!-- Before/After: 1 sprite → 8 directions -->
+		<div class="hero-rotation hero-reveal" style="animation-delay:.35s">
+			<div class="hero-rot-flow">
+				<!-- Input sprite -->
+				<div class="hero-rot-input">
+					<span class="hero-rot-label">Your sprite</span>
+					<div class="hero-rot-input-img">
+						<img src="/showcase/rotation/sprite_s.png" alt="Input sprite" />
+					</div>
 				</div>
-			{/each}
+
+				<!-- Arrow -->
+				<div class="hero-rot-arrow">
+					<ArrowRight class="w-6 h-6" />
+				</div>
+
+				<!-- 8-direction output grid -->
+				<div class="hero-rot-output">
+					<span class="hero-rot-label">8 directions</span>
+					<div class="hero-rot-grid">
+						{#each [
+							{ dir: 'NW', src: '/showcase/rotation/sprite_nw.png' },
+							{ dir: 'N', src: '/showcase/rotation/sprite_n.png' },
+							{ dir: 'NE', src: '/showcase/rotation/sprite_ne.png' },
+							{ dir: 'W', src: '/showcase/rotation/sprite_w.png' },
+							{ dir: 'E', src: '/showcase/rotation/sprite_e.png' },
+							{ dir: 'SW', src: '/showcase/rotation/sprite_sw.png' },
+							{ dir: 'S', src: '/showcase/rotation/sprite_s.png' },
+							{ dir: 'SE', src: '/showcase/rotation/sprite_se.png' },
+						] as cell}
+							<div class="hero-rot-cell">
+								<img src={cell.src} alt="{cell.dir} direction" />
+								<span class="hero-rot-dir">{cell.dir}</span>
+							</div>
+						{/each}
+					</div>
+				</div>
+			</div>
 		</div>
 	</section>
 
@@ -193,20 +194,6 @@ function inView(node: HTMLElement) {
 
 			<div class="features-grid">
 				<div class="feat-card" use:inView style="transition-delay:.08s">
-					<div class="feat-icon feat-icon-amber">
-						<Sparkles class="w-6 h-6" />
-					</div>
-					<h3 class="feat-name">Sprite Generation</h3>
-					<p class="feat-desc">
-						Characters, items, weapons, UI elements — describe it and get a transparent PNG in seconds. Powered by SDXL with automatic background removal.
-					</p>
-					<div class="feat-foot">
-						<span class="feat-cost">3 tokens</span>
-						<span class="feat-detail">Up to 1024 &times; 1024</span>
-					</div>
-				</div>
-
-				<div class="feat-card" use:inView style="transition-delay:.14s">
 					<div class="feat-icon feat-icon-orange">
 						<RotateCw class="w-6 h-6" />
 					</div>
@@ -217,6 +204,20 @@ function inView(node: HTMLElement) {
 					<div class="feat-foot">
 						<span class="feat-cost">6 tokens</span>
 						<span class="feat-detail">N / NE / E / SE / S / SW / W / NW</span>
+					</div>
+				</div>
+
+				<div class="feat-card" use:inView style="transition-delay:.14s">
+					<div class="feat-icon feat-icon-amber">
+						<Sparkles class="w-6 h-6" />
+					</div>
+					<h3 class="feat-name">Sprite Generation</h3>
+					<p class="feat-desc">
+						Characters, items, weapons, UI elements — describe it and get a transparent PNG in seconds. Powered by SDXL with automatic background removal.
+					</p>
+					<div class="feat-foot">
+						<span class="feat-cost">3 tokens</span>
+						<span class="feat-detail">Up to 1024 &times; 1024</span>
 					</div>
 				</div>
 
@@ -247,8 +248,7 @@ function inView(node: HTMLElement) {
 						<span class="feat-detail">Restyle mode: 6 tokens</span>
 					</div>
 				</div>
-
-				</div>
+			</div>
 		</div>
 	</section>
 
@@ -257,26 +257,26 @@ function inView(node: HTMLElement) {
 		<div class="container">
 			<div class="section-head" use:inView>
 				<span class="tag">Process</span>
-				<h2 class="section-title">Describe. Generate. Ship.</h2>
+				<h2 class="section-title">Upload. Rotate. Ship.</h2>
 			</div>
 
 			<div class="steps">
 				<div class="step" use:inView style="transition-delay:.06s">
 					<span class="step-num">01</span>
-					<h3>Describe your asset</h3>
-					<p>Write a text prompt describing the sprite, texture, or character you need.</p>
+					<h3>Upload your sprite</h3>
+					<p>Drag & drop any front-facing character sprite. PNG, JPEG, or WebP.</p>
 				</div>
 				<div class="step-line" aria-hidden="true"></div>
 				<div class="step" use:inView style="transition-delay:.16s">
 					<span class="step-num">02</span>
-					<h3>AI generates it</h3>
-					<p>Our pipeline runs SDXL, background removal, and refinement in seconds.</p>
+					<h3>AI rotates it</h3>
+					<p>SV3D reconstructs your character from every angle with ControlNet refinement.</p>
 				</div>
 				<div class="step-line" aria-hidden="true"></div>
 				<div class="step" use:inView style="transition-delay:.26s">
 					<span class="step-num">03</span>
-					<h3>Download &amp; use</h3>
-					<p>Get transparent PNGs, texture sets, or 8-direction sprite sheets — game-ready.</p>
+					<h3>Download all 8</h3>
+					<p>Get all 8 directions as transparent PNGs or a spritesheet — game-ready.</p>
 				</div>
 			</div>
 		</div>
@@ -291,36 +291,8 @@ function inView(node: HTMLElement) {
 				<p class="section-sub">Real assets generated by our users — every image below was created in seconds.</p>
 			</div>
 
-			<!-- Sprite Generation -->
+			<!-- 8-Direction Rotation (Primary) -->
 			<div class="sc-feature" use:inView style="transition-delay:.06s">
-				<div class="sc-feature-header">
-					<div class="sc-feature-icon sc-icon-amber">
-						<Sparkles class="w-5 h-5" />
-					</div>
-					<div>
-						<h3 class="sc-feature-title">Sprite Generation</h3>
-						<p class="sc-feature-sub">Characters, items, weapons — describe it, get a transparent PNG.</p>
-					</div>
-				</div>
-				<div class="sc-sprites-grid">
-					{#each [
-						{ src: '/showcase/knight.png', label: 'Knight' },
-						{ src: '/showcase/robot.png', label: 'Robot' },
-						{ src: '/showcase/sword.png', label: 'Sword' },
-						{ src: '/showcase/crystal.png', label: 'Crystal' },
-						{ src: '/showcase/shield.png', label: 'Shield' },
-						{ src: '/showcase/chest.png', label: 'Chest' },
-					] as item}
-						<div class="sc-sprite-cell">
-							<img src={item.src} alt={item.label} loading="lazy" />
-							<span class="sc-sprite-label">{item.label}</span>
-						</div>
-					{/each}
-				</div>
-			</div>
-
-			<!-- 8-Direction Rotation -->
-			<div class="sc-feature" use:inView style="transition-delay:.14s">
 				<div class="sc-feature-header">
 					<div class="sc-feature-icon sc-icon-orange">
 						<RotateCw class="w-5 h-5" />
@@ -361,6 +333,34 @@ function inView(node: HTMLElement) {
 					<div class="sc-rotation-note">
 						<p>Each direction is independently refined with ControlNet Tile + IPAdapter for consistency.</p>
 					</div>
+				</div>
+			</div>
+
+			<!-- Sprite Generation -->
+			<div class="sc-feature" use:inView style="transition-delay:.14s">
+				<div class="sc-feature-header">
+					<div class="sc-feature-icon sc-icon-amber">
+						<Sparkles class="w-5 h-5" />
+					</div>
+					<div>
+						<h3 class="sc-feature-title">Sprite Generation</h3>
+						<p class="sc-feature-sub">Characters, items, weapons — describe it, get a transparent PNG.</p>
+					</div>
+				</div>
+				<div class="sc-sprites-grid">
+					{#each [
+						{ src: '/showcase/knight.png', label: 'Knight' },
+						{ src: '/showcase/robot.png', label: 'Robot' },
+						{ src: '/showcase/sword.png', label: 'Sword' },
+						{ src: '/showcase/crystal.png', label: 'Crystal' },
+						{ src: '/showcase/shield.png', label: 'Shield' },
+						{ src: '/showcase/chest.png', label: 'Chest' },
+					] as item}
+						<div class="sc-sprite-cell">
+							<img src={item.src} alt={item.label} loading="lazy" />
+							<span class="sc-sprite-label">{item.label}</span>
+						</div>
+					{/each}
 				</div>
 			</div>
 
@@ -441,100 +441,16 @@ function inView(node: HTMLElement) {
 		</div>
 	</section>
 
-	<!-- Pricing -->
-	<section id="pricing" class="section pricing-section">
-		<div class="container">
-			<div class="section-head" use:inView>
-				<span class="tag">Pricing</span>
-				<h2 class="section-title">Pay for what you use</h2>
-				<p class="section-sub">No subscriptions. Tokens never expire. Failed generations refunded automatically.</p>
-			</div>
-
-			<div class="free-box" use:inView style="transition-delay:.06s">
-				<div class="free-pill">
-					<Sparkles class="w-3.5 h-3.5" />
-					Free to start
-				</div>
-				<h3>Try 3 sprites free, no signup required</h3>
-				<p>Create an account to unlock 50 bonus tokens, textures &amp; rotations.</p>
-			</div>
-
-			<div class="price-grid">
-				<div class="price-card" use:inView style="transition-delay:.1s">
-					<div class="price-head">
-						<h3>Starter</h3>
-						<span class="price-equiv">~100 sprites</span>
-					</div>
-					<div class="price-amount">
-						<span class="price-dollar">$10</span>
-						<span class="price-tokens">300 tokens</span>
-					</div>
-					<p class="price-per">$0.033 per token</p>
-					<a href={data.user ? '/app/billing' : '/login'} class="price-btn">Buy tokens</a>
-				</div>
-
-				<div class="price-card price-card-pop" use:inView style="transition-delay:.2s">
-					<div class="price-pop-badge">Best Value</div>
-					<div class="price-head">
-						<h3>Creator</h3>
-						<span class="price-equiv">~400 sprites</span>
-					</div>
-					<div class="price-amount">
-						<span class="price-dollar">$25</span>
-						<span class="price-tokens">1,200 tokens</span>
-					</div>
-					<p class="price-per price-per-gold">$0.021 per token — 37% off</p>
-					<a href={data.user ? '/app/billing' : '/login'} class="price-btn price-btn-gold">Buy tokens</a>
-				</div>
-
-				<div class="price-card" use:inView style="transition-delay:.3s">
-					<div class="price-head">
-						<h3>Studio</h3>
-						<span class="price-equiv">~1,000 sprites</span>
-					</div>
-					<div class="price-amount">
-						<span class="price-dollar">$50</span>
-						<span class="price-tokens">3,000 tokens</span>
-					</div>
-					<p class="price-per price-per-green">$0.017 per token — 50% off</p>
-					<a href={data.user ? '/app/billing' : '/login'} class="price-btn">Buy tokens</a>
-				</div>
-			</div>
-
-			<div class="token-strip" use:inView style="transition-delay:.12s">
-				<div class="token-chip">
-					<Sparkles class="w-5 h-5" style="color:#fbbf24" />
-					<div><strong>3 tokens</strong><span>per sprite</span></div>
-				</div>
-				<div class="token-sep" aria-hidden="true"></div>
-				<div class="token-chip">
-					<Layers class="w-5 h-5" style="color:#22d3ee" />
-					<div><strong>4 tokens</strong><span>per texture set</span></div>
-				</div>
-				<div class="token-sep" aria-hidden="true"></div>
-				<div class="token-chip">
-					<RotateCw class="w-5 h-5" style="color:#fb923c" />
-					<div><strong>6 tokens</strong><span>per 8-dir rotation</span></div>
-				</div>
-				<div class="token-sep" aria-hidden="true"></div>
-				<div class="token-chip">
-					<Paintbrush class="w-5 h-5" style="color:#a78bfa" />
-					<div><strong>4 tokens</strong><span>per concept art</span></div>
-				</div>
-				</div>
-		</div>
-	</section>
-
 	<!-- Final CTA -->
 	<section class="section cta-section">
 		<div class="cta-box" use:inView>
-			<h2 class="cta-title">Ready to create?</h2>
-			<p class="cta-sub">Join thousands of game developers already using GenSprite.</p>
-			<a href="/app" class="btn-primary btn-lg">
+			<h2 class="cta-title">Ready to rotate?</h2>
+			<p class="cta-sub">Upload your sprite and get all 8 directions in seconds.</p>
+			<a href="/app/rotate" class="btn-primary btn-lg">
 				{#if data.user}
-					Generate
+					Upload & Rotate
 				{:else}
-					Start generating — it's free
+					Try free — no signup
 				{/if}
 				<ArrowRight class="w-5 h-5" />
 			</a>
@@ -695,58 +611,86 @@ function inView(node: HTMLElement) {
 	}
 	.btn-ghost:hover { color: #fff; }
 
-	/* ===== Floating sprites (desktop) ===== */
-	.sprites-constellation { display: none; }
-
-	@media (min-width: 768px) {
-		.sprites-constellation {
-			display: block; position: absolute; inset: 0; z-index: 1;
-			pointer-events: none;
-		}
+	/* ===== Hero Rotation Demo ===== */
+	.hero-rotation {
+		max-width: 52rem; margin: 0 auto;
+		padding: 0 1rem;
 	}
-	.sprite-float {
-		position: absolute; pointer-events: auto;
-	}
-	.sprite-float img {
-		width: 100%; height: 100%; object-fit: contain;
-		filter: drop-shadow(0 0 18px rgba(245,158,11,.18));
-		transition: transform .4s cubic-bezier(.16,1,.3,1);
-	}
-	.sprite-float:hover img { transform: scale(1.18) rotate(-2deg); }
-
-	.sprite-fl-1 { top: 8%; left: 6%; width: 120px; height: 120px; animation: bob 5.2s ease-in-out infinite; }
-	.sprite-fl-2 { top: 4%; right: 5%; width: 105px; height: 105px; animation: bob 6s ease-in-out infinite .6s; }
-	.sprite-fl-3 { top: 50%; left: 3%; width: 95px; height: 95px; animation: bob 5.6s ease-in-out infinite 1.2s; }
-	.sprite-fl-4 { top: 48%; right: 4%; width: 115px; height: 115px; animation: bob 6.4s ease-in-out infinite 1.8s; }
-	.sprite-fl-5 { bottom: 6%; left: 9%; width: 88px; height: 88px; animation: bob 5.8s ease-in-out infinite 2.4s; }
-	.sprite-fl-6 { top: 28%; right: 9%; width: 100px; height: 100px; animation: bob 6.2s ease-in-out infinite 3s; }
-
-	.sprite-fl-2 img { filter: drop-shadow(0 0 18px rgba(168,85,247,.22)); }
-	.sprite-fl-5 img { filter: drop-shadow(0 0 18px rgba(59,130,246,.2)); }
-
-	@media (min-width: 1280px) {
-		.sprite-fl-1 { width: 150px; height: 150px; left: 8%; }
-		.sprite-fl-2 { width: 130px; height: 130px; right: 7%; }
-		.sprite-fl-3 { width: 115px; height: 115px; left: 2%; }
-		.sprite-fl-4 { width: 140px; height: 140px; right: 3%; }
-		.sprite-fl-5 { width: 105px; height: 105px; left: 12%; }
-		.sprite-fl-6 { width: 120px; height: 120px; right: 10%; }
-	}
-
-	/* ===== Mobile sprite grid ===== */
-	.sprites-mobile {
-		display: none;
-	}
-	.sprite-cell {
-		aspect-ratio: 1; padding: .6rem;
-		background: rgba(245,158,11,.04);
-		border: 1px solid rgba(63,63,70,.4);
-		border-radius: .85rem;
+	.hero-rot-flow {
 		display: flex; align-items: center; justify-content: center;
+		gap: 1.5rem; flex-wrap: wrap;
 	}
-	.sprite-cell img {
+	@media (min-width: 768px) {
+		.hero-rot-flow { flex-wrap: nowrap; gap: 2rem; }
+	}
+	.hero-rot-input {
+		display: flex; flex-direction: column; align-items: center; gap: .65rem;
+		flex-shrink: 0;
+	}
+	.hero-rot-input-img {
+		width: 120px; height: 120px;
+		background: rgba(249,115,22,.04);
+		border: 2px solid rgba(249,115,22,.25);
+		border-radius: 1rem;
+		display: flex; align-items: center; justify-content: center;
+		padding: .75rem;
+		transition: border-color .3s;
+	}
+	.hero-rot-input-img:hover { border-color: rgba(249,115,22,.45); }
+	.hero-rot-input-img img {
 		width: 100%; height: 100%; object-fit: contain;
-		filter: drop-shadow(0 0 10px rgba(245,158,11,.12));
+		filter: drop-shadow(0 0 12px rgba(249,115,22,.2));
+	}
+	@media (min-width: 768px) {
+		.hero-rot-input-img { width: 140px; height: 140px; }
+	}
+	.hero-rot-label {
+		font-size: .7rem; font-weight: 600; text-transform: uppercase;
+		letter-spacing: .06em; color: #71717a;
+	}
+	.hero-rot-arrow {
+		color: #52525b; flex-shrink: 0;
+		animation: pulseRight 2s ease-in-out infinite;
+	}
+	@keyframes pulseRight {
+		0%,100% { transform: translateX(0); opacity: .5; }
+		50% { transform: translateX(4px); opacity: 1; }
+	}
+	.hero-rot-output {
+		display: flex; flex-direction: column; align-items: center; gap: .65rem;
+	}
+	.hero-rot-grid {
+		display: grid; grid-template-columns: repeat(4, 1fr); gap: .45rem;
+	}
+	@media (min-width: 640px) {
+		.hero-rot-grid { gap: .55rem; }
+	}
+	.hero-rot-cell {
+		width: 64px; height: 64px;
+		background: rgba(39,39,42,.35);
+		border: 1px solid rgba(63,63,70,.35);
+		border-radius: .6rem;
+		display: flex; align-items: center; justify-content: center;
+		position: relative;
+		transition: border-color .3s, transform .3s;
+	}
+	.hero-rot-cell:hover {
+		border-color: rgba(249,115,22,.3);
+		transform: translateY(-2px);
+	}
+	.hero-rot-cell img {
+		width: 80%; height: 80%; object-fit: contain;
+		filter: drop-shadow(0 0 6px rgba(249,115,22,.12));
+	}
+	.hero-rot-dir {
+		position: absolute; bottom: .15rem;
+		font-size: .5rem; font-weight: 600; color: #52525b;
+	}
+	@media (min-width: 768px) {
+		.hero-rot-cell { width: 76px; height: 76px; }
+	}
+	@media (min-width: 1024px) {
+		.hero-rot-cell { width: 88px; height: 88px; }
 	}
 
 	/* ===== Shared section ===== */
@@ -850,112 +794,6 @@ function inView(node: HTMLElement) {
 			display: block; width: 1.75rem; height: 1px;
 			background: rgba(63,63,70,.4); margin-top: 3rem; flex-shrink: 0;
 		}
-	}
-
-	/* ===== Pricing ===== */
-	.pricing-section { border-top: 1px solid rgba(63,63,70,.25); }
-	.free-box {
-		max-width: 34rem; margin: 0 auto 2.5rem; padding: 1.5rem;
-		border-radius: .9rem; text-align: center;
-		background: rgba(245,158,11,.03); border: 1px solid rgba(245,158,11,.12);
-		opacity: 0; transform: translateY(22px);
-		transition: opacity .65s cubic-bezier(.16,1,.3,1),
-		            transform .65s cubic-bezier(.16,1,.3,1);
-	}
-	:global(.free-box.in-view) { opacity: 1; transform: translateY(0); }
-	.free-pill {
-		display: inline-flex; align-items: center; gap: .35rem;
-		font-size: .72rem; font-weight: 600; color: #fbbf24;
-		background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.16);
-		padding: .2rem .55rem; border-radius: 9999px; margin-bottom: .7rem;
-	}
-	.free-box h3 {
-		font-family: 'Syne', system-ui, sans-serif;
-		font-weight: 700; font-size: 1.15rem; color: #fff; margin-bottom: .3rem;
-	}
-	.free-box p { font-size: .84rem; color: #71717a; }
-
-	.price-grid {
-		display: grid; grid-template-columns: 1fr; gap: 1.25rem;
-		max-width: 52rem; margin: 0 auto;
-	}
-	@media (min-width: 768px) {
-		.price-grid { grid-template-columns: repeat(3,1fr); }
-	}
-	.price-card {
-		padding: 1.75rem; border-radius: 1.15rem; position: relative;
-		background: rgba(24,24,27,.45); border: 1px solid rgba(63,63,70,.35);
-		transition: border-color .3s, transform .3s;
-		opacity: 0; transform: translateY(22px);
-		transition: opacity .65s cubic-bezier(.16,1,.3,1),
-		            transform .65s cubic-bezier(.16,1,.3,1),
-		            border-color .3s;
-	}
-	:global(.price-card.in-view) { opacity: 1; transform: translateY(0); }
-	.price-card:hover { border-color: rgba(63,63,70,.55); transform: translateY(-2px); }
-	:global(.price-card.in-view:hover) { transform: translateY(-2px); }
-	.price-card-pop {
-		background: rgba(245,158,11,.03); border-color: rgba(245,158,11,.22);
-	}
-	.price-card-pop:hover, :global(.price-card-pop.in-view:hover) {
-		border-color: rgba(245,158,11,.38);
-	}
-	.price-pop-badge {
-		position: absolute; top: -.55rem; left: 50%; transform: translateX(-50%);
-		font-size: .65rem; font-weight: 600; color: #18181b;
-		background: linear-gradient(135deg, #fbbf24, #f59e0b);
-		padding: .2rem .65rem; border-radius: 9999px;
-	}
-	.price-head h3 { font-weight: 700; font-size: 1.05rem; color: #fff; }
-	.price-equiv { font-size: .72rem; color: #52525b; margin-top: .15rem; display: block; }
-	.price-amount {
-		display: flex; align-items: baseline; gap: .4rem;
-		margin: 1.1rem 0 .35rem;
-	}
-	.price-dollar { font-weight: 800; font-size: 1.85rem; color: #fff; }
-	.price-tokens { font-size: .84rem; color: #52525b; }
-	.price-per { font-size: .72rem; color: #52525b; margin-bottom: 1.25rem; }
-	.price-per-gold { color: #fbbf24; }
-	.price-per-green { color: #4ade80; }
-	.price-btn {
-		display: block; text-align: center; padding: .55rem .85rem;
-		background: rgba(63,63,70,.35); color: #fff;
-		font-size: .84rem; font-weight: 500; border-radius: .65rem;
-		text-decoration: none; transition: background .2s;
-	}
-	.price-btn:hover { background: rgba(63,63,70,.55); }
-	.price-btn-gold {
-		background: linear-gradient(135deg, #fbbf24, #f59e0b);
-		color: #18181b; font-weight: 600;
-		box-shadow: 0 0 20px rgba(245,158,11,.16);
-	}
-	.price-btn-gold:hover {
-		box-shadow: 0 0 28px rgba(245,158,11,.3);
-	}
-
-	/* ===== Token strip ===== */
-	.token-strip {
-		display: flex; flex-direction: column; gap: .85rem;
-		max-width: 34rem; margin: 2.5rem auto 0; padding: 1.25rem;
-		background: rgba(24,24,27,.35); border: 1px solid rgba(63,63,70,.25);
-		border-radius: .85rem;
-		opacity: 0; transform: translateY(22px);
-		transition: opacity .65s cubic-bezier(.16,1,.3,1),
-		            transform .65s cubic-bezier(.16,1,.3,1);
-	}
-	:global(.token-strip.in-view) { opacity: 1; transform: translateY(0); }
-	@media (min-width: 640px) {
-		.token-strip { flex-direction: row; align-items: center; justify-content: center; }
-	}
-	.token-chip {
-		display: flex; align-items: center; gap: .55rem; flex: 1; justify-content: center;
-	}
-	.token-chip div { display: flex; flex-direction: column; }
-	.token-chip strong { font-size: .84rem; color: #fff; }
-	.token-chip span { font-size: .72rem; color: #52525b; }
-	.token-sep { display: none; }
-	@media (min-width: 640px) {
-		.token-sep { display: block; width: 1px; height: 1.75rem; background: rgba(63,63,70,.35); }
 	}
 
 	/* ===== CTA ===== */
@@ -1160,11 +998,10 @@ function inView(node: HTMLElement) {
 	/* ===== Reduced motion ===== */
 	@media (prefers-reduced-motion: reduce) {
 		.hero-reveal { animation: none; opacity: 1; transform: none; }
-		.sprite-float { animation: none; }
+		.hero-rot-arrow { animation: none; opacity: 1; }
 		.hero-accent { animation: none; }
 		.orb { animation: none; }
-		.feat-card, .step, .free-box, .price-card,
-		.token-strip, .cta-box, .sc-feature {
+		.feat-card, .step, .cta-box, .sc-feature {
 			opacity: 1; transform: none; transition: none;
 		}
 	}

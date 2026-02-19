@@ -3,27 +3,23 @@ import { put } from '@vercel/blob';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { env } from '$env/dynamic/private';
+import { GUEST_CONFIG } from '$lib/guest-config';
 import { PRICING } from '$lib/pricing';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { submitRotationJob } from '$lib/server/runpod';
+import { submitRotation8DirJob } from '$lib/server/fal';
+import * as guestAuth from '$lib/server/guest-auth';
 import type { RequestHandler } from './$types';
 
 const TOKEN_COST = PRICING.tokenCosts.rotation;
 
-export const POST: RequestHandler = async ({ request, locals }) => {
-	if (!locals.user) {
-		error(401, 'Unauthorized');
-	}
-
+async function parseInput(request: Request, ownerId: string) {
 	const contentType = request.headers.get('content-type') || '';
-
 	let inputImageUrl: string | undefined;
 	let prompt: string | undefined;
 	let elevation: number = 20;
 
 	if (contentType.includes('multipart/form-data')) {
-		// Handle file upload
 		const formData = await request.formData();
 		const file = formData.get('image') as File | null;
 		const imageUrl = formData.get('imageUrl') as string | null;
@@ -37,28 +33,20 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 
 		if (imageUrl) {
-			// Using existing image URL (e.g., from a previous sprite generation)
 			inputImageUrl = imageUrl;
 		} else if (file && file.size > 0) {
-			// Upload new image to Vercel Blob
 			if (file.size > 10 * 1024 * 1024) {
 				error(400, 'Image must be less than 10MB');
 			}
-
 			const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
 			if (!allowedTypes.includes(file.type)) {
 				error(400, 'Image must be PNG, JPEG, or WebP');
 			}
-
 			if (!env.BLOB_READ_WRITE_TOKEN) {
-				error(
-					500,
-					'Image upload not configured. Please use an existing sprite or contact support.',
-				);
+				error(500, 'Image upload not configured.');
 			}
-
 			const blob = await put(
-				`rotations/${locals.user.id}/${nanoid()}.png`,
+				`rotations/${ownerId}/${nanoid()}.png`,
 				file,
 				{
 					access: 'public',
@@ -69,7 +57,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			inputImageUrl = blob.url;
 		}
 	} else {
-		// Handle JSON body
 		const body = await request.json();
 		inputImageUrl = body.imageUrl as string | undefined;
 		prompt = body.prompt as string | undefined;
@@ -86,6 +73,84 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		error(400, 'Image is required. Upload an image or provide an image URL.');
 	}
 
+	return { inputImageUrl, prompt, elevation };
+}
+
+export const POST: RequestHandler = async ({ request, locals, getClientAddress }) => {
+	// Guest flow
+	if (!locals.user) {
+		let guestSession = locals.guestSession;
+		if (!guestSession) {
+			const ipAddress = getClientAddress();
+			guestSession = await guestAuth.createGuestSession(ipAddress);
+		}
+
+		if (!guestAuth.canGuestGenerate(guestSession)) {
+			error(429, 'Free generation limit reached. Sign up to continue.');
+		}
+
+		const { inputImageUrl, prompt, elevation } = await parseInput(request, `guest-${guestSession.id}`);
+
+		const jobId = nanoid();
+		const [job] = await db
+			.insert(table.rotationJob)
+			.values({
+				id: jobId,
+				guestSessionId: guestSession.id,
+				status: 'pending',
+				tokenCost: 0,
+				bonusTokenCost: 0,
+				prompt: prompt?.trim() || null,
+				inputImageUrl,
+				elevation,
+				currentStage: 'Queued for processing...',
+			})
+			.returning();
+
+		try {
+			const falResponse = await submitRotation8DirJob({
+				imageUrl: inputImageUrl,
+				elevation,
+			});
+
+			await db
+				.update(table.rotationJob)
+				.set({ runpodJobId: falResponse.requestId })
+				.where(eq(table.rotationJob.id, jobId));
+		} catch (err) {
+			console.error('fal.ai submission failed:', err);
+
+			await db
+				.update(table.rotationJob)
+				.set({
+					status: 'failed',
+					errorMessage: 'Failed to submit job for processing',
+				})
+				.where(eq(table.rotationJob.id, jobId));
+
+			error(500, 'Failed to submit job for processing.');
+		}
+
+		await guestAuth.incrementGuestUsage(guestSession.id);
+		const generationsRemaining = guestAuth.getGuestRemainingGenerations(guestSession) - 1;
+
+		return json({
+			id: job.id,
+			job,
+			status: 'pending',
+			isGuest: true,
+			generationsRemaining,
+			guestSessionId: guestSession.id,
+		}, {
+			headers: {
+				'Set-Cookie': `${GUEST_CONFIG.cookieName}=${guestSession.id}; Path=/; HttpOnly; SameSite=Lax; Expires=${guestSession.expiresAt.toUTCString()}`,
+			},
+		});
+	}
+
+	// Authenticated user flow
+	const { inputImageUrl, prompt, elevation } = await parseInput(request, locals.user.id);
+
 	const total = locals.user.tokens + locals.user.bonusTokens;
 	if (total < TOKEN_COST) {
 		error(
@@ -94,7 +159,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		);
 	}
 
-	// Deduct tokens
 	const bonusDeduct = Math.min(locals.user.bonusTokens, TOKEN_COST);
 	const regularDeduct = TOKEN_COST - bonusDeduct;
 
@@ -106,10 +170,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		})
 		.where(eq(table.user.id, locals.user.id));
 
-	// Create rotation job record with 'pending' status
-	// The worker running on Vast.ai will pick this up and process it
 	const jobId = nanoid();
-
 	const [job] = await db
 		.insert(table.rotationJob)
 		.values({
@@ -125,22 +186,18 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		})
 		.returning();
 
-	// Submit to RunPod for processing
 	try {
-		const runpodResponse = await submitRotationJob({
-			jobId,
-			inputImageUrl,
+		const falResponse = await submitRotation8DirJob({
+			imageUrl: inputImageUrl,
 			elevation,
 		});
 
-		// Store RunPod job ID for status polling
 		await db
 			.update(table.rotationJob)
-			.set({ runpodJobId: runpodResponse.id })
+			.set({ runpodJobId: falResponse.requestId })
 			.where(eq(table.rotationJob.id, jobId));
 	} catch (err) {
-		// RunPod submission failed - refund tokens and mark as failed
-		console.error('RunPod submission failed:', err);
+		console.error('fal.ai submission failed:', err);
 
 		await db
 			.update(table.user)
@@ -168,6 +225,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		id: job.id,
 		job,
 		status: 'pending',
+		isGuest: false,
 		tokensRemaining: locals.user.tokens - regularDeduct,
 		bonusTokensRemaining: locals.user.bonusTokens - bonusDeduct,
 	});

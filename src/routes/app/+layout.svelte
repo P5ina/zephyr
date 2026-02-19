@@ -22,11 +22,11 @@ const guestGenerationsRemaining = $derived(
 );
 
 const tabs = [
-	{ href: '/app', label: 'Sprites', icon: Sparkles, guestAllowed: true },
+	{ href: '/app/rotate', label: '8-Dir Rotation', icon: RotateCw, guestAllowed: true },
+	{ href: '/app', label: 'Generate Sprite', icon: Sparkles, guestAllowed: true },
 	{ href: '/app/textures', label: 'Textures', icon: Layers, guestAllowed: false },
-	{ href: '/app/rotate', label: 'Rotate 8', icon: RotateCw, guestAllowed: false },
-	{ href: '/app/rotate-new', label: 'Rotate 4', icon: Rotate3d, guestAllowed: false },
 	{ href: '/app/concept-art', label: 'Concept Art', icon: Palette, guestAllowed: false },
+	{ href: '/app/rotate-new', label: 'Rotate 4', icon: Rotate3d, guestAllowed: false },
 ];
 
 function isActive(href: string) {
