@@ -18,6 +18,7 @@ import { getAnimationGenerationTokenCost } from '$lib/pricing';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { submitAnimateJob } from '$lib/server/fal';
+import { buildFalWebhookUrl } from '$lib/server/fal-webhook';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -150,9 +151,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const submissions = await Promise.all(
 			providedDirections.map(async (direction) => {
 				const referenceVideoUrl = getReferenceVideoUrl(animationType, elevation, direction as Direction);
+				const webhookUrl = buildFalWebhookUrl('animate', jobId, { direction });
 				const result = await submitAnimateJob({
 					imageUrl: directionImageUrls[direction],
 					videoUrl: referenceVideoUrl,
+					webhookUrl,
 				});
 				return { direction, requestId: result.requestId };
 			}),

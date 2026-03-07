@@ -35,6 +35,7 @@ export async function submitSpriteJob(params: {
 	width?: number;
 	height?: number;
 	seed?: number;
+	webhookUrl?: string;
 }): Promise<{ requestId: string }> {
 	configureFal();
 
@@ -45,6 +46,7 @@ export async function submitSpriteJob(params: {
 			height: params.height ?? 512,
 			seed: params.seed,
 		},
+		webhookUrl: params.webhookUrl,
 	});
 
 	return { requestId: request_id };
@@ -129,6 +131,7 @@ interface FalRotationOutput {
 export async function submitRotationJob(params: {
 	imageUrl: string;
 	elevation?: number;
+	webhookUrl?: string;
 }): Promise<{ requestId: string }> {
 	configureFal();
 
@@ -137,6 +140,7 @@ export async function submitRotationJob(params: {
 			image_url: params.imageUrl,
 			elevation: params.elevation ?? 20,
 		},
+		webhookUrl: params.webhookUrl,
 	});
 
 	return { requestId: request_id };
@@ -225,6 +229,7 @@ interface FalRotation8DirOutput {
 export async function submitRotation8DirJob(params: {
 	imageUrl: string;
 	elevation?: number;
+	webhookUrl?: string;
 }): Promise<{ requestId: string }> {
 	configureFal();
 
@@ -233,6 +238,7 @@ export async function submitRotation8DirJob(params: {
 			image_url: params.imageUrl,
 			elevation: params.elevation ?? 20,
 		},
+		webhookUrl: params.webhookUrl,
 	});
 
 	return { requestId: request_id };
@@ -373,6 +379,7 @@ export async function submitSingleViewRotation(params: {
 	imageUrl: string;
 	elevation?: number;
 	horizontalAngle: number;
+	webhookUrl?: string;
 }): Promise<{ requestId: string }> {
 	configureFal();
 
@@ -382,6 +389,7 @@ export async function submitSingleViewRotation(params: {
 			elevation: params.elevation ?? 20,
 			horizontal_angle: params.horizontalAngle,
 		},
+		webhookUrl: params.webhookUrl,
 	});
 
 	return { requestId: request_id };
@@ -438,6 +446,7 @@ const FAL_SPIN_WORKFLOW_ID = 'workflows/P5ina/spin';
  */
 export async function submitSpinJob(params: {
 	imageUrl: string;
+	webhookUrl?: string;
 }): Promise<{ requestId: string }> {
 	configureFal();
 
@@ -445,6 +454,7 @@ export async function submitSpinJob(params: {
 		input: {
 			image_url: params.imageUrl,
 		},
+		webhookUrl: params.webhookUrl,
 	});
 
 	return { requestId: request_id };
@@ -539,6 +549,7 @@ export async function submitConceptArtJob(params: {
 	seed?: number;
 	imageUrl?: string;
 	strength?: number;
+	webhookUrl?: string;
 }): Promise<{ requestId: string }> {
 	configureFal();
 
@@ -559,6 +570,7 @@ export async function submitConceptArtJob(params: {
 				// image_size is accepted by the API but missing from the SDK type
 				...({ image_size: params.imageSize, output_format: 'png' } as Record<string, unknown>),
 			},
+			webhookUrl: params.webhookUrl,
 		});
 		return { requestId: request_id };
 	}
@@ -573,6 +585,7 @@ export async function submitConceptArtJob(params: {
 			enable_safety_checker: true,
 			output_format: 'png',
 		},
+		webhookUrl: params.webhookUrl,
 	});
 
 	return { requestId: request_id };
@@ -667,6 +680,7 @@ function getPreprocessorModel(method: 'canny' | 'depth') {
 export async function submitPreprocessorJob(params: {
 	imageUrl: string;
 	method: 'canny' | 'depth';
+	webhookUrl?: string;
 }): Promise<{ requestId: string }> {
 	configureFal();
 
@@ -674,6 +688,7 @@ export async function submitPreprocessorJob(params: {
 
 	const { request_id } = await fal.queue.submit(model, {
 		input: { image_url: params.imageUrl },
+		webhookUrl: params.webhookUrl,
 	});
 
 	return { requestId: request_id };
@@ -733,6 +748,7 @@ export async function submitRestyleGeneration(params: {
 	controlMethod: 'canny' | 'depth';
 	controlStrength: number; // 0-2 (model range)
 	seed?: number;
+	webhookUrl?: string;
 }): Promise<{ requestId: string }> {
 	configureFal();
 
@@ -758,6 +774,7 @@ export async function submitRestyleGeneration(params: {
 				...(params.controlMethod === 'depth' ? { preprocess_depth: false } : {}),
 			} as Record<string, unknown>),
 		},
+		webhookUrl: params.webhookUrl,
 	});
 
 	return { requestId: request_id };
@@ -863,6 +880,7 @@ interface FalImageBackgroundRemovalOutput {
 export async function submitAnimateJob(params: {
 	imageUrl: string;
 	videoUrl: string;
+	webhookUrl?: string;
 }): Promise<{ requestId: string }> {
 	configureFal();
 
@@ -871,6 +889,7 @@ export async function submitAnimateJob(params: {
 			image_url: params.imageUrl,
 			video_url: params.videoUrl,
 		},
+		webhookUrl: params.webhookUrl,
 	});
 
 	return { requestId: request_id };
@@ -935,6 +954,7 @@ export async function submitVideoBackgroundRemovalJob(params: {
 	outputCodec?: 'vp9' | 'h264';
 	refineForegroundEdges?: boolean;
 	subjectIsPerson?: boolean;
+	webhookUrl?: string;
 }): Promise<{ requestId: string }> {
 	configureFal();
 
@@ -945,6 +965,7 @@ export async function submitVideoBackgroundRemovalJob(params: {
 			refine_foreground_edges: params.refineForegroundEdges ?? true,
 			subject_is_person: params.subjectIsPerson ?? true,
 		},
+		webhookUrl: params.webhookUrl,
 	});
 
 	return { requestId: request_id };

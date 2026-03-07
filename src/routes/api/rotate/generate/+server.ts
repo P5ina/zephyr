@@ -8,6 +8,7 @@ import { PRICING } from '$lib/pricing';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { submitRotation8DirJob } from '$lib/server/fal';
+import { buildFalWebhookUrl } from '$lib/server/fal-webhook';
 import * as guestAuth from '$lib/server/guest-auth';
 import type { RequestHandler } from './$types';
 
@@ -107,10 +108,13 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 			})
 			.returning();
 
+		const webhookUrl = buildFalWebhookUrl('rotation8', job.id);
+
 		try {
 			const falResponse = await submitRotation8DirJob({
 				imageUrl: inputImageUrl,
 				elevation,
+				webhookUrl,
 			});
 
 			await db
@@ -186,10 +190,13 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 		})
 		.returning();
 
+	const webhookUrl = buildFalWebhookUrl('rotation8', job.id);
+
 	try {
 		const falResponse = await submitRotation8DirJob({
 			imageUrl: inputImageUrl,
 			elevation,
+			webhookUrl,
 		});
 
 		await db
