@@ -1,6 +1,7 @@
 <script lang="ts">
 import {
 	ArrowRight,
+	Film,
 	Layers,
 	Paintbrush,
 	RotateCw,
@@ -37,6 +38,7 @@ const jsonLd = {
 			},
 			featureList: [
 				'8-Direction Character Rotation',
+				'Sprite Animation',
 				'AI Sprite Generation',
 				'PBR Texture Generation',
 				'Concept Art Generation',
@@ -207,7 +209,21 @@ function inView(node: HTMLElement) {
 					</div>
 				</div>
 
-				<div class="feat-card" use:inView style="transition-delay:.14s">
+				<div class="feat-card" use:inView style="transition-delay:.11s">
+					<div class="feat-icon feat-icon-rose">
+						<Film class="w-6 h-6" />
+					</div>
+					<h3 class="feat-name">Sprite Animation</h3>
+					<p class="feat-desc">
+						Animate your sprites in all directions. Powered by Wan 2.2 motion transfer with automatic background removal and spritesheet export.
+					</p>
+					<div class="feat-foot">
+						<span class="feat-cost">Dynamic</span>
+						<span class="feat-detail">Walk, run &mdash; 4 or 8 directions</span>
+					</div>
+				</div>
+
+				<div class="feat-card" use:inView style="transition-delay:.17s">
 					<div class="feat-icon feat-icon-amber">
 						<Sparkles class="w-6 h-6" />
 					</div>
@@ -221,7 +237,7 @@ function inView(node: HTMLElement) {
 					</div>
 				</div>
 
-				<div class="feat-card" use:inView style="transition-delay:.2s">
+				<div class="feat-card" use:inView style="transition-delay:.23s">
 					<div class="feat-icon feat-icon-cyan">
 						<Layers class="w-6 h-6" />
 					</div>
@@ -235,7 +251,7 @@ function inView(node: HTMLElement) {
 					</div>
 				</div>
 
-				<div class="feat-card" use:inView style="transition-delay:.26s">
+				<div class="feat-card" use:inView style="transition-delay:.29s">
 					<div class="feat-icon feat-icon-violet">
 						<Paintbrush class="w-6 h-6" />
 					</div>
@@ -332,6 +348,50 @@ function inView(node: HTMLElement) {
 					</div>
 					<div class="sc-rotation-note">
 						<p>Each direction is independently refined with ControlNet Tile + IPAdapter for consistency.</p>
+					</div>
+				</div>
+			</div>
+
+			<!-- Sprite Animation -->
+			<div class="sc-feature" use:inView style="transition-delay:.10s">
+				<div class="sc-feature-header">
+					<div class="sc-feature-icon sc-icon-rose">
+						<Film class="w-5 h-5" />
+					</div>
+					<div>
+						<h3 class="sc-feature-title">Sprite Animation</h3>
+						<p class="sc-feature-sub">Upload direction sprites, get animated spritesheets via Wan 2.2 motion transfer.</p>
+					</div>
+				</div>
+				<div class="sc-animation-wrap">
+					<!-- Animation frame strip -->
+					<div class="sc-anim-strip">
+						{#each ['frame_0001', 'frame_0004', 'frame_0007', 'frame_0010', 'frame_0013', 'frame_0016', 'frame_0019'] as frame, i}
+							<div class="sc-anim-frame" style="animation-delay:{i * 0.12}s">
+								<img src="/showcase/animation/{frame}.png" alt="Animation {frame}" loading="lazy" />
+							</div>
+						{/each}
+					</div>
+					<!-- 8-direction output -->
+					<div class="sc-anim-directions">
+						{#each [
+							{ dir: 'NW', src: '/showcase/animation/northwest.png' },
+							{ dir: 'N', src: '/showcase/animation/north.png' },
+							{ dir: 'NE', src: '/showcase/animation/northeast.png' },
+							{ dir: 'W', src: '/showcase/animation/west.png' },
+							{ dir: 'E', src: '/showcase/animation/east.png' },
+							{ dir: 'SW', src: '/showcase/animation/southwest.png' },
+							{ dir: 'S', src: '/showcase/animation/south.png' },
+							{ dir: 'SE', src: '/showcase/animation/southeast.png' },
+						] as cell}
+							<div class="sc-anim-dir-cell">
+								<img src={cell.src} alt="{cell.dir} animation" loading="lazy" />
+								<span class="sc-anim-dir-label">{cell.dir}</span>
+							</div>
+						{/each}
+					</div>
+					<div class="sc-animation-note">
+						<p>Each direction is animated independently with automatic background removal and PNG frame export.</p>
 					</div>
 				</div>
 			</div>
@@ -748,6 +808,7 @@ function inView(node: HTMLElement) {
 	.feat-icon-orange { background: rgba(249,115,22,.1);  color: #fb923c; }
 	.feat-icon-cyan   { background: rgba(34,211,238,.1);  color: #22d3ee; }
 	.feat-icon-violet { background: rgba(139,92,246,.1);  color: #a78bfa; }
+	.feat-icon-rose   { background: rgba(244,63,94,.1);   color: #fb7185; }
 	.feat-name {
 		font-weight: 700; font-size: 1.05rem; color: #fff; margin-bottom: .5rem;
 	}
@@ -841,6 +902,7 @@ function inView(node: HTMLElement) {
 	.sc-icon-orange { background: rgba(249,115,22,.1);  color: #fb923c; }
 	.sc-icon-cyan   { background: rgba(34,211,238,.1);  color: #22d3ee; }
 	.sc-icon-violet { background: rgba(139,92,246,.1);  color: #a78bfa; }
+	.sc-icon-rose   { background: rgba(244,63,94,.1);   color: #fb7185; }
 	.sc-feature-title {
 		font-family: 'Syne', system-ui, sans-serif;
 		font-weight: 700; font-size: 1.05rem; color: #fff;
@@ -994,6 +1056,64 @@ function inView(node: HTMLElement) {
 		background: rgba(139,92,246,.08); border: 1px solid rgba(139,92,246,.18);
 		padding: .15rem .5rem; border-radius: 9999px;
 	}
+
+	/* --- Animation showcase --- */
+	.sc-animation-wrap {
+		display: flex; flex-direction: column; align-items: center; gap: 1.5rem;
+	}
+	.sc-anim-strip {
+		display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap;
+	}
+	.sc-anim-frame {
+		width: 64px; height: 64px;
+		background: rgba(39,39,42,.35);
+		border: 1px solid rgba(63,63,70,.35);
+		border-radius: .6rem;
+		display: flex; align-items: center; justify-content: center;
+		padding: .3rem;
+		transition: border-color .3s, transform .3s;
+	}
+	.sc-anim-frame:hover {
+		border-color: rgba(244,63,94,.3);
+		transform: translateY(-2px);
+	}
+	.sc-anim-frame img {
+		width: 100%; height: 100%; object-fit: contain;
+		filter: drop-shadow(0 0 6px rgba(244,63,94,.12));
+	}
+	@media (min-width: 640px) {
+		.sc-anim-frame { width: 76px; height: 76px; }
+	}
+	.sc-anim-directions {
+		display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem;
+		width: 100%; max-width: 22rem;
+	}
+	@media (min-width: 640px) {
+		.sc-anim-directions { gap: .6rem; }
+	}
+	.sc-anim-dir-cell {
+		aspect-ratio: 1; border-radius: .65rem;
+		background: rgba(39,39,42,.35);
+		border: 1px solid rgba(63,63,70,.35);
+		display: flex; flex-direction: column;
+		align-items: center; justify-content: center;
+		position: relative; padding: .35rem;
+		transition: border-color .3s, transform .3s;
+	}
+	.sc-anim-dir-cell:hover {
+		border-color: rgba(244,63,94,.25);
+		transform: translateY(-2px);
+	}
+	.sc-anim-dir-cell img {
+		width: 75%; height: 75%; object-fit: contain;
+		filter: drop-shadow(0 0 8px rgba(244,63,94,.12));
+	}
+	.sc-anim-dir-label {
+		position: absolute; bottom: .2rem;
+		font-size: .55rem; font-weight: 600; color: #71717a;
+	}
+	.sc-animation-note { text-align: center; }
+	.sc-animation-note p { font-size: .78rem; color: #52525b; max-width: 30rem; }
 
 	/* ===== Reduced motion ===== */
 	@media (prefers-reduced-motion: reduce) {
