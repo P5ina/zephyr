@@ -7,6 +7,7 @@ import { PRICING } from '$lib/pricing';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { submitConceptArtJob, submitPreprocessorJob } from '$lib/server/fal';
+import { buildFalWebhookUrl } from '$lib/server/fal-webhook';
 import type { RequestHandler } from './$types';
 
 const VALID_IMAGE_SIZES = [
@@ -210,16 +211,19 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		});
 
 	// Submit to fal.ai
+	const isRestyle = mode === 'restyle';
+	const webhookUrl = buildFalWebhookUrl(isRestyle ? 'preprocessor' : 'conceptart', genId);
 	try {
 		let falResponse: { requestId: string };
 
-		if (mode === 'restyle') {
+		if (isRestyle) {
 			// Two-phase: preprocessor → generation.
 			// Submit the preprocessor job to the queue and return immediately.
 			// The status endpoint drives phase transitions.
 			falResponse = await submitPreprocessorJob({
 				imageUrl: compositionImageUrl!,
 				method: controlMethod as 'canny' | 'depth',
+				webhookUrl,
 			});
 		} else {
 			falResponse = await submitConceptArtJob({
@@ -228,6 +232,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				seed,
 				imageUrl: referenceImageUrl ?? undefined,
 				strength: referenceStrength != null ? referenceStrength / 100 : undefined,
+				webhookUrl,
 			});
 		}
 
