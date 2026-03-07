@@ -367,9 +367,6 @@ async function handlePreprocessor(jobId: string, body: FalWebhookPayload, _url: 
 	// Save control image and submit restyle generation (step 2)
 	const controlMethod = (job.controlMethod as 'canny' | 'depth') || 'canny';
 
-	// TODO: submitRestyleGeneration does not yet accept a webhookUrl param.
-	// When it does, pass buildFalWebhookUrl('restyle', jobId) to enable
-	// webhook-driven completion for step 2 as well.
 	const result = await submitRestyleGeneration({
 		prompt: job.prompt,
 		imageSize: job.imageSize || 'landscape_16_9',
@@ -377,6 +374,7 @@ async function handlePreprocessor(jobId: string, body: FalWebhookPayload, _url: 
 		controlMethod,
 		controlStrength: (job.controlStrength ?? 70) / 100,
 		seed: job.seed ?? undefined,
+		webhookUrl: buildFalWebhookUrl('restyle', jobId),
 	});
 
 	await db
@@ -467,12 +465,30 @@ async function handleAnimate(jobId: string, body: FalWebhookPayload, url: URL) {
 	}
 
 	const data = body.payload as { video?: { url: string } };
-	if (data?.video?.url) {
-		directionVideos[direction] = data.video.url;
+	const videoUrl = data?.video?.url;
+	if (!videoUrl) {
+		console.error(`[fal-webhook] animate webhook missing video URL for direction ${direction}, job ${jobId}`);
+		return;
 	}
 
-	const completedCount = Object.keys(directionVideos).length;
-	const allComplete = directions.length > 0 && directions.every((d) => directionVideos[d]);
+	// Atomic jsonb merge to avoid race conditions when parallel webhooks arrive
+	const videoEntry = JSON.stringify({ [direction]: videoUrl });
+	await db
+		.update(table.animationJob)
+		.set({
+			directionVideos: sql`COALESCE(${table.animationJob.directionVideos}, '{}'::jsonb) || ${videoEntry}::jsonb`,
+		})
+		.where(eq(table.animationJob.id, jobId));
+
+	// Re-read job to get the updated directionVideos for progress calculation
+	const updated = await db.query.animationJob.findFirst({
+		where: eq(table.animationJob.id, jobId),
+	});
+	if (!updated) return;
+
+	const updatedVideos = (updated.directionVideos as Record<string, string>) || {};
+	const completedCount = Object.keys(updatedVideos).length;
+	const allComplete = directions.length > 0 && directions.every((d) => updatedVideos[d]);
 	const progress = Math.floor(5 + (completedCount / directions.length) * 55);
 
 	await db
@@ -483,7 +499,6 @@ async function handleAnimate(jobId: string, body: FalWebhookPayload, url: URL) {
 				? 'All directions complete, preparing export...'
 				: `Animating directions (${completedCount}/${directions.length})...`,
 			progress,
-			directionVideos,
 		})
 		.where(eq(table.animationJob.id, jobId));
 
