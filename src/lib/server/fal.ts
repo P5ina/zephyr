@@ -1004,27 +1004,44 @@ export async function cancelVideoBackgroundRemovalJob(requestId: string): Promis
 /**
  * Remove image background using fal.ai
  */
-export async function removeImageBackground(image: Buffer): Promise<Buffer> {
+export async function removeImageBackground(image: Buffer, retries = 2): Promise<Buffer> {
 	configureFal();
 
-	const result = await fal.subscribe(FAL_IMAGE_BG_REMOVAL_MODEL, {
-		input: {
-			image_url: new Blob([new Uint8Array(image)], { type: 'image/png' }),
-			sync_mode: true,
-		},
-		logs: false,
-	});
+	for (let attempt = 0; attempt <= retries; attempt++) {
+		try {
+			const result = await Promise.race([
+				fal.subscribe(FAL_IMAGE_BG_REMOVAL_MODEL, {
+					input: {
+						image_url: new Blob([new Uint8Array(image)], { type: 'image/png' }),
+						sync_mode: true,
+					},
+					logs: false,
+				}),
+				new Promise<never>((_, reject) =>
+					setTimeout(() => reject(new Error('Background removal timed out after 60s')), 60_000),
+				),
+			]);
 
-	const data = result.data as FalImageBackgroundRemovalOutput;
-	const imageUrl = data.image?.url;
-	if (!imageUrl) {
-		throw new Error('Background removal did not return an image');
+			const data = result.data as FalImageBackgroundRemovalOutput;
+			const imageUrl = data.image?.url;
+			if (!imageUrl) {
+				throw new Error('Background removal did not return an image');
+			}
+
+			const response = await fetch(imageUrl);
+			if (!response.ok) {
+				throw new Error(`Failed to download background-removed frame: ${response.status}`);
+			}
+
+			return Buffer.from(await response.arrayBuffer());
+		} catch (err) {
+			if (attempt < retries) {
+				console.warn(`[bg-removal] attempt ${attempt + 1} failed, retrying...`, (err as Error).message);
+				continue;
+			}
+			throw err;
+		}
 	}
 
-	const response = await fetch(imageUrl);
-	if (!response.ok) {
-		throw new Error(`Failed to download background-removed frame: ${response.status}`);
-	}
-
-	return Buffer.from(await response.arrayBuffer());
+	throw new Error('Unreachable');
 }

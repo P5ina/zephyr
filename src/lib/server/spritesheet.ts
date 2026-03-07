@@ -214,7 +214,7 @@ export async function buildFrameArchive(
 			const folder = zip.folder(direction)!;
 			const processedDirectionFrames = await mapWithConcurrency(
 				frames.slice(0, frameCount),
-				4,
+				8,
 				async (framePath, index) => {
 					const frameData = await removeImageBackground(readFileSync(framePath));
 					processedFrames++;
