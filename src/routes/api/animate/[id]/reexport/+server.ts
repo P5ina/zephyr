@@ -62,6 +62,7 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 		.set({
 			status: 'processing',
 			currentStage: `Removing backgrounds (0/${frameCount * (job.directionCount as 4 | 8)})...`,
+		completedAt: null,
 			progress: 55,
 			spritesheetUrl: null,
 			frameCount: null,

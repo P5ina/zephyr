@@ -13,7 +13,7 @@ import type { RequestHandler } from './$types';
 export const config: Config = {
 	runtime: 'nodejs22.x',
 	memory: 3009,
-	maxDuration: 120,
+	maxDuration: 300,
 };
 
 export const GET: RequestHandler = async ({ params, locals }) => {
@@ -29,7 +29,25 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		error(404, 'Job not found');
 	}
 
-	const isExporting = job.currentStage?.startsWith('!exporting');
+	let isExporting = job.currentStage?.startsWith('!exporting');
+
+	// If export has been stuck for over 3 minutes (Vercel function likely timed out), allow retry
+	if (isExporting && job.status === 'processing' && !job.spritesheetUrl) {
+		const exportStartMatch = job.currentStage?.match(/!exporting@(\d+):/);
+		const exportStartedAt = exportStartMatch ? parseInt(exportStartMatch[1]) : 0;
+		const staleMs = 3 * 60 * 1000;
+
+		if (!exportStartedAt || Date.now() - exportStartedAt > staleMs) {
+			await db
+				.update(table.animationJob)
+				.set({ currentStage: 'Retrying export...' })
+				.where(eq(table.animationJob.id, job.id));
+			job = (await db.query.animationJob.findFirst({
+				where: eq(table.animationJob.id, params.id),
+			}))!;
+			isExporting = false;
+		}
+	}
 
 	if (
 		job.falRequestIds &&
@@ -93,10 +111,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 			const allComplete = directions.length > 0 && directions.every((direction) => directionVideos[direction]);
 
 			if (allComplete && !job.spritesheetUrl) {
+				const exportStartTime = Date.now();
 				const [claimed] = await db
 					.update(table.animationJob)
 					.set({
-						currentStage: '!exporting:Extracting frames...',
+						currentStage: `!exporting@${Date.now()}:Extracting frames...`,
 						progress: 65,
 					})
 					.where(eq(table.animationJob.id, job.id))
@@ -111,7 +130,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 							async (stage, progress) => {
 								await db
 									.update(table.animationJob)
-									.set({ currentStage: `!exporting:${stage}`, progress })
+									.set({ currentStage: `!exporting@${exportStartTime}:${stage}`, progress })
 									.where(eq(table.animationJob.id, job!.id));
 							},
 						);
@@ -215,12 +234,9 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 };
 
 function normalizeStage(stage: string): string {
-	if (stage.startsWith('!')) {
-		const separator = stage.indexOf(':');
-		if (separator !== -1) {
-			return stage.slice(separator + 1);
-		}
-	}
+	// Strip internal prefixes like "!exporting@1234567890:Actual stage..."
+	const match = stage.match(/^![\w@]+:(.+)$/);
+	if (match) return match[1];
 	return stage;
 }
 
