@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Coins, Layers, Lock, Menu, Palette, Rotate3d, RotateCw, Sparkles, X } from 'lucide-svelte';
+import { Coins, Film, Layers, Lock, Menu, Palette, Rotate3d, RotateCw, Sparkles, X } from 'lucide-svelte';
 import type { Snippet } from 'svelte';
 import { page } from '$app/state';
 import { GUEST_CONFIG } from '$lib/guest-config';
@@ -27,6 +27,7 @@ const tabs = [
 	{ href: '/app/textures', label: 'Textures', icon: Layers, guestAllowed: false },
 	{ href: '/app/concept-art', label: 'Concept Art', icon: Palette, guestAllowed: false },
 	{ href: '/app/rotate-new', label: 'Rotate 4', icon: Rotate3d, guestAllowed: true },
+	{ href: '/app/animate', label: 'Animate', icon: Film, guestAllowed: false },
 ];
 
 function isActive(href: string) {

@@ -312,9 +312,9 @@ const FAL_SINGLE_VIEW_WORKFLOW_ID = 'workflows/P5ina/rotate-one-view';
 export const DIRECTION_ANGLES = {
 	input: 0, // Original input image (same as front)
 	front: 0,
-	right: 90,
+	right: 270,
 	back: 180,
-	left: 270,
+	left: 90,
 } as const;
 
 export type SourceDirection = keyof typeof DIRECTION_ANGLES;
@@ -835,4 +835,196 @@ export async function cancelRestyleJob(
 		? FAL_RESTYLE_DEPTH_MODEL
 		: FAL_RESTYLE_CANNY_MODEL;
 	await fal.queue.cancel(model, { requestId });
+}
+
+// ============================================================================
+// Animation (sprite animation via Wan 2.2 motion transfer)
+// ============================================================================
+
+const FAL_ANIMATE_MODEL = 'fal-ai/wan/v2.2-14b/animate/move';
+const FAL_VIDEO_BG_REMOVAL_MODEL = 'bria/video/background-removal';
+const FAL_IMAGE_BG_REMOVAL_MODEL = 'fal-ai/bria/background/remove';
+
+interface FalAnimateOutput {
+	video?: { url: string };
+}
+
+interface FalVideoBackgroundRemovalOutput {
+	video?: Array<{ url: string }>;
+}
+
+interface FalImageBackgroundRemovalOutput {
+	image?: { url: string };
+}
+
+/**
+ * Submit an animation job for a single direction to fal.ai
+ */
+export async function submitAnimateJob(params: {
+	imageUrl: string;
+	videoUrl: string;
+}): Promise<{ requestId: string }> {
+	configureFal();
+
+	const { request_id } = await fal.queue.submit(FAL_ANIMATE_MODEL, {
+		input: {
+			image_url: params.imageUrl,
+			video_url: params.videoUrl,
+		},
+	});
+
+	return { requestId: request_id };
+}
+
+/**
+ * Get the status of an animation job from fal.ai
+ */
+export async function getAnimateJobStatus(requestId: string): Promise<{
+	status: 'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+	output?: { videoUrl: string };
+	error?: string;
+}> {
+	configureFal();
+
+	try {
+		const status = await fal.queue.status(FAL_ANIMATE_MODEL, {
+			requestId,
+			logs: false,
+		});
+
+		if (status.status === 'COMPLETED') {
+			const result = await fal.queue.result(FAL_ANIMATE_MODEL, {
+				requestId,
+			});
+
+			const data = result.data as FalAnimateOutput;
+			return {
+				status: 'COMPLETED',
+				output: data?.video?.url ? { videoUrl: data.video.url } : undefined,
+			};
+		}
+
+		return {
+			status: status.status as 'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
+		};
+	} catch (error) {
+		const body = (error as { body?: unknown })?.body;
+		console.error('[fal.ai] Error checking animate status:', error);
+		if (body) console.error('[fal.ai] Error body:', JSON.stringify(body, null, 2));
+		return {
+			status: 'FAILED',
+			error: error instanceof Error ? error.message : 'Unknown error',
+		};
+	}
+}
+
+/**
+ * Cancel an animation job on fal.ai
+ */
+export async function cancelAnimateJob(requestId: string): Promise<void> {
+	configureFal();
+
+	await fal.queue.cancel(FAL_ANIMATE_MODEL, { requestId });
+}
+
+/**
+ * Submit a video background removal job to fal.ai
+ */
+export async function submitVideoBackgroundRemovalJob(params: {
+	videoUrl: string;
+	outputCodec?: 'vp9' | 'h264';
+	refineForegroundEdges?: boolean;
+	subjectIsPerson?: boolean;
+}): Promise<{ requestId: string }> {
+	configureFal();
+
+	const { request_id } = await fal.queue.submit(FAL_VIDEO_BG_REMOVAL_MODEL, {
+		input: {
+			video_url: params.videoUrl,
+			output_codec: params.outputCodec ?? 'vp9',
+			refine_foreground_edges: params.refineForegroundEdges ?? true,
+			subject_is_person: params.subjectIsPerson ?? true,
+		},
+	});
+
+	return { requestId: request_id };
+}
+
+/**
+ * Get the status of a video background removal job from fal.ai
+ */
+export async function getVideoBackgroundRemovalJobStatus(requestId: string): Promise<{
+	status: 'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+	output?: { videoUrl: string };
+	error?: string;
+}> {
+	configureFal();
+
+	try {
+		const status = await fal.queue.status(FAL_VIDEO_BG_REMOVAL_MODEL, {
+			requestId,
+			logs: false,
+		});
+
+		if (status.status === 'COMPLETED') {
+			const result = await fal.queue.result(FAL_VIDEO_BG_REMOVAL_MODEL, {
+				requestId,
+			});
+
+			const data = result.data as unknown as FalVideoBackgroundRemovalOutput;
+			return {
+				status: 'COMPLETED',
+				output: data?.video?.[0]?.url ? { videoUrl: data.video[0].url } : undefined,
+			};
+		}
+
+		return {
+			status: status.status as 'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
+		};
+	} catch (error) {
+		const body = (error as { body?: unknown })?.body;
+		console.error('[fal.ai] Error checking video bg removal status:', error);
+		if (body) console.error('[fal.ai] Error body:', JSON.stringify(body, null, 2));
+		return {
+			status: 'FAILED',
+			error: error instanceof Error ? error.message : 'Unknown error',
+		};
+	}
+}
+
+/**
+ * Cancel a video background removal job on fal.ai
+ */
+export async function cancelVideoBackgroundRemovalJob(requestId: string): Promise<void> {
+	configureFal();
+
+	await fal.queue.cancel(FAL_VIDEO_BG_REMOVAL_MODEL, { requestId });
+}
+
+/**
+ * Remove image background using fal.ai
+ */
+export async function removeImageBackground(image: Buffer): Promise<Buffer> {
+	configureFal();
+
+	const result = await fal.subscribe(FAL_IMAGE_BG_REMOVAL_MODEL, {
+		input: {
+			image_url: new Blob([new Uint8Array(image)], { type: 'image/png' }),
+			sync_mode: true,
+		},
+		logs: false,
+	});
+
+	const data = result.data as FalImageBackgroundRemovalOutput;
+	const imageUrl = data.image?.url;
+	if (!imageUrl) {
+		throw new Error('Background removal did not return an image');
+	}
+
+	const response = await fetch(imageUrl);
+	if (!response.ok) {
+		throw new Error(`Failed to download background-removed frame: ${response.status}`);
+	}
+
+	return Buffer.from(await response.arrayBuffer());
 }

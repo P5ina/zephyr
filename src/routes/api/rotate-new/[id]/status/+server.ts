@@ -89,9 +89,9 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 							progress: 100,
 							currentStage: 'Completed',
 							rotationFront: falStatus.output.front || null,
-							rotationRight: falStatus.output.right || null,
+							rotationRight: falStatus.output.left || null,
 							rotationBack: falStatus.output.back || null,
-							rotationLeft: falStatus.output.left || null,
+							rotationLeft: falStatus.output.right || null,
 							completedAt: new Date(),
 						})
 						.where(eq(table.rotationJobNew.id, job.id));

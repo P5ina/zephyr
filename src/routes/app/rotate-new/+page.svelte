@@ -9,7 +9,6 @@ import {
 	ChevronRight,
 	Download,
 	Expand,
-	FlaskConical,
 	Grid3x3,
 	ImagePlus,
 	Loader2,
@@ -21,7 +20,6 @@ import {
 	Sparkles,
 	Upload,
 	X,
-	Zap,
 } from 'lucide-svelte';
 import JSZip from 'jszip';
 import { GUEST_CONFIG } from '$lib/guest-config';
@@ -88,9 +86,9 @@ let regeneratingDirection = $state<Direction | null>(null);
 const directionAngles: Record<SourceDirection, number> = {
 	input: 0,
 	front: 0,
-	right: 90,
+	right: 270,
 	back: 180,
-	left: 270,
+	left: 90,
 };
 
 function calculateAngle(source: SourceDirection, target: Direction): number {
@@ -665,24 +663,6 @@ function scrollHistory(direction: 'left' | 'right') {
 </script>
 
 <div class="rotate-new-page">
-	<!-- Beta Banner -->
-	<div class="beta-banner">
-		<div class="beta-icon">
-			<FlaskConical class="w-5 h-5" />
-		</div>
-		<div class="beta-content">
-			<div class="beta-header">
-				<h3 class="beta-title">New 4-Direction Rotation</h3>
-				<span class="beta-tag">Beta</span>
-			</div>
-			<p class="beta-desc">
-				<Zap class="w-3 h-3 inline text-amber-400 -mt-0.5" />
-				Powered by a new AI pipeline with improved quality and faster generation.
-				This feature is in beta and may occasionally produce unexpected results.
-			</p>
-		</div>
-	</div>
-
 	<!-- History Bar -->
 	<div class="history-bar">
 		<div class="flex items-center gap-2">

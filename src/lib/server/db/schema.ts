@@ -409,3 +409,53 @@ export const conceptArtGeneration = pgTable('concept_art_generation', {
 });
 
 export type ConceptArtGeneration = typeof conceptArtGeneration.$inferSelect;
+
+export const animationJob = pgTable('animation_job', {
+	id: text('id').primaryKey(),
+	userId: text('user_id').references(() => user.id),
+
+	// Status
+	status: text('status', {
+		enum: ['pending', 'processing', 'completed', 'failed'],
+	})
+		.notNull()
+		.default('pending'),
+	progress: integer('progress').notNull().default(0),
+	currentStage: text('current_stage'),
+
+	// Input
+	inputImageUrl: text('input_image_url'),
+	directionInputImages: json('direction_input_images').$type<Record<string, string>>(),
+	animationType: text('animation_type', {
+		enum: ['walk', 'run', 'idle', 'attack'],
+	}).notNull(),
+	elevation: text('elevation_preset', {
+		enum: ['side', 'low', 'iso', 'iso45', 'topdown'],
+	}).notNull(),
+	directionCount: integer('direction_count').notNull().default(4),
+
+	// Tracking - per-direction fal request IDs and completed video URLs
+	falRequestIds: json('fal_request_ids').$type<Record<string, string>>(),
+	directionVideos: json('direction_videos').$type<Record<string, string>>(),
+
+	// Background removal tracking
+	bgRemovalRequestIds: json('bg_removal_request_ids').$type<Record<string, string>>(),
+	bgRemovedVideos: json('bg_removed_videos').$type<Record<string, string>>(),
+
+	// Results
+	spritesheetUrl: text('spritesheet_url'),
+	frameCount: integer('frame_count'),
+	tileWidth: integer('tile_width'),
+	tileHeight: integer('tile_height'),
+
+	// Metadata
+	tokenCost: integer('token_cost').notNull(),
+	bonusTokenCost: integer('bonus_token_cost').notNull().default(0),
+	errorMessage: text('error_message'),
+	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
+		.notNull()
+		.defaultNow(),
+	completedAt: timestamp('completed_at', { withTimezone: true, mode: 'date' }),
+});
+
+export type AnimationJob = typeof animationJob.$inferSelect;

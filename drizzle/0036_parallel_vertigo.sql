@@ -1,0 +1,1 @@
+ALTER TABLE "animation_job" ADD COLUMN "direction_input_images" json;
