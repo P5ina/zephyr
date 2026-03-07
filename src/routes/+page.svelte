@@ -57,35 +57,7 @@ const jsonLd = {
 
 const ANIM_DIRECTIONS = ['south', 'southwest', 'west', 'northwest', 'north', 'northeast', 'east', 'southeast'] as const;
 const ANIM_DIR_LABELS = ['S', 'SW', 'W', 'NW', 'N', 'NE', 'E', 'SE'] as const;
-const ANIM_FRAME_COUNT = 19;
-const ANIM_FPS = 16;
-
-// Build frame paths: /showcase/animation/{dir}/0001.png .. 0019.png
-function framePath(dir: string, frameIndex: number): string {
-	return `/showcase/animation/${dir}/${String(frameIndex + 1).padStart(4, '0')}.png`;
-}
-
-let animFrame = $state(0);
-let animInterval: ReturnType<typeof setInterval> | undefined;
-
-function startAnimation() {
-	if (animInterval) return;
-	animInterval = setInterval(() => {
-		animFrame = (animFrame + 1) % ANIM_FRAME_COUNT;
-	}, 1000 / ANIM_FPS);
-}
-
-function stopAnimation() {
-	if (animInterval) {
-		clearInterval(animInterval);
-		animInterval = undefined;
-	}
-}
-
-$effect(() => {
-	startAnimation();
-	return () => stopAnimation();
-});
+const ANIM_CDN = 'https://cdn.p5ina.dev/gensprite/showcase/animation';
 
 function inView(node: HTMLElement) {
 	if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -400,22 +372,22 @@ function inView(node: HTMLElement) {
 						{#each ANIM_DIRECTIONS as dir, i}
 							<div class="sc-anim-dir-cell">
 								<div class="sc-anim-canvas">
-									{#each { length: ANIM_FRAME_COUNT } as _, f}
-										<img
-											src={framePath(dir, f)}
-											alt="{ANIM_DIR_LABELS[i]} frame {f + 1}"
-											class="sc-anim-sprite"
-											class:sc-anim-active={f === animFrame}
-											loading="lazy"
-										/>
-									{/each}
+									<!-- svelte-ignore a11y_media_has_caption -->
+									<video
+										src="{ANIM_CDN}/{dir}.webm"
+										autoplay
+										loop
+										muted
+										playsinline
+										class="sc-anim-video"
+									></video>
 								</div>
 								<span class="sc-anim-dir-label">{ANIM_DIR_LABELS[i]}</span>
 							</div>
 						{/each}
 					</div>
 					<div class="sc-animation-note">
-						<p>Each direction animated independently at {ANIM_FPS} fps with automatic background removal and PNG frame export.</p>
+						<p>Each direction animated at 30 fps with automatic background removal and PNG frame export.</p>
 					</div>
 				</div>
 			</div>
@@ -1106,15 +1078,10 @@ function inView(node: HTMLElement) {
 	.sc-anim-dir-cell:hover .sc-anim-canvas {
 		border-color: rgba(244,63,94,.3);
 	}
-	.sc-anim-sprite {
-		position: absolute; inset: 8%; width: 84%; height: 84%;
+	.sc-anim-video {
+		width: 100%; height: 100%;
 		object-fit: contain;
 		filter: drop-shadow(0 0 6px rgba(244,63,94,.1));
-		opacity: 0;
-		pointer-events: none;
-	}
-	.sc-anim-active {
-		opacity: 1;
 	}
 	.sc-anim-dir-label {
 		font-size: .6rem; font-weight: 600; color: #71717a;
