@@ -55,6 +55,38 @@ const jsonLd = {
 	],
 };
 
+const ANIM_DIRECTIONS = ['south', 'southwest', 'west', 'northwest', 'north', 'northeast', 'east', 'southeast'] as const;
+const ANIM_DIR_LABELS = ['S', 'SW', 'W', 'NW', 'N', 'NE', 'E', 'SE'] as const;
+const ANIM_FRAME_COUNT = 19;
+const ANIM_FPS = 16;
+
+// Build frame paths: /showcase/animation/{dir}/0001.png .. 0019.png
+function framePath(dir: string, frameIndex: number): string {
+	return `/showcase/animation/${dir}/${String(frameIndex + 1).padStart(4, '0')}.png`;
+}
+
+let animFrame = $state(0);
+let animInterval: ReturnType<typeof setInterval> | undefined;
+
+function startAnimation() {
+	if (animInterval) return;
+	animInterval = setInterval(() => {
+		animFrame = (animFrame + 1) % ANIM_FRAME_COUNT;
+	}, 1000 / ANIM_FPS);
+}
+
+function stopAnimation() {
+	if (animInterval) {
+		clearInterval(animInterval);
+		animInterval = undefined;
+	}
+}
+
+$effect(() => {
+	startAnimation();
+	return () => stopAnimation();
+});
+
 function inView(node: HTMLElement) {
 	if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
 		node.classList.add('in-view');
@@ -364,34 +396,26 @@ function inView(node: HTMLElement) {
 					</div>
 				</div>
 				<div class="sc-animation-wrap">
-					<!-- Animation frame strip -->
-					<div class="sc-anim-strip">
-						{#each ['frame_0001', 'frame_0004', 'frame_0007', 'frame_0010', 'frame_0013', 'frame_0016', 'frame_0019'] as frame, i}
-							<div class="sc-anim-frame" style="animation-delay:{i * 0.12}s">
-								<img src="/showcase/animation/{frame}.png" alt="Animation {frame}" loading="lazy" />
-							</div>
-						{/each}
-					</div>
-					<!-- 8-direction output -->
-					<div class="sc-anim-directions">
-						{#each [
-							{ dir: 'NW', src: '/showcase/animation/northwest.png' },
-							{ dir: 'N', src: '/showcase/animation/north.png' },
-							{ dir: 'NE', src: '/showcase/animation/northeast.png' },
-							{ dir: 'W', src: '/showcase/animation/west.png' },
-							{ dir: 'E', src: '/showcase/animation/east.png' },
-							{ dir: 'SW', src: '/showcase/animation/southwest.png' },
-							{ dir: 'S', src: '/showcase/animation/south.png' },
-							{ dir: 'SE', src: '/showcase/animation/southeast.png' },
-						] as cell}
+					<div class="sc-anim-grid">
+						{#each ANIM_DIRECTIONS as dir, i}
 							<div class="sc-anim-dir-cell">
-								<img src={cell.src} alt="{cell.dir} animation" loading="lazy" />
-								<span class="sc-anim-dir-label">{cell.dir}</span>
+								<div class="sc-anim-canvas">
+									{#each { length: ANIM_FRAME_COUNT } as _, f}
+										<img
+											src={framePath(dir, f)}
+											alt="{ANIM_DIR_LABELS[i]} frame {f + 1}"
+											class="sc-anim-sprite"
+											class:sc-anim-active={f === animFrame}
+											loading="lazy"
+										/>
+									{/each}
+								</div>
+								<span class="sc-anim-dir-label">{ANIM_DIR_LABELS[i]}</span>
 							</div>
 						{/each}
 					</div>
 					<div class="sc-animation-note">
-						<p>Each direction is animated independently with automatic background removal and PNG frame export.</p>
+						<p>Each direction animated independently at {ANIM_FPS} fps with automatic background removal and PNG frame export.</p>
 					</div>
 				</div>
 			</div>
@@ -1061,56 +1085,39 @@ function inView(node: HTMLElement) {
 	.sc-animation-wrap {
 		display: flex; flex-direction: column; align-items: center; gap: 1.5rem;
 	}
-	.sc-anim-strip {
-		display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap;
-	}
-	.sc-anim-frame {
-		width: 64px; height: 64px;
-		background: rgba(39,39,42,.35);
-		border: 1px solid rgba(63,63,70,.35);
-		border-radius: .6rem;
-		display: flex; align-items: center; justify-content: center;
-		padding: .3rem;
-		transition: border-color .3s, transform .3s;
-	}
-	.sc-anim-frame:hover {
-		border-color: rgba(244,63,94,.3);
-		transform: translateY(-2px);
-	}
-	.sc-anim-frame img {
-		width: 100%; height: 100%; object-fit: contain;
-		filter: drop-shadow(0 0 6px rgba(244,63,94,.12));
-	}
-	@media (min-width: 640px) {
-		.sc-anim-frame { width: 76px; height: 76px; }
-	}
-	.sc-anim-directions {
+	.sc-anim-grid {
 		display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem;
-		width: 100%; max-width: 22rem;
+		width: 100%; max-width: 28rem;
 	}
 	@media (min-width: 640px) {
-		.sc-anim-directions { gap: .6rem; }
+		.sc-anim-grid { gap: .65rem; max-width: 32rem; }
 	}
 	.sc-anim-dir-cell {
-		aspect-ratio: 1; border-radius: .65rem;
+		display: flex; flex-direction: column; align-items: center; gap: .3rem;
+	}
+	.sc-anim-canvas {
+		aspect-ratio: 1; width: 100%;
+		border-radius: .75rem;
 		background: rgba(39,39,42,.35);
 		border: 1px solid rgba(63,63,70,.35);
-		display: flex; flex-direction: column;
-		align-items: center; justify-content: center;
-		position: relative; padding: .35rem;
-		transition: border-color .3s, transform .3s;
+		position: relative; overflow: hidden;
+		transition: border-color .3s;
 	}
-	.sc-anim-dir-cell:hover {
-		border-color: rgba(244,63,94,.25);
-		transform: translateY(-2px);
+	.sc-anim-dir-cell:hover .sc-anim-canvas {
+		border-color: rgba(244,63,94,.3);
 	}
-	.sc-anim-dir-cell img {
-		width: 75%; height: 75%; object-fit: contain;
-		filter: drop-shadow(0 0 8px rgba(244,63,94,.12));
+	.sc-anim-sprite {
+		position: absolute; inset: 8%; width: 84%; height: 84%;
+		object-fit: contain;
+		filter: drop-shadow(0 0 6px rgba(244,63,94,.1));
+		opacity: 0;
+		pointer-events: none;
+	}
+	.sc-anim-active {
+		opacity: 1;
 	}
 	.sc-anim-dir-label {
-		position: absolute; bottom: .2rem;
-		font-size: .55rem; font-weight: 600; color: #71717a;
+		font-size: .6rem; font-weight: 600; color: #71717a;
 	}
 	.sc-animation-note { text-align: center; }
 	.sc-animation-note p { font-size: .78rem; color: #52525b; max-width: 30rem; }
