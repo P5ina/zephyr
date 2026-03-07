@@ -27,7 +27,7 @@ import {
 	type Direction,
 	type ElevationPreset,
 } from '$lib/animation-config';
-import { PRICING, getAnimationReprocessTokenCost } from '$lib/pricing';
+import { PRICING, getAnimationReprocessTokenCost, getAnimationGenerationTokenCost } from '$lib/pricing';
 import { tokenState } from '$lib/token-state.svelte';
 import type { AnimationJob } from '$lib/server/db/schema';
 import type { LayoutData } from '../$types';
@@ -69,7 +69,7 @@ let animationJobs = $state<AnimationJob[]>(initialJobs);
 const pollingSet = new Set<string>();
 
 const TOKEN_COST = $derived(
-	directionCount === 4 ? PRICING.tokenCosts.animate4 : PRICING.tokenCosts.animate8,
+	getAnimationGenerationTokenCost(animationType, directionCount),
 );
 
 const canGenerate = $derived(tokenState.total >= TOKEN_COST);
@@ -806,14 +806,14 @@ function scrollHistory(direction: 'left' | 'right') {
 							class="option-btn {directionCount === 4 ? 'option-btn-active' : ''}"
 						>
 							4 Directions
-							<span class="text-xs opacity-60">({PRICING.tokenCosts.animate4} tokens)</span>
+							<span class="text-xs opacity-60">({getAnimationGenerationTokenCost(animationType, 4)} tokens)</span>
 						</button>
 						<button
 							onclick={() => directionCount = 8}
 							class="option-btn {directionCount === 8 ? 'option-btn-active' : ''}"
 						>
 							8 Directions
-							<span class="text-xs opacity-60">({PRICING.tokenCosts.animate8} tokens)</span>
+							<span class="text-xs opacity-60">({getAnimationGenerationTokenCost(animationType, 8)} tokens)</span>
 						</button>
 					</div>
 				</div>

@@ -14,7 +14,7 @@ import {
 	type Direction,
 	type ElevationPreset,
 } from '$lib/animation-config';
-import { PRICING } from '$lib/pricing';
+import { getAnimationGenerationTokenCost } from '$lib/pricing';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { submitAnimateJob } from '$lib/server/fal';
@@ -102,9 +102,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		error(400, 'At least one direction image is required');
 	}
 
-	const TOKEN_COST = directionCount === 4
-		? PRICING.tokenCosts.animate4
-		: PRICING.tokenCosts.animate8;
+	const TOKEN_COST = getAnimationGenerationTokenCost(animationType, directionCount);
 
 	const total = locals.user.tokens + locals.user.bonusTokens;
 	if (total < TOKEN_COST) {
