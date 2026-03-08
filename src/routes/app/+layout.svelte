@@ -91,7 +91,7 @@ function closeMobileMenu() {
 							class="w-8 h-8 rounded-full ring-1 ring-zinc-700"
 						/>
 					{/if}
-					<span class="text-sm text-zinc-400">{data.user.username || data.user.email}</span>
+					<a href="/dashboard" class="username-link">{data.user.username || data.user.email}</a>
 					<a href="/logout" class="sign-out">Sign out</a>
 				{/if}
 			</div>
@@ -163,7 +163,7 @@ function closeMobileMenu() {
 									class="w-8 h-8 rounded-full ring-1 ring-zinc-700"
 								/>
 							{/if}
-							<span class="text-sm text-zinc-400">{data.user.username || data.user.email}</span>
+							<a href="/dashboard" class="username-link">{data.user.username || data.user.email}</a>
 						</div>
 						<a
 							href="/logout"
@@ -262,6 +262,12 @@ function closeMobileMenu() {
 		box-shadow: 0 0 24px rgba(245,158,11,.28);
 		transform: translateY(-1px);
 	}
+
+	.username-link {
+		font-size: .8125rem; color: #a1a1aa;
+		text-decoration: none; transition: color .2s;
+	}
+	.username-link:hover { color: #fff; }
 
 	.sign-out {
 		font-size: .8125rem; color: #52525b;

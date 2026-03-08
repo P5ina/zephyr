@@ -459,3 +459,42 @@ export const animationJob = pgTable('animation_job', {
 });
 
 export type AnimationJob = typeof animationJob.$inferSelect;
+
+export const apiKey = pgTable('api_key', {
+	id: text('id').primaryKey(),
+	userId: text('user_id')
+		.notNull()
+		.references(() => user.id),
+	keyHash: text('key_hash').notNull().unique(),
+	keyPrefix: text('key_prefix').notNull(),
+	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
+		.notNull()
+		.defaultNow(),
+	lastUsedAt: timestamp('last_used_at', { withTimezone: true, mode: 'date' }),
+	revokedAt: timestamp('revoked_at', { withTimezone: true, mode: 'date' }),
+});
+
+export type ApiKey = typeof apiKey.$inferSelect;
+
+export const creditTransaction = pgTable('credit_transaction', {
+	id: text('id').primaryKey(),
+	userId: text('user_id')
+		.notNull()
+		.references(() => user.id),
+	action: text('action', {
+		enum: [
+			'generate_sprite',
+			'generate_tileset',
+			'agent_llm_call',
+			'agent_asset_call',
+			'agent_config_fetch',
+		],
+	}).notNull(),
+	creditsDelta: integer('credits_delta').notNull(),
+	metadata: json('metadata').$type<Record<string, unknown>>(),
+	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
+		.notNull()
+		.defaultNow(),
+});
+
+export type CreditTransaction = typeof creditTransaction.$inferSelect;
