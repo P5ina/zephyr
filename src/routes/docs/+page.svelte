@@ -1,9 +1,6 @@
 <script lang="ts">
 import {
 	Book,
-	Check,
-	ChevronRight,
-	Clipboard,
 	Coins,
 	Film,
 	Key,
@@ -16,20 +13,139 @@ import {
 } from 'lucide-svelte';
 import Footer from '$lib/components/Footer.svelte';
 import Header from '$lib/components/Header.svelte';
+import CodeBlock from '$lib/components/CodeBlock.svelte';
 import { PRICING } from '$lib/pricing';
 import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
 
-let copiedId = $state<string | null>(null);
+let selectedLang = $state<'bash' | 'python' | 'typescript'>('bash');
 
-function copy(id: string, text: string) {
-	navigator.clipboard.writeText(text);
-	copiedId = id;
-	setTimeout(() => {
-		copiedId = null;
-	}, 2000);
-}
+const spriteExamples = {
+	bash: `curl -X POST https://gensprite.ai/api/assets/generate \\
+  -H "Authorization: Bearer gsk_your_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{"prompt": "medieval knight with sword", "style": "hand-painted"}'`,
+	python: `import requests
+
+response = requests.post(
+    "https://gensprite.ai/api/assets/generate",
+    headers={"Authorization": "Bearer gsk_your_key"},
+    json={"prompt": "medieval knight with sword", "style": "hand-painted"},
+)
+data = response.json()
+print(data["asset"]["id"])`,
+	typescript: `const response = await fetch("https://gensprite.ai/api/assets/generate", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer gsk_your_key",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ prompt: "medieval knight with sword", style: "hand-painted" }),
+});
+const data = await response.json();
+console.log(data.asset.id);`,
+};
+
+const workflowExamples = {
+	bash: `# 1. Generate a sprite
+RESPONSE=$(curl -s -X POST https://gensprite.ai/api/assets/generate \\
+  -H "Authorization: Bearer gsk_your_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{"prompt": "fire elemental monster", "style": "anime"}')
+
+ASSET_ID=$(echo $RESPONSE | jq -r '.asset.id')
+
+# 2. Poll until complete
+while true; do
+  STATUS=$(curl -s \\
+    -H "Authorization: Bearer gsk_your_key" \\
+    https://gensprite.ai/api/assets/$ASSET_ID/status)
+
+  STATE=$(echo $STATUS | jq -r '.status')
+  echo "Status: $STATE"
+
+  if [ "$STATE" = "completed" ]; then
+    IMAGE_URL=$(echo $STATUS | jq -r '.resultUrls.processed')
+    echo "Done! $IMAGE_URL"
+    break
+  elif [ "$STATE" = "failed" ]; then
+    echo "Failed: $(echo $STATUS | jq -r '.errorMessage')"
+    break
+  fi
+
+  sleep 3
+done
+
+# 3. Download the image
+curl -o sprite.png "$IMAGE_URL"`,
+	python: `import time
+import requests
+
+API_KEY = "gsk_your_key"
+HEADERS = {"Authorization": f"Bearer {API_KEY}"}
+
+# 1. Generate a sprite
+response = requests.post(
+    "https://gensprite.ai/api/assets/generate",
+    headers=HEADERS,
+    json={"prompt": "fire elemental monster", "style": "anime"},
+)
+asset_id = response.json()["asset"]["id"]
+
+# 2. Poll until complete
+while True:
+    status = requests.get(
+        f"https://gensprite.ai/api/assets/{asset_id}/status",
+        headers=HEADERS,
+    ).json()
+    print(f"Status: {status['status']}")
+
+    if status["status"] == "completed":
+        image_url = status["resultUrls"]["processed"]
+        print(f"Done! {image_url}")
+        break
+    elif status["status"] == "failed":
+        print(f"Failed: {status.get('errorMessage')}")
+        break
+
+    time.sleep(3)
+
+# 3. Download the image
+img = requests.get(image_url)
+with open("sprite.png", "wb") as f:
+    f.write(img.content)`,
+	typescript: `const API_KEY = "gsk_your_key";
+const headers = { "Authorization": \`Bearer \${API_KEY}\` };
+
+// 1. Generate a sprite
+const genRes = await fetch("https://gensprite.ai/api/assets/generate", {
+  method: "POST",
+  headers: { ...headers, "Content-Type": "application/json" },
+  body: JSON.stringify({ prompt: "fire elemental monster", style: "anime" }),
+});
+const { asset } = await genRes.json();
+
+// 2. Poll until complete
+while (true) {
+  const statusRes = await fetch(
+    \`https://gensprite.ai/api/assets/\${asset.id}/status\`,
+    { headers },
+  );
+  const status = await statusRes.json();
+  console.log(\`Status: \${status.status}\`);
+
+  if (status.status === "completed") {
+    console.log(\`Done! \${status.resultUrls.processed}\`);
+    break;
+  } else if (status.status === "failed") {
+    console.log(\`Failed: \${status.errorMessage}\`);
+    break;
+  }
+
+  await new Promise((r) => setTimeout(r, 3000));
+}`,
+};
 </script>
 
 <svelte:head>
@@ -78,19 +194,7 @@ function copy(id: string, text: string) {
 				All API requests require an API key passed in the <code>Authorization</code> header.
 				Generate a key from your <a href="/dashboard" class="docs-link">Dashboard</a>.
 			</p>
-			<div class="code-block">
-				<div class="code-header">
-					<span>Header</span>
-					<button class="btn-copy-sm" onclick={() => copy('auth', 'Authorization: Bearer gsk_your_api_key')}>
-						{#if copiedId === 'auth'}
-							<Check class="w-3.5 h-3.5" />
-						{:else}
-							<Clipboard class="w-3.5 h-3.5" />
-						{/if}
-					</button>
-				</div>
-				<pre><code>Authorization: Bearer gsk_your_api_key</code></pre>
-			</div>
+			<CodeBlock code="Authorization: Bearer gsk_your_api_key" lang="bash" label="Header" />
 			<div class="note">
 				API keys start with <code>gsk_</code>. Keys are shown once on creation — store them securely.
 				You can revoke and regenerate keys from the Dashboard at any time.
@@ -184,25 +288,13 @@ function copy(id: string, text: string) {
 				model settings, and the user's current credit balance. Rate limited to <strong>1 request per minute</strong> per key.
 			</p>
 			<h3 class="subsection">Response</h3>
-			<div class="code-block">
-				<div class="code-header">
-					<span>200 OK</span>
-					<button class="btn-copy-sm" onclick={() => copy('agent-config-res', '{\n  "anthropic_api_key": "sk-ant-...",\n  "model": "claude-opus-4-5",\n  "max_tokens": 8096,\n  "user_id": "abc123",\n  "credits": 142\n}')}>
-						{#if copiedId === 'agent-config-res'}
-							<Check class="w-3.5 h-3.5" />
-						{:else}
-							<Clipboard class="w-3.5 h-3.5" />
-						{/if}
-					</button>
-				</div>
-				<pre><code>{`{
+			<CodeBlock label="200 OK" code={`{
   "anthropic_api_key": "sk-ant-...",
   "model": "claude-opus-4-5",
   "max_tokens": 8096,
   "user_id": "abc123",
   "credits": 142
-}`}</code></pre>
-			</div>
+}`} />
 		</div>
 
 		<!-- Balance -->
@@ -215,9 +307,7 @@ function copy(id: string, text: string) {
 				Get your current token balance and pricing information.
 			</p>
 			<h3 class="subsection">Response</h3>
-			<div class="code-block">
-				<div class="code-header"><span>200 OK</span></div>
-				<pre><code>{`{
+			<CodeBlock label="200 OK" code={`{
   "tokens": 47,
   "bonusTokens": 95,
   "totalTokens": 142,
@@ -231,8 +321,7 @@ function copy(id: string, text: string) {
     "spin": 25,
     "rotationSingleView": 7
   }
-}`}</code></pre>
-			</div>
+}`} />
 		</div>
 
 		<!-- Generate Sprite -->
@@ -257,26 +346,9 @@ function copy(id: string, text: string) {
 					</tbody>
 				</table>
 			</div>
-			<div class="code-block">
-				<div class="code-header">
-					<span>Example</span>
-					<button class="btn-copy-sm" onclick={() => copy('sprite-ex', `curl -X POST https://gensprite.ai/api/assets/generate \\\n  -H "Authorization: Bearer gsk_your_key" \\\n  -H "Content-Type: application/json" \\\n  -d '{"prompt": "medieval knight with sword", "style": "hand-painted"}'\n`)}>
-						{#if copiedId === 'sprite-ex'}
-							<Check class="w-3.5 h-3.5" />
-						{:else}
-							<Clipboard class="w-3.5 h-3.5" />
-						{/if}
-					</button>
-				</div>
-				<pre><code>{`curl -X POST https://gensprite.ai/api/assets/generate \\
-  -H "Authorization: Bearer gsk_your_key" \\
-  -H "Content-Type: application/json" \\
-  -d '{"prompt": "medieval knight with sword", "style": "hand-painted"}'`}</code></pre>
-			</div>
+			<CodeBlock code={spriteExamples} {selectedLang} onLangChange={(l) => selectedLang = l} />
 			<h3 class="subsection">Response</h3>
-			<div class="code-block">
-				<div class="code-header"><span>200 OK</span></div>
-				<pre><code>{`{
+			<CodeBlock label="200 OK" code={`{
   "asset": {
     "id": "abc123",
     "visibleId": "xK9mQ2",
@@ -292,8 +364,7 @@ function copy(id: string, text: string) {
   "tokensRemaining": 44,
   "bonusTokensRemaining": 95,
   "totalTokensRemaining": 139
-}`}</code></pre>
-			</div>
+}`} />
 		</div>
 
 		<!-- Check Sprite Status -->
@@ -307,9 +378,7 @@ function copy(id: string, text: string) {
 				Poll every 2–5 seconds.
 			</p>
 			<h3 class="subsection">Response</h3>
-			<div class="code-block">
-				<div class="code-header"><span>200 OK — completed</span></div>
-				<pre><code>{`{
+			<CodeBlock label="200 OK — completed" code={`{
   "id": "abc123",
   "status": "completed",
   "progress": 100,
@@ -319,8 +388,7 @@ function copy(id: string, text: string) {
   },
   "seed": 4281937,
   "completedAt": "2026-03-09T12:00:30.000Z"
-}`}</code></pre>
-			</div>
+}`} />
 			<div class="note">
 				<code>status</code> values: <code>pending</code> → <code>processing</code> → <code>completed</code> | <code>failed</code>
 			</div>
@@ -336,13 +404,10 @@ function copy(id: string, text: string) {
 				Cancel an in-progress sprite generation. Tokens are automatically refunded if the generation hasn't completed.
 			</p>
 			<h3 class="subsection">Response</h3>
-			<div class="code-block">
-				<div class="code-header"><span>200 OK</span></div>
-				<pre><code>{`{
+			<CodeBlock label="200 OK" code={`{
   "success": true,
   "tokensRefunded": 3
-}`}</code></pre>
-			</div>
+}`} />
 		</div>
 
 		<!-- List Assets -->
@@ -365,13 +430,10 @@ function copy(id: string, text: string) {
 				</table>
 			</div>
 			<h3 class="subsection">Response</h3>
-			<div class="code-block">
-				<div class="code-header"><span>200 OK</span></div>
-				<pre><code>{`{
+			<CodeBlock label="200 OK" code={`{
   "assets": [ ... ],
   "nextCursor": "xyz789"
-}`}</code></pre>
-			</div>
+}`} />
 		</div>
 
 		<!-- Generate Texture -->
@@ -542,39 +604,8 @@ function copy(id: string, text: string) {
 					</div>
 				</li>
 			</ol>
-			<div class="code-block mt-4">
-				<div class="code-header"><span>Full example (bash)</span></div>
-				<pre><code>{`# 1. Generate a sprite
-RESPONSE=$(curl -s -X POST https://gensprite.ai/api/assets/generate \\
-  -H "Authorization: Bearer gsk_your_key" \\
-  -H "Content-Type: application/json" \\
-  -d '{"prompt": "fire elemental monster", "style": "anime"}')
-
-ASSET_ID=$(echo $RESPONSE | jq -r '.asset.id')
-
-# 2. Poll until complete
-while true; do
-  STATUS=$(curl -s \\
-    -H "Authorization: Bearer gsk_your_key" \\
-    https://gensprite.ai/api/assets/$ASSET_ID/status)
-
-  STATE=$(echo $STATUS | jq -r '.status')
-  echo "Status: $STATE"
-
-  if [ "$STATE" = "completed" ]; then
-    IMAGE_URL=$(echo $STATUS | jq -r '.resultUrls.processed')
-    echo "Done! $IMAGE_URL"
-    break
-  elif [ "$STATE" = "failed" ]; then
-    echo "Failed: $(echo $STATUS | jq -r '.errorMessage')"
-    break
-  fi
-
-  sleep 3
-done
-
-# 3. Download the image
-curl -o sprite.png "$IMAGE_URL"`}</code></pre>
+			<div class="mt-4">
+				<CodeBlock code={workflowExamples} {selectedLang} onLangChange={(l) => selectedLang = l} />
 			</div>
 		</div>
 	</div>
@@ -648,45 +679,6 @@ curl -o sprite.png "$IMAGE_URL"`}</code></pre>
 	.base-url-value {
 		font-size: .875rem; color: #fff;
 	}
-
-	/* Code blocks */
-	.code-block {
-		margin-top: .75rem;
-		border: 1px solid rgba(63,63,70,.3);
-		border-radius: .6rem;
-		overflow: hidden;
-	}
-	.code-header {
-		display: flex; align-items: center; justify-content: space-between;
-		padding: .45rem .85rem;
-		background: rgba(63,63,70,.15);
-		border-bottom: 1px solid rgba(63,63,70,.25);
-		font-size: .6875rem; font-weight: 500; color: #71717a;
-	}
-	.code-block pre {
-		margin: 0;
-		padding: .85rem 1rem;
-		overflow-x: auto;
-		background: rgba(9,9,11,.4);
-	}
-	.code-block code {
-		font-size: .8rem;
-		color: #d4d4d8;
-		line-height: 1.5;
-		white-space: pre;
-	}
-
-	/* Copy button */
-	.btn-copy-sm {
-		padding: .25rem;
-		color: #52525b;
-		cursor: pointer;
-		background: none;
-		border: none;
-		border-radius: .25rem;
-		transition: color .2s;
-	}
-	.btn-copy-sm:hover { color: #a1a1aa; }
 
 	/* Notes */
 	.note {

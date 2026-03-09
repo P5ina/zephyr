@@ -3,7 +3,6 @@ import { encodeHexLowerCase } from '@oslojs/encoding';
 import { error, json } from '@sveltejs/kit';
 import { and, eq, isNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import type { RequestHandler } from './$types';
@@ -46,6 +45,7 @@ export const GET: RequestHandler = async ({ request }) => {
 			id: table.user.id,
 			tokens: table.user.tokens,
 			bonusTokens: table.user.bonusTokens,
+			anthropicApiKey: table.user.anthropicApiKey,
 		})
 		.from(table.user)
 		.where(eq(table.user.id, apiKeyRecord.userId));
@@ -69,9 +69,16 @@ export const GET: RequestHandler = async ({ request }) => {
 		metadata: { keyPrefix: apiKeyRecord.keyPrefix },
 	});
 
+	if (!user.anthropicApiKey) {
+		error(
+			403,
+			'No Anthropic API key configured. Add your own key in the Dashboard settings.',
+		);
+	}
+
 	return json({
-		anthropic_api_key: env.ANTHROPIC_API_KEY,
-		model: 'claude-opus-4-5',
+		anthropic_api_key: user.anthropicApiKey,
+		model: 'claude-opus-4-6',
 		max_tokens: 8096,
 		user_id: user.id,
 		credits: user.tokens + user.bonusTokens,

@@ -9,6 +9,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 		redirect(302, '/login');
 	}
 
+	const [userRecord] = await db
+		.select({ anthropicApiKey: table.user.anthropicApiKey })
+		.from(table.user)
+		.where(eq(table.user.id, locals.user.id));
+
 	const [keys, transactions] = await Promise.all([
 		db
 			.select({
@@ -33,5 +38,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 		user: locals.user,
 		keys,
 		transactions,
+		hasAnthropicKey: !!userRecord?.anthropicApiKey,
+		anthropicKeyPrefix: userRecord?.anthropicApiKey
+			? `${userRecord.anthropicApiKey.slice(0, 12)}...`
+			: null,
 	};
 };

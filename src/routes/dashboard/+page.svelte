@@ -1,6 +1,5 @@
 <script lang="ts">
 import {
-	Book,
 	Check,
 	Clipboard,
 	Coins,
@@ -8,7 +7,9 @@ import {
 	Key,
 	Loader2,
 	Plus,
+	Settings,
 	ShieldX,
+	Trash2,
 } from 'lucide-svelte';
 import Footer from '$lib/components/Footer.svelte';
 import Header from '$lib/components/Header.svelte';
@@ -24,6 +25,12 @@ let revoking = $state<string | null>(null);
 let newKey = $state<string | null>(null);
 let copied = $state(false);
 let error = $state<string | null>(null);
+
+let hasAnthropicKey = $state(data.hasAnthropicKey);
+let anthropicKeyPrefix = $state(data.anthropicKeyPrefix);
+let anthropicKeyInput = $state('');
+let savingAnthropicKey = $state(false);
+let removingAnthropicKey = $state(false);
 
 async function generateKey() {
 	generating = true;
@@ -112,6 +119,57 @@ function actionLabel(action: string) {
 		agent_config_fetch: 'Agent Config Fetch',
 	};
 	return labels[action] || action;
+}
+
+async function saveAnthropicKey() {
+	if (!anthropicKeyInput.trim()) return;
+	savingAnthropicKey = true;
+	error = null;
+
+	try {
+		const res = await fetch('/api/dashboard/settings', {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ anthropicApiKey: anthropicKeyInput.trim() }),
+		});
+		if (!res.ok) {
+			const result = await res.json();
+			error = result.message || 'Failed to save API key';
+			return;
+		}
+		hasAnthropicKey = true;
+		anthropicKeyPrefix = `${anthropicKeyInput.trim().slice(0, 12)}...`;
+		anthropicKeyInput = '';
+	} catch {
+		error = 'Failed to save API key';
+	} finally {
+		savingAnthropicKey = false;
+	}
+}
+
+async function removeAnthropicKey() {
+	removingAnthropicKey = true;
+	error = null;
+
+	try {
+		const res = await fetch('/api/dashboard/settings', {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ anthropicApiKey: null }),
+		});
+		if (!res.ok) {
+			const result = await res.json();
+			error = result.message || 'Failed to remove API key';
+			return;
+		}
+		hasAnthropicKey = false;
+		anthropicKeyPrefix = null;
+		anthropicKeyInput = '';
+	} catch {
+		error = 'Failed to remove API key';
+	} finally {
+		removingAnthropicKey = false;
+	}
 }
 </script>
 
@@ -237,6 +295,66 @@ function actionLabel(action: string) {
 						</tbody>
 					</table>
 				</div>
+			{/if}
+		</div>
+
+		<!-- Anthropic API Key -->
+		<div class="panel">
+			<div class="flex items-center gap-3 mb-4">
+				<div class="icon-badge icon-badge-violet">
+					<Settings class="w-5 h-5" />
+				</div>
+				<div>
+					<h2 class="panel-heading">Anthropic API Key</h2>
+					<p class="panel-sub">Use your own key for the GenSprite agent</p>
+				</div>
+			</div>
+
+			{#if hasAnthropicKey}
+				<div class="anthropic-key-active">
+					<div class="anthropic-key-info">
+						<code class="key-prefix">{anthropicKeyPrefix}</code>
+						<span class="status-badge status-active">Active</span>
+					</div>
+					<button
+						onclick={removeAnthropicKey}
+						disabled={removingAnthropicKey}
+						class="btn-remove-key"
+					>
+						{#if removingAnthropicKey}
+							<Loader2 class="w-3.5 h-3.5 animate-spin" />
+						{:else}
+							<Trash2 class="w-3.5 h-3.5" />
+						{/if}
+						Remove
+					</button>
+				</div>
+				<p class="anthropic-key-hint">
+					Your own API key will be returned by <code>/api/agent/config</code> instead of the platform key.
+				</p>
+			{:else}
+				<div class="anthropic-key-form">
+					<input
+						type="password"
+						bind:value={anthropicKeyInput}
+						placeholder="sk-ant-..."
+						class="key-input"
+					/>
+					<button
+						onclick={saveAnthropicKey}
+						disabled={savingAnthropicKey || !anthropicKeyInput.trim()}
+						class="btn-save-key"
+					>
+						{#if savingAnthropicKey}
+							<Loader2 class="w-4 h-4 animate-spin" />
+						{:else}
+							Save
+						{/if}
+					</button>
+				</div>
+				<p class="anthropic-key-hint">
+					Optional. When set, the agent config endpoint will return your key instead of the shared platform key.
+				</p>
 			{/if}
 		</div>
 
@@ -474,4 +592,64 @@ function actionLabel(action: string) {
 	}
 	.credits-neg { color: #f87171; }
 	.credits-zero { color: #71717a; }
+
+	/* Anthropic key section */
+	.icon-badge-violet { background: rgba(167,139,250,.08); color: #a78bfa; }
+
+	.anthropic-key-active {
+		display: flex; align-items: center; justify-content: space-between;
+		gap: .75rem;
+	}
+	.anthropic-key-info {
+		display: flex; align-items: center; gap: .65rem;
+	}
+	.anthropic-key-form {
+		display: flex; gap: .5rem;
+	}
+	.anthropic-key-hint {
+		margin-top: .65rem;
+		font-size: .75rem; color: #52525b; line-height: 1.5;
+	}
+	.anthropic-key-hint code {
+		font-size: .7rem;
+		background: rgba(63,63,70,.25);
+		padding: .1rem .3rem;
+		border-radius: .2rem;
+		color: #a1a1aa;
+	}
+
+	.btn-save-key {
+		padding: .5rem 1rem;
+		border-radius: .5rem;
+		background: rgba(167,139,250,.1);
+		border: 1px solid rgba(167,139,250,.2);
+		color: #a78bfa;
+		font-size: .8125rem; font-weight: 500;
+		cursor: pointer;
+		transition: background .2s, border-color .2s;
+		display: flex; align-items: center; gap: .35rem;
+	}
+	.btn-save-key:hover:not(:disabled) {
+		background: rgba(167,139,250,.18);
+		border-color: rgba(167,139,250,.35);
+	}
+	.btn-save-key:disabled { opacity: .5; cursor: not-allowed; }
+
+	.btn-remove-key {
+		display: flex; align-items: center; gap: .35rem;
+		padding: .35rem .65rem;
+		border-radius: .4rem;
+		background: none;
+		border: 1px solid rgba(239,68,68,.15);
+		color: #71717a;
+		font-size: .75rem; font-weight: 500;
+		cursor: pointer;
+		transition: color .2s, background .2s, border-color .2s;
+	}
+	.btn-remove-key:hover:not(:disabled) {
+		color: #f87171;
+		background: rgba(239,68,68,.06);
+		border-color: rgba(239,68,68,.25);
+	}
+	.btn-remove-key:disabled { opacity: .5; cursor: not-allowed; }
 </style>

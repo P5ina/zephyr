@@ -18,6 +18,7 @@ export const user = pgTable('user', {
 	tokens: integer('tokens').notNull().default(50),
 	bonusTokens: integer('bonus_tokens').notNull().default(0),
 	nsfwEnabled: boolean('nsfw_enabled').notNull().default(true),
+	anthropicApiKey: text('anthropic_api_key'),
 	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
 		.notNull()
 		.defaultNow(),
