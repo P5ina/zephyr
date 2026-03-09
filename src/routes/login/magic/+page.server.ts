@@ -18,7 +18,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, getClientAddress }) => {
+	default: async ({ request, getClientAddress: _getClientAddress }) => {
 		const formData = await request.formData();
 		const email = formData.get('email');
 
@@ -35,7 +35,10 @@ export const actions: Actions = {
 
 		// Block disposable/temporary email addresses
 		if (isDisposableEmail(normalizedEmail)) {
-			return fail(400, { error: 'Disposable email addresses are not allowed. Please use a permanent email.' });
+			return fail(400, {
+				error:
+					'Disposable email addresses are not allowed. Please use a permanent email.',
+			});
 		}
 
 		// Rate limit by email

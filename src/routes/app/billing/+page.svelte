@@ -1,4 +1,5 @@
 <script lang="ts">
+import { track } from '@vercel/analytics';
 import {
 	ArrowLeft,
 	Coins,
@@ -9,7 +10,6 @@ import {
 	RotateCw,
 	Sparkles,
 } from 'lucide-svelte';
-import { track } from '@vercel/analytics';
 import { PRICING } from '$lib/pricing';
 import type { PageData } from './$types';
 
@@ -57,6 +57,10 @@ function getDiscount(
 	return discount > 0 ? discount : 0;
 }
 </script>
+
+<svelte:head>
+	<title>Tokens - GenSprite</title>
+</svelte:head>
 
 <div class="billing-page">
 	<!-- Page header -->
@@ -134,7 +138,7 @@ function getDiscount(
 								Redirecting...
 							{:else}
 								<CreditCard class="w-3.5 h-3.5" />
-								Buy Now
+								Buy now
 							{/if}
 						</div>
 					</button>
@@ -212,11 +216,11 @@ function getDiscount(
 
 	/* Panels */
 	.panel {
-		background: rgba(24,24,27,.5);
-		border: 1px solid rgba(63,63,70,.35);
-		border-radius: 1rem;
-		padding: 1.5rem;
-		backdrop-filter: blur(6px);
+		background: var(--panel-bg);
+		border: 1px solid var(--panel-border);
+		border-radius: var(--panel-radius);
+		padding: var(--panel-padding);
+		backdrop-filter: var(--panel-blur);
 	}
 	.panel-heading { font-weight: 700; font-size: 1.05rem; color: #fff; }
 	.panel-sub { font-size: .8125rem; color: #71717a; }

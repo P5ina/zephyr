@@ -15,21 +15,26 @@ const TOKEN_COSTS: Record<string, number> = {
 	texture: PRICING.tokenCosts.texture,
 };
 
-const SPRITE_BASE_SUFFIX = ', game asset, centered, single object, white background';
+const SPRITE_BASE_SUFFIX =
+	', game asset, centered, single object, white background';
 
 const SPRITE_STYLE_PREFIXES: Record<string, string> = {
 	'hand-painted': 'hand-painted 2D art, stylized, painted texture, ',
-	'anime': 'anime style, cel-shaded, clean lines, ',
-	'cartoon': 'cartoon style, bold outlines, vibrant colors, ',
-	'realistic': 'realistic 3D rendered, high detail, PBR shading, studio lighting, ',
-	'vector': 'vector art, flat colors, clean shapes, minimal shading, SVG style, ',
-	'outline': 'black outline drawing, lineart, clean strokes, minimal fill, ',
+	anime: 'anime style, cel-shaded, clean lines, ',
+	cartoon: 'cartoon style, bold outlines, vibrant colors, ',
+	realistic:
+		'realistic 3D rendered, high detail, PBR shading, studio lighting, ',
+	vector: 'vector art, flat colors, clean shapes, minimal shading, SVG style, ',
+	outline: 'black outline drawing, lineart, clean strokes, minimal fill, ',
 };
 
 const SPRITE_DEFAULT_PREFIX = '';
 
 function buildSpritePrompt(userPrompt: string, style?: string): string {
-	const prefix = style && SPRITE_STYLE_PREFIXES[style] ? SPRITE_STYLE_PREFIXES[style] : SPRITE_DEFAULT_PREFIX;
+	const prefix =
+		style && SPRITE_STYLE_PREFIXES[style]
+			? SPRITE_STYLE_PREFIXES[style]
+			: SPRITE_DEFAULT_PREFIX;
 	return prefix + userPrompt + SPRITE_BASE_SUFFIX;
 }
 
@@ -42,7 +47,11 @@ interface AssetGenerateRequest {
 	seed?: number;
 }
 
-export const POST: RequestHandler = async ({ request, locals, getClientAddress }) => {
+export const POST: RequestHandler = async ({
+	request,
+	locals,
+	getClientAddress,
+}) => {
 	const body: AssetGenerateRequest = await request.json();
 
 	if (!body.prompt?.trim()) {
@@ -104,7 +113,12 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 		// Submit to fal.ai
 		const generationPrompt = buildSpritePrompt(body.prompt, body.style);
 		const webhookUrl = buildFalWebhookUrl('sprite', asset.id);
-		console.log('[sprite] Final prompt:', generationPrompt, '| style:', body.style);
+		console.log(
+			'[sprite] Final prompt:',
+			generationPrompt,
+			'| style:',
+			body.style,
+		);
 		try {
 			const falResponse = await submitSpriteJob({
 				prompt: generationPrompt,
@@ -134,18 +148,22 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 
 		// Increment guest usage
 		await guestAuth.incrementGuestUsage(guestSession.id);
-		const generationsRemaining = guestAuth.getGuestRemainingGenerations(guestSession) - 1;
+		const generationsRemaining =
+			guestAuth.getGuestRemainingGenerations(guestSession) - 1;
 
-		return json({
-			asset,
-			isGuest: true,
-			generationsRemaining,
-			guestSessionId: guestSession.id,
-		}, {
-			headers: {
-				'Set-Cookie': `${GUEST_CONFIG.cookieName}=${guestSession.id}; Path=/; HttpOnly; SameSite=Lax; Expires=${guestSession.expiresAt.toUTCString()}`,
+		return json(
+			{
+				asset,
+				isGuest: true,
+				generationsRemaining,
+				guestSessionId: guestSession.id,
 			},
-		});
+			{
+				headers: {
+					'Set-Cookie': `${GUEST_CONFIG.cookieName}=${guestSession.id}; Path=/; HttpOnly; SameSite=Lax; Expires=${guestSession.expiresAt.toUTCString()}`,
+				},
+			},
+		);
 	}
 
 	// Authenticated user flow
@@ -194,7 +212,12 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 	// Submit to fal.ai for processing
 	const authGenerationPrompt = buildSpritePrompt(body.prompt, body.style);
 	const webhookUrl = buildFalWebhookUrl('sprite', asset.id);
-	console.log('[sprite] Final prompt:', authGenerationPrompt, '| style:', body.style);
+	console.log(
+		'[sprite] Final prompt:',
+		authGenerationPrompt,
+		'| style:',
+		body.style,
+	);
 	try {
 		const falResponse = await submitSpriteJob({
 			prompt: authGenerationPrompt,

@@ -1,22 +1,28 @@
 import { error, json } from '@sveltejs/kit';
-import { and, desc, eq, lt } from 'drizzle-orm';
+import { and, desc, eq, lt, type SQL } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url, locals }) => {
 	// Build ownership condition
-	let ownershipCondition;
+	let ownershipCondition: SQL | undefined;
 	if (locals.user) {
 		ownershipCondition = eq(table.assetGeneration.userId, locals.user.id);
 	} else if (locals.guestSession) {
-		ownershipCondition = eq(table.assetGeneration.guestSessionId, locals.guestSession.id);
+		ownershipCondition = eq(
+			table.assetGeneration.guestSessionId,
+			locals.guestSession.id,
+		);
 	} else {
 		error(401, 'Unauthorized');
 	}
 
 	const cursor = url.searchParams.get('cursor');
-	const limit = Math.min(parseInt(url.searchParams.get('limit') || '20'), 50);
+	const limit = Math.min(
+		parseInt(url.searchParams.get('limit') || '20', 10),
+		50,
+	);
 
 	// If we have a cursor, get assets created before the cursor's asset
 	let cursorDate: Date | null = null;
@@ -41,7 +47,9 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 	// Check if there are more results
 	const hasMore = assets.length > limit;
 	const returnedAssets = hasMore ? assets.slice(0, limit) : assets;
-	const nextCursor = hasMore ? returnedAssets[returnedAssets.length - 1].id : null;
+	const nextCursor = hasMore
+		? returnedAssets[returnedAssets.length - 1].id
+		: null;
 
 	return json({
 		assets: returnedAssets,

@@ -1,5 +1,5 @@
 import { error, json } from '@sveltejs/kit';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, type SQL, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { getSpriteJobStatus } from '$lib/server/fal';
@@ -7,20 +7,20 @@ import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
 	// Build ownership condition
-	let ownershipCondition;
+	let ownershipCondition: SQL | undefined;
 	if (locals.user) {
 		ownershipCondition = eq(table.assetGeneration.userId, locals.user.id);
 	} else if (locals.guestSession) {
-		ownershipCondition = eq(table.assetGeneration.guestSessionId, locals.guestSession.id);
+		ownershipCondition = eq(
+			table.assetGeneration.guestSessionId,
+			locals.guestSession.id,
+		);
 	} else {
 		error(401, 'Unauthorized');
 	}
 
 	let asset = await db.query.assetGeneration.findFirst({
-		where: and(
-			eq(table.assetGeneration.id, params.id),
-			ownershipCondition,
-		),
+		where: and(eq(table.assetGeneration.id, params.id), ownershipCondition),
 	});
 
 	if (!asset) {
@@ -36,21 +36,27 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 
 	if (needsFalCheck) {
 		try {
-			const falStatus = await getSpriteJobStatus(asset.runpodJobId!);
+			const falStatus = await getSpriteJobStatus(asset.runpodJobId as string);
 
-			if (falStatus.status === 'IN_PROGRESS' || falStatus.status === 'IN_QUEUE') {
+			if (
+				falStatus.status === 'IN_PROGRESS' ||
+				falStatus.status === 'IN_QUEUE'
+			) {
 				if (asset.status !== 'processing') {
 					await db
 						.update(table.assetGeneration)
 						.set({
 							status: 'processing',
-							currentStage: falStatus.status === 'IN_QUEUE' ? 'Queued...' : 'Processing...',
+							currentStage:
+								falStatus.status === 'IN_QUEUE' ? 'Queued...' : 'Processing...',
 						})
 						.where(eq(table.assetGeneration.id, asset.id));
 
-					asset = (await db.query.assetGeneration.findFirst({
+					const refreshedAsset = await db.query.assetGeneration.findFirst({
 						where: eq(table.assetGeneration.id, params.id),
-					}))!;
+					});
+					if (!refreshedAsset) error(404, 'Asset not found');
+					asset = refreshedAsset;
 				}
 			} else if (
 				falStatus.status === 'FAILED' ||
@@ -76,9 +82,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 					})
 					.where(eq(table.assetGeneration.id, asset.id));
 
-				asset = (await db.query.assetGeneration.findFirst({
+				const failedAsset = await db.query.assetGeneration.findFirst({
 					where: eq(table.assetGeneration.id, params.id),
-				}))!;
+				});
+				if (!failedAsset) error(404, 'Asset not found');
+				asset = failedAsset;
 			} else if (falStatus.status === 'COMPLETED' && falStatus.output) {
 				if (falStatus.output.processedUrl && !asset.resultUrls?.processed) {
 					await db
@@ -96,9 +104,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 						})
 						.where(eq(table.assetGeneration.id, asset.id));
 
-					asset = (await db.query.assetGeneration.findFirst({
+					const completedAsset = await db.query.assetGeneration.findFirst({
 						where: eq(table.assetGeneration.id, params.id),
-					}))!;
+					});
+					if (!completedAsset) error(404, 'Asset not found');
+					asset = completedAsset;
 				}
 			}
 		} catch (e) {

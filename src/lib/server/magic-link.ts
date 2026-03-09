@@ -1,5 +1,5 @@
 import { encodeHexLowerCase } from '@oslojs/encoding';
-import { eq, and, gt, isNull } from 'drizzle-orm';
+import { and, eq, gt, isNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';

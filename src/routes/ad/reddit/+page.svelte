@@ -1,5 +1,5 @@
 <script lang="ts">
-	const title = 'GenSprite — Reddit Ad';
+const title = 'GenSprite — Reddit Ad';
 </script>
 
 <svelte:head>

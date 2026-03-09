@@ -2,7 +2,10 @@ import { error, json } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { cancelAnimateJob, cancelVideoBackgroundRemovalJob } from '$lib/server/fal';
+import {
+	cancelAnimateJob,
+	cancelVideoBackgroundRemovalJob,
+} from '$lib/server/fal';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ params, locals }) => {

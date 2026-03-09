@@ -1,5 +1,14 @@
 <script lang="ts">
-import { ArrowRight, Check, Clock, CreditCard, Layers, RotateCw, Sparkles, Zap } from 'lucide-svelte';
+import {
+	ArrowRight,
+	Check,
+	Clock,
+	CreditCard,
+	Layers,
+	RotateCw,
+	Sparkles,
+	Zap,
+} from 'lucide-svelte';
 import Footer from '$lib/components/Footer.svelte';
 import Header from '$lib/components/Header.svelte';
 import { PRICING } from '$lib/pricing';
@@ -28,7 +37,7 @@ function getDiscount(
 </svelte:head>
 
 <div class="min-h-screen bg-zinc-950">
-	<Header variant="simple" showBack user={data.user} ctaText="Get Tokens" ctaHref="/app/billing" maxWidth="4xl" />
+	<Header variant="simple" showBack user={data.user} ctaText="Get Tokens" ctaHref="/app/billing" />
 
 	<main class="max-w-4xl mx-auto px-4 py-12">
 		<div class="text-center mb-12">

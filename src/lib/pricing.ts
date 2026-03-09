@@ -53,7 +53,8 @@ export function getAnimationGenerationTokenCost(
 	const meta = ANIMATION_META[animationType];
 	const videoDuration = meta.duration * meta.loops;
 	const wanCostPerDir = videoDuration * WAN_USD_PER_VIDEO_SECOND;
-	const rmbgCostPerDir = meta.framesPerLoop * ANIMATION_BG_REMOVAL_USD_PER_FRAME;
+	const rmbgCostPerDir =
+		meta.framesPerLoop * ANIMATION_BG_REMOVAL_USD_PER_FRAME;
 	const totalUsd = (wanCostPerDir + rmbgCostPerDir) * directionCount;
 	return Math.ceil(totalUsd * TOKENS_PER_DOLLAR);
 }
@@ -63,5 +64,7 @@ export function getAnimationReprocessTokenCost(
 	directionCount: 4 | 8,
 ): number {
 	const totalFrames = frameCountPerDirection * directionCount;
-	return Math.ceil(totalFrames * ANIMATION_BG_REMOVAL_USD_PER_FRAME * TOKENS_PER_DOLLAR);
+	return Math.ceil(
+		totalFrames * ANIMATION_BG_REMOVAL_USD_PER_FRAME * TOKENS_PER_DOLLAR,
+	);
 }

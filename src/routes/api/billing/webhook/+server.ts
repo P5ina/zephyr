@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
+import type Stripe from 'stripe';
 import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
@@ -20,7 +21,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		return json({ error: 'Webhook not configured' }, { status: 500 });
 	}
 
-	let event;
+	let event: Stripe.Event;
 	try {
 		event = stripe.webhooks.constructEvent(
 			body,

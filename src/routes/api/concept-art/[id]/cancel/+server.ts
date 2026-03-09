@@ -33,7 +33,10 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 	if (gen.falRequestId) {
 		try {
 			if (gen.mode === 'restyle') {
-				await cancelRestyleJob(gen.falRequestId, (gen.controlMethod as 'canny' | 'depth') ?? 'canny');
+				await cancelRestyleJob(
+					gen.falRequestId,
+					(gen.controlMethod as 'canny' | 'depth') ?? 'canny',
+				);
 			} else {
 				await cancelConceptArtJob(gen.falRequestId, !!gen.referenceImageUrl);
 			}

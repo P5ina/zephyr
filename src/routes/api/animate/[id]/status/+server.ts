@@ -6,8 +6,8 @@ import { env } from '$env/dynamic/private';
 import type { AnimationType } from '$lib/animation-config';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { buildFrameArchive } from '$lib/server/spritesheet';
 import { getAnimateJobStatus } from '$lib/server/fal';
+import { buildFrameArchive } from '$lib/server/spritesheet';
 import type { RequestHandler } from './$types';
 
 export const config: Config = {
@@ -34,7 +34,9 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	// If export has been stuck for over 3 minutes (Vercel function likely timed out), allow retry
 	if (isExporting && job.status === 'processing' && !job.spritesheetUrl) {
 		const exportStartMatch = job.currentStage?.match(/!exporting@(\d+):/);
-		const exportStartedAt = exportStartMatch ? parseInt(exportStartMatch[1]) : 0;
+		const exportStartedAt = exportStartMatch
+			? parseInt(exportStartMatch[1], 10)
+			: 0;
 		const staleMs = 3 * 60 * 1000;
 
 		if (!exportStartedAt || Date.now() - exportStartedAt > staleMs) {
@@ -42,9 +44,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 				.update(table.animationJob)
 				.set({ currentStage: 'Retrying export...' })
 				.where(eq(table.animationJob.id, job.id));
-			job = (await db.query.animationJob.findFirst({
+			const refreshedJob = await db.query.animationJob.findFirst({
 				where: eq(table.animationJob.id, params.id),
-			}))!;
+			});
+			if (!refreshedJob) error(404, 'Job not found');
+			job = refreshedJob;
 			isExporting = false;
 		}
 	}
@@ -57,10 +61,13 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	) {
 		try {
 			const requestIds = (job.falRequestIds as Record<string, string>) || {};
-			const directionVideos = (job.directionVideos as Record<string, string>) || {};
+			const directionVideos =
+				(job.directionVideos as Record<string, string>) || {};
 			const directions = Object.keys(requestIds);
 
-			const incompleteDirections = directions.filter((direction) => !directionVideos[direction]);
+			const incompleteDirections = directions.filter(
+				(direction) => !directionVideos[direction],
+			);
 
 			if (incompleteDirections.length > 0) {
 				const statusResults = await Promise.all(
@@ -76,21 +83,29 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 				for (const { direction, status } of statusResults) {
 					if (status.status === 'COMPLETED' && status.output?.videoUrl) {
 						directionVideos[direction] = status.output.videoUrl;
-					} else if (status.status === 'FAILED' || status.status === 'CANCELLED') {
+					} else if (
+						status.status === 'FAILED' ||
+						status.status === 'CANCELLED'
+					) {
 						anyFailed = true;
-						failError = status.error || `Animation failed for direction: ${direction}`;
+						failError =
+							status.error || `Animation failed for direction: ${direction}`;
 						break;
 					}
 				}
 
 				if (anyFailed) {
 					await failJob(job, failError, directionVideos);
-					job = (await db.query.animationJob.findFirst({
+					const failedJob = await db.query.animationJob.findFirst({
 						where: eq(table.animationJob.id, params.id),
-					}))!;
+					});
+					if (!failedJob) error(404, 'Job not found');
+					job = failedJob;
 				} else {
 					const completedCount = Object.keys(directionVideos).length;
-					const progress = Math.floor(5 + (completedCount / directions.length) * 55);
+					const progress = Math.floor(
+						5 + (completedCount / directions.length) * 55,
+					);
 
 					await db
 						.update(table.animationJob)
@@ -102,13 +117,17 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 						})
 						.where(eq(table.animationJob.id, job.id));
 
-					job = (await db.query.animationJob.findFirst({
+					const updatedJob = await db.query.animationJob.findFirst({
 						where: eq(table.animationJob.id, params.id),
-					}))!;
+					});
+					if (!updatedJob) error(404, 'Job not found');
+					job = updatedJob;
 				}
 			}
 
-			const allComplete = directions.length > 0 && directions.every((direction) => directionVideos[direction]);
+			const allComplete =
+				directions.length > 0 &&
+				directions.every((direction) => directionVideos[direction]);
 
 			if (allComplete && !job.spritesheetUrl) {
 				const exportStartTime = Date.now();
@@ -130,8 +149,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 							async (stage, progress) => {
 								await db
 									.update(table.animationJob)
-									.set({ currentStage: `!exporting@${exportStartTime}:${stage}`, progress })
-									.where(eq(table.animationJob.id, job!.id));
+									.set({
+										currentStage: `!exporting@${exportStartTime}:${stage}`,
+										progress,
+									})
+									.where(eq(table.animationJob.id, job?.id));
 							},
 						);
 
@@ -164,9 +186,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 							})
 							.where(eq(table.animationJob.id, job.id));
 
-						job = (await db.query.animationJob.findFirst({
+						const completedJob = await db.query.animationJob.findFirst({
 							where: eq(table.animationJob.id, params.id),
-						}))!;
+						});
+						if (!completedJob) error(404, 'Job not found');
+						job = completedJob;
 					} catch (archiveError) {
 						console.error('Frame archive creation failed:', archiveError);
 
@@ -189,9 +213,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 							})
 							.where(eq(table.animationJob.id, job.id));
 
-						job = (await db.query.animationJob.findFirst({
+						const errorJob = await db.query.animationJob.findFirst({
 							where: eq(table.animationJob.id, params.id),
-						}))!;
+						});
+						if (!errorJob) error(404, 'Job not found');
+						job = errorJob;
 					}
 				}
 			}
@@ -206,13 +232,17 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	};
 
 	if (job.status === 'pending') {
-		response.statusMessage = normalizeStage(job.currentStage || 'Queued for processing...');
+		response.statusMessage = normalizeStage(
+			job.currentStage || 'Queued for processing...',
+		);
 		response.progress = 0;
 	}
 
 	if (job.status === 'processing') {
 		response.progress = job.progress;
-		response.statusMessage = normalizeStage(job.currentStage || 'Processing...');
+		response.statusMessage = normalizeStage(
+			job.currentStage || 'Processing...',
+		);
 	}
 
 	if (job.status === 'completed') {

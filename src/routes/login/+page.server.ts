@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
-import { validatePromoCode, PROMO_COOKIE_NAME } from '$lib/promo-codes';
+import { PROMO_COOKIE_NAME, validatePromoCode } from '$lib/promo-codes';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
@@ -36,5 +36,12 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		}
 	}
 
-	return { user: null, isPreview, isDev, promoCode, promoBonusTokens, promoError };
+	return {
+		user: null,
+		isPreview,
+		isDev,
+		promoCode,
+		promoBonusTokens,
+		promoError,
+	};
 };

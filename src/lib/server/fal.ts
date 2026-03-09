@@ -94,7 +94,11 @@ export async function getSpriteJobStatus(requestId: string): Promise<{
 		}
 
 		return {
-			status: status.status as 'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
+			status: status.status as
+				| 'IN_QUEUE'
+				| 'IN_PROGRESS'
+				| 'FAILED'
+				| 'CANCELLED',
 		};
 	} catch (error) {
 		console.error('[fal.ai] Error checking sprite status:', error);
@@ -186,7 +190,11 @@ export async function getRotationJobStatus(requestId: string): Promise<{
 		}
 
 		return {
-			status: status.status as 'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
+			status: status.status as
+				| 'IN_QUEUE'
+				| 'IN_PROGRESS'
+				| 'FAILED'
+				| 'CANCELLED',
 		};
 	} catch (error) {
 		console.error('[fal.ai] Error checking status:', error);
@@ -214,13 +222,48 @@ const FAL_ROTATION_8DIR_WORKFLOW_ID = 'workflows/P5ina/rotate';
 
 interface FalRotation8DirOutput {
 	image?: { url: string; content_type: string; width: number; height: number };
-	image_2?: { url: string; content_type: string; width: number; height: number };
-	image_3?: { url: string; content_type: string; width: number; height: number };
-	image_4?: { url: string; content_type: string; width: number; height: number };
-	image_5?: { url: string; content_type: string; width: number; height: number };
-	image_6?: { url: string; content_type: string; width: number; height: number };
-	image_7?: { url: string; content_type: string; width: number; height: number };
-	image_8?: { url: string; content_type: string; width: number; height: number };
+	image_2?: {
+		url: string;
+		content_type: string;
+		width: number;
+		height: number;
+	};
+	image_3?: {
+		url: string;
+		content_type: string;
+		width: number;
+		height: number;
+	};
+	image_4?: {
+		url: string;
+		content_type: string;
+		width: number;
+		height: number;
+	};
+	image_5?: {
+		url: string;
+		content_type: string;
+		width: number;
+		height: number;
+	};
+	image_6?: {
+		url: string;
+		content_type: string;
+		width: number;
+		height: number;
+	};
+	image_7?: {
+		url: string;
+		content_type: string;
+		width: number;
+		height: number;
+	};
+	image_8?: {
+		url: string;
+		content_type: string;
+		width: number;
+		height: number;
+	};
 }
 
 /**
@@ -292,7 +335,11 @@ export async function getRotation8DirJobStatus(requestId: string): Promise<{
 		}
 
 		return {
-			status: status.status as 'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
+			status: status.status as
+				| 'IN_QUEUE'
+				| 'IN_PROGRESS'
+				| 'FAILED'
+				| 'CANCELLED',
 		};
 	} catch (error) {
 		console.error('[fal.ai] Error checking 8-dir rotation status:', error);
@@ -340,7 +387,15 @@ export const DIRECTION_ANGLES_8DIR = {
 } as const;
 
 export type SourceDirection8Dir = keyof typeof DIRECTION_ANGLES_8DIR;
-export type RotationDirection8Dir = 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw';
+export type RotationDirection8Dir =
+	| 'n'
+	| 'ne'
+	| 'e'
+	| 'se'
+	| 's'
+	| 'sw'
+	| 'w'
+	| 'nw';
 
 export function calculateHorizontalAngle8Dir(
 	sourceDirection: SourceDirection8Dir,
@@ -358,7 +413,7 @@ export function calculateHorizontalAngle8Dir(
  */
 export function calculateHorizontalAngle(
 	sourceDirection: SourceDirection,
-	targetDirection: RotationDirection
+	targetDirection: RotationDirection,
 ): number {
 	const sourceAngle = DIRECTION_ANGLES[sourceDirection];
 	const targetAngle = DIRECTION_ANGLES[targetDirection];
@@ -424,7 +479,11 @@ export async function getSingleViewRotationStatus(requestId: string): Promise<{
 		}
 
 		return {
-			status: status.status as 'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
+			status: status.status as
+				| 'IN_QUEUE'
+				| 'IN_PROGRESS'
+				| 'FAILED'
+				| 'CANCELLED',
 		};
 	} catch (error) {
 		console.error('[fal.ai] Error checking single view status:', error);
@@ -504,7 +563,11 @@ export async function getSpinJobStatus(requestId: string): Promise<{
 		}
 
 		return {
-			status: status.status as 'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
+			status: status.status as
+				| 'IN_QUEUE'
+				| 'IN_PROGRESS'
+				| 'FAILED'
+				| 'CANCELLED',
 		};
 	} catch (error) {
 		console.error('[fal.ai] Error checking spin status:', error);
@@ -568,7 +631,10 @@ export async function submitConceptArtJob(params: {
 				num_inference_steps: 40,
 				seed: params.seed,
 				// image_size is accepted by the API but missing from the SDK type
-				...({ image_size: params.imageSize, output_format: 'png' } as Record<string, unknown>),
+				...({ image_size: params.imageSize, output_format: 'png' } as Record<
+					string,
+					unknown
+				>),
 			},
 			webhookUrl: params.webhookUrl,
 		});
@@ -579,7 +645,13 @@ export async function submitConceptArtJob(params: {
 	const { request_id } = await fal.queue.submit(FAL_CONCEPT_ART_MODEL, {
 		input: {
 			prompt: params.prompt,
-			image_size: params.imageSize as 'square_hd' | 'square' | 'portrait_4_3' | 'portrait_16_9' | 'landscape_4_3' | 'landscape_16_9',
+			image_size: params.imageSize as
+				| 'square_hd'
+				| 'square'
+				| 'portrait_4_3'
+				| 'portrait_16_9'
+				| 'landscape_4_3'
+				| 'landscape_16_9',
 			num_inference_steps: 8,
 			seed: params.seed,
 			enable_safety_checker: true,
@@ -607,7 +679,9 @@ export async function getConceptArtJobStatus(
 }> {
 	configureFal();
 
-	const model = hasReferenceImage ? FAL_CONCEPT_ART_REF_MODEL : FAL_CONCEPT_ART_MODEL;
+	const model = hasReferenceImage
+		? FAL_CONCEPT_ART_REF_MODEL
+		: FAL_CONCEPT_ART_MODEL;
 
 	try {
 		const status = await fal.queue.status(model, {
@@ -635,7 +709,11 @@ export async function getConceptArtJobStatus(
 		}
 
 		return {
-			status: status.status as 'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
+			status: status.status as
+				| 'IN_QUEUE'
+				| 'IN_PROGRESS'
+				| 'FAILED'
+				| 'CANCELLED',
 		};
 	} catch (error) {
 		console.error('[fal.ai] Error checking concept art status:', error);
@@ -655,7 +733,9 @@ export async function cancelConceptArtJob(
 ): Promise<void> {
 	configureFal();
 
-	const model = hasReferenceImage ? FAL_CONCEPT_ART_REF_MODEL : FAL_CONCEPT_ART_MODEL;
+	const model = hasReferenceImage
+		? FAL_CONCEPT_ART_REF_MODEL
+		: FAL_CONCEPT_ART_MODEL;
 	await fal.queue.cancel(model, { requestId });
 }
 
@@ -667,8 +747,6 @@ const FAL_CANNY_PREPROCESSOR = 'fal-ai/image-preprocessors/hed';
 const FAL_DEPTH_PREPROCESSOR = 'fal-ai/image-preprocessors/depth-anything/v2';
 const FAL_RESTYLE_CANNY_MODEL = 'fal-ai/flux-control-lora-canny';
 const FAL_RESTYLE_DEPTH_MODEL = 'fal-ai/flux-control-lora-depth';
-
-type ImageSize = 'square_hd' | 'square' | 'portrait_4_3' | 'portrait_16_9' | 'landscape_4_3' | 'landscape_16_9';
 
 function getPreprocessorModel(method: 'canny' | 'depth') {
 	return method === 'depth' ? FAL_DEPTH_PREPROCESSOR : FAL_CANNY_PREPROCESSOR;
@@ -726,7 +804,11 @@ export async function getPreprocessorJobStatus(
 		}
 
 		return {
-			status: status.status as 'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
+			status: status.status as
+				| 'IN_QUEUE'
+				| 'IN_PROGRESS'
+				| 'FAILED'
+				| 'CANCELLED',
 		};
 	} catch (error) {
 		console.error('[fal.ai] Error checking preprocessor status:', error);
@@ -752,9 +834,10 @@ export async function submitRestyleGeneration(params: {
 }): Promise<{ requestId: string }> {
 	configureFal();
 
-	const model = params.controlMethod === 'depth'
-		? FAL_RESTYLE_DEPTH_MODEL
-		: FAL_RESTYLE_CANNY_MODEL;
+	const model =
+		params.controlMethod === 'depth'
+			? FAL_RESTYLE_DEPTH_MODEL
+			: FAL_RESTYLE_CANNY_MODEL;
 
 	const baseInput = {
 		prompt: params.prompt,
@@ -771,7 +854,9 @@ export async function submitRestyleGeneration(params: {
 			...({
 				image_size: params.imageSize,
 				output_format: 'png',
-				...(params.controlMethod === 'depth' ? { preprocess_depth: false } : {}),
+				...(params.controlMethod === 'depth'
+					? { preprocess_depth: false }
+					: {}),
 			} as Record<string, unknown>),
 		},
 		webhookUrl: params.webhookUrl,
@@ -796,9 +881,10 @@ export async function getRestyleJobStatus(
 }> {
 	configureFal();
 
-	const model = controlMethod === 'depth'
-		? FAL_RESTYLE_DEPTH_MODEL
-		: FAL_RESTYLE_CANNY_MODEL;
+	const model =
+		controlMethod === 'depth'
+			? FAL_RESTYLE_DEPTH_MODEL
+			: FAL_RESTYLE_CANNY_MODEL;
 
 	try {
 		const status = await fal.queue.status(model, {
@@ -826,12 +912,17 @@ export async function getRestyleJobStatus(
 		}
 
 		return {
-			status: status.status as 'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
+			status: status.status as
+				| 'IN_QUEUE'
+				| 'IN_PROGRESS'
+				| 'FAILED'
+				| 'CANCELLED',
 		};
 	} catch (error: unknown) {
 		const body = (error as { body?: unknown })?.body;
 		console.error('[fal.ai] Error checking restyle status:', error);
-		if (body) console.error('[fal.ai] Error body:', JSON.stringify(body, null, 2));
+		if (body)
+			console.error('[fal.ai] Error body:', JSON.stringify(body, null, 2));
 		return {
 			status: 'FAILED',
 			error: error instanceof Error ? error.message : 'Unknown error',
@@ -848,9 +939,10 @@ export async function cancelRestyleJob(
 ): Promise<void> {
 	configureFal();
 
-	const model = controlMethod === 'depth'
-		? FAL_RESTYLE_DEPTH_MODEL
-		: FAL_RESTYLE_CANNY_MODEL;
+	const model =
+		controlMethod === 'depth'
+			? FAL_RESTYLE_DEPTH_MODEL
+			: FAL_RESTYLE_CANNY_MODEL;
 	await fal.queue.cancel(model, { requestId });
 }
 
@@ -924,12 +1016,17 @@ export async function getAnimateJobStatus(requestId: string): Promise<{
 		}
 
 		return {
-			status: status.status as 'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
+			status: status.status as
+				| 'IN_QUEUE'
+				| 'IN_PROGRESS'
+				| 'FAILED'
+				| 'CANCELLED',
 		};
 	} catch (error) {
 		const body = (error as { body?: unknown })?.body;
 		console.error('[fal.ai] Error checking animate status:', error);
-		if (body) console.error('[fal.ai] Error body:', JSON.stringify(body, null, 2));
+		if (body)
+			console.error('[fal.ai] Error body:', JSON.stringify(body, null, 2));
 		return {
 			status: 'FAILED',
 			error: error instanceof Error ? error.message : 'Unknown error',
@@ -974,7 +1071,9 @@ export async function submitVideoBackgroundRemovalJob(params: {
 /**
  * Get the status of a video background removal job from fal.ai
  */
-export async function getVideoBackgroundRemovalJobStatus(requestId: string): Promise<{
+export async function getVideoBackgroundRemovalJobStatus(
+	requestId: string,
+): Promise<{
 	status: 'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 	output?: { videoUrl: string };
 	error?: string;
@@ -995,17 +1094,24 @@ export async function getVideoBackgroundRemovalJobStatus(requestId: string): Pro
 			const data = result.data as unknown as FalVideoBackgroundRemovalOutput;
 			return {
 				status: 'COMPLETED',
-				output: data?.video?.[0]?.url ? { videoUrl: data.video[0].url } : undefined,
+				output: data?.video?.[0]?.url
+					? { videoUrl: data.video[0].url }
+					: undefined,
 			};
 		}
 
 		return {
-			status: status.status as 'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
+			status: status.status as
+				| 'IN_QUEUE'
+				| 'IN_PROGRESS'
+				| 'FAILED'
+				| 'CANCELLED',
 		};
 	} catch (error) {
 		const body = (error as { body?: unknown })?.body;
 		console.error('[fal.ai] Error checking video bg removal status:', error);
-		if (body) console.error('[fal.ai] Error body:', JSON.stringify(body, null, 2));
+		if (body)
+			console.error('[fal.ai] Error body:', JSON.stringify(body, null, 2));
 		return {
 			status: 'FAILED',
 			error: error instanceof Error ? error.message : 'Unknown error',
@@ -1016,7 +1122,9 @@ export async function getVideoBackgroundRemovalJobStatus(requestId: string): Pro
 /**
  * Cancel a video background removal job on fal.ai
  */
-export async function cancelVideoBackgroundRemovalJob(requestId: string): Promise<void> {
+export async function cancelVideoBackgroundRemovalJob(
+	requestId: string,
+): Promise<void> {
 	configureFal();
 
 	await fal.queue.cancel(FAL_VIDEO_BG_REMOVAL_MODEL, { requestId });
@@ -1025,7 +1133,10 @@ export async function cancelVideoBackgroundRemovalJob(requestId: string): Promis
 /**
  * Remove image background using fal.ai
  */
-export async function removeImageBackground(image: Buffer, retries = 2): Promise<Buffer> {
+export async function removeImageBackground(
+	image: Buffer,
+	retries = 2,
+): Promise<Buffer> {
 	configureFal();
 
 	for (let attempt = 0; attempt <= retries; attempt++) {
@@ -1039,7 +1150,10 @@ export async function removeImageBackground(image: Buffer, retries = 2): Promise
 					logs: false,
 				}),
 				new Promise<never>((_, reject) =>
-					setTimeout(() => reject(new Error('Background removal timed out after 60s')), 60_000),
+					setTimeout(
+						() => reject(new Error('Background removal timed out after 60s')),
+						60_000,
+					),
 				),
 			]);
 
@@ -1051,13 +1165,18 @@ export async function removeImageBackground(image: Buffer, retries = 2): Promise
 
 			const response = await fetch(imageUrl);
 			if (!response.ok) {
-				throw new Error(`Failed to download background-removed frame: ${response.status}`);
+				throw new Error(
+					`Failed to download background-removed frame: ${response.status}`,
+				);
 			}
 
 			return Buffer.from(await response.arrayBuffer());
 		} catch (err) {
 			if (attempt < retries) {
-				console.warn(`[bg-removal] attempt ${attempt + 1} failed, retrying...`, (err as Error).message);
+				console.warn(
+					`[bg-removal] attempt ${attempt + 1} failed, retrying...`,
+					(err as Error).message,
+				);
 				continue;
 			}
 			throw err;

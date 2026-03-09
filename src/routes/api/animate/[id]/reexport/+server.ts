@@ -35,7 +35,9 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 		error(400, 'No direction videos available for re-export');
 	}
 
-	const frameCount = job.frameCount ?? ANIMATION_META[job.animationType as AnimationType].framesPerLoop;
+	const frameCount =
+		job.frameCount ??
+		ANIMATION_META[job.animationType as AnimationType].framesPerLoop;
 	const reexportCost = getAnimationReprocessTokenCost(
 		frameCount,
 		job.directionCount as 4 | 8,
@@ -43,7 +45,10 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 	const availableTokens = locals.user.tokens + locals.user.bonusTokens;
 
 	if (availableTokens < reexportCost) {
-		error(402, `Not enough tokens. Required: ${reexportCost}, available: ${availableTokens}`);
+		error(
+			402,
+			`Not enough tokens. Required: ${reexportCost}, available: ${availableTokens}`,
+		);
 	}
 
 	const bonusDeduct = Math.min(locals.user.bonusTokens, reexportCost);
@@ -62,7 +67,7 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 		.set({
 			status: 'processing',
 			currentStage: `Removing backgrounds (0/${frameCount * (job.directionCount as 4 | 8)})...`,
-		completedAt: null,
+			completedAt: null,
 			progress: 55,
 			spritesheetUrl: null,
 			frameCount: null,

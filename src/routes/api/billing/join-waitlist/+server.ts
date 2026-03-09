@@ -10,8 +10,11 @@ export const POST: RequestHandler = async ({ locals }) => {
 	try {
 		await addToWaitlist(locals.user.email, locals.user.username || undefined);
 		return json({ success: true });
-	} catch (err: any) {
+	} catch (err: unknown) {
 		console.error('Failed to add to waitlist:', err);
-		return json({ error: err?.message || 'Failed to join waitlist' }, { status: 500 });
+		return json(
+			{ error: err instanceof Error ? err.message : 'Failed to join waitlist' },
+			{ status: 500 },
+		);
 	}
 };

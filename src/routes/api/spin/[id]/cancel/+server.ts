@@ -12,7 +12,9 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 			eq(table.spinJob.id, params.id),
 			or(
 				locals.user ? eq(table.spinJob.userId, locals.user.id) : undefined,
-				locals.guestSession ? eq(table.spinJob.guestSessionId, locals.guestSession.id) : undefined,
+				locals.guestSession
+					? eq(table.spinJob.guestSessionId, locals.guestSession.id)
+					: undefined,
 			),
 		),
 	});

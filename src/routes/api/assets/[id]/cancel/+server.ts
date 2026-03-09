@@ -1,5 +1,5 @@
 import { error, json } from '@sveltejs/kit';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, type SQL, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { cancelSpriteJob } from '$lib/server/fal';
@@ -7,13 +7,16 @@ import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ params, locals, url }) => {
 	// Build ownership condition
-	let ownershipCondition;
+	let ownershipCondition: SQL | undefined;
 	const isGuest = !locals.user && !!locals.guestSession;
 
 	if (locals.user) {
 		ownershipCondition = eq(table.assetGeneration.userId, locals.user.id);
 	} else if (locals.guestSession) {
-		ownershipCondition = eq(table.assetGeneration.guestSessionId, locals.guestSession.id);
+		ownershipCondition = eq(
+			table.assetGeneration.guestSessionId,
+			locals.guestSession.id,
+		);
 	} else {
 		error(401, 'Unauthorized');
 	}
@@ -22,10 +25,7 @@ export const POST: RequestHandler = async ({ params, locals, url }) => {
 	const force = url.searchParams.get('force') === 'true';
 
 	const asset = await db.query.assetGeneration.findFirst({
-		where: and(
-			eq(table.assetGeneration.id, params.id),
-			ownershipCondition,
-		),
+		where: and(eq(table.assetGeneration.id, params.id), ownershipCondition),
 	});
 
 	if (!asset) {

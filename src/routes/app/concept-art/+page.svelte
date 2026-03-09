@@ -1,5 +1,5 @@
 <script lang="ts">
-import { slide } from 'svelte/transition';
+import { track } from '@vercel/analytics';
 import {
 	Check,
 	ChevronLeft,
@@ -13,10 +13,10 @@ import {
 	X,
 	Zap,
 } from 'lucide-svelte';
-import { track } from '@vercel/analytics';
+import { slide } from 'svelte/transition';
 import { PRICING } from '$lib/pricing';
-import { tokenState } from '$lib/token-state.svelte';
 import type { ConceptArtGeneration } from '$lib/server/db/schema';
+import { tokenState } from '$lib/token-state.svelte';
 import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
@@ -54,9 +54,7 @@ let status = $state<string | null>(null);
 
 // --- Derived ---
 const effectiveMode = $derived<'standard' | 'restyle'>(
-	sourceFile && imageMode === 'structure'
-		? 'restyle'
-		: 'standard',
+	sourceFile && imageMode === 'structure' ? 'restyle' : 'standard',
 );
 
 const tokenCost = $derived(
@@ -66,11 +64,7 @@ const tokenCost = $derived(
 );
 
 const modeLabel = $derived(
-	effectiveMode === 'restyle'
-		? 'Restyle'
-		: sourceFile
-			? 'Img2Img'
-			: 'Generate',
+	effectiveMode === 'restyle' ? 'Restyle' : sourceFile ? 'Img2Img' : 'Generate',
 );
 
 const modeDescription = $derived(
@@ -114,7 +108,11 @@ const selectedAspectRatio = $derived(
 // --- Effects ---
 $effect(() => {
 	for (const gen of initialGenerations) {
-		if (gen.status !== 'completed' && gen.status !== 'failed' && !pollingSet.has(gen.id)) {
+		if (
+			gen.status !== 'completed' &&
+			gen.status !== 'failed' &&
+			!pollingSet.has(gen.id)
+		) {
 			pollingSet.add(gen.id);
 			pollStatus(gen.id);
 		}
@@ -130,7 +128,6 @@ $effect(() => {
 		sourcePreviewUrl = null;
 	}
 });
-
 
 // --- Functions ---
 function startNewGeneration() {
@@ -178,10 +175,13 @@ async function generate() {
 			formData.append('prompt', prompt.trim());
 			formData.append('imageSize', selectedSize);
 			if (selectedStyle) formData.append('style', selectedStyle);
-			formData.append('compositionImage', sourceFile!);
+			formData.append('compositionImage', sourceFile as File);
 			formData.append('controlMethod', controlMethod);
 			formData.append('controlStrength', String(structureStrength));
-			res = await fetch('/api/concept-art/generate', { method: 'POST', body: formData });
+			res = await fetch('/api/concept-art/generate', {
+				method: 'POST',
+				body: formData,
+			});
 		} else if (sourceFile) {
 			const formData = new FormData();
 			formData.append('prompt', prompt.trim());
@@ -189,7 +189,10 @@ async function generate() {
 			if (selectedStyle) formData.append('style', selectedStyle);
 			formData.append('image', sourceFile);
 			formData.append('strength', String(influenceStrength));
-			res = await fetch('/api/concept-art/generate', { method: 'POST', body: formData });
+			res = await fetch('/api/concept-art/generate', {
+				method: 'POST',
+				body: formData,
+			});
 		} else {
 			res = await fetch('/api/concept-art/generate', {
 				method: 'POST',
@@ -212,7 +215,8 @@ async function generate() {
 
 		const result = await res.json();
 		tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
-		tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;
+		tokenState.bonusTokens =
+			result.bonusTokensRemaining ?? tokenState.bonusTokens;
 
 		track('generation_started', {
 			type: effectiveMode === 'restyle' ? 'concept_art_restyle' : 'concept_art',
@@ -230,10 +234,12 @@ async function generate() {
 				referenceStrength:
 					effectiveMode === 'standard' && sourceFile ? influenceStrength : null,
 				mode: effectiveMode,
-				compositionImageUrl: effectiveMode !== 'standard' ? sourcePreviewUrl : null,
+				compositionImageUrl:
+					effectiveMode !== 'standard' ? sourcePreviewUrl : null,
 				styleImageUrl: null,
 				controlMethod: effectiveMode !== 'standard' ? controlMethod : null,
-				controlStrength: effectiveMode !== 'standard' ? structureStrength : null,
+				controlStrength:
+					effectiveMode !== 'standard' ? structureStrength : null,
 				controlImageUrl: null,
 				styleStrength: null,
 				status: 'pending',
@@ -268,7 +274,9 @@ async function cancelGeneration(id: string) {
 	if (!confirm('Cancel this generation? Your tokens will be refunded.')) return;
 
 	try {
-		const res = await fetch(`/api/concept-art/${id}/cancel`, { method: 'POST' });
+		const res = await fetch(`/api/concept-art/${id}/cancel`, {
+			method: 'POST',
+		});
 		if (!res.ok) {
 			const error = await res.json();
 			alert(error.message || 'Failed to cancel');

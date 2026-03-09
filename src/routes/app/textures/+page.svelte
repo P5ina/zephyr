@@ -1,5 +1,7 @@
 <script lang="ts">
 import { Canvas } from '@threlte/core';
+import { track } from '@vercel/analytics';
+import JSZip from 'jszip';
 import {
 	Box,
 	Check,
@@ -15,12 +17,10 @@ import {
 	Square,
 	X,
 } from 'lucide-svelte';
-import { track } from '@vercel/analytics';
-import JSZip from 'jszip';
 import MaterialPreview from '$lib/components/three/MaterialPreview.svelte';
 import { PRICING } from '$lib/pricing';
-import { tokenState } from '$lib/token-state.svelte';
 import type { TextureGeneration } from '$lib/server/db/schema';
+import { tokenState } from '$lib/token-state.svelte';
 import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
@@ -120,7 +120,8 @@ async function generate() {
 
 		const result = await res.json();
 		tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
-		tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;
+		tokenState.bonusTokens =
+			result.bonusTokensRemaining ?? tokenState.bonusTokens;
 
 		track('generation_started', { type: 'texture' });
 
@@ -241,7 +242,8 @@ async function pollStatus(id: string) {
 			if (result.status === 'completed') {
 				pollingSet.delete(id);
 				tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
-				tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;
+				tokenState.bonusTokens =
+					result.bonusTokensRemaining ?? tokenState.bonusTokens;
 
 				track('generation_completed', { type: 'texture' });
 
@@ -313,14 +315,20 @@ async function downloadTexture(type: keyof typeof displayTextures) {
 async function downloadAll() {
 	downloading = true;
 	try {
-		const name = (selectedGeneration?.prompt || prompt).slice(0, 30).replace(/[^a-z0-9]/gi, '_') || 'textures';
+		const name =
+			(selectedGeneration?.prompt || prompt)
+				.slice(0, 30)
+				.replace(/[^a-z0-9]/gi, '_') || 'textures';
 		const zip = new JSZip();
-		const entries = Object.entries(displayTextures) as [string, string | null][];
+		const entries = Object.entries(displayTextures) as [
+			string,
+			string | null,
+		][];
 		await Promise.all(
 			entries
-				.filter(([, url]) => url)
+				.filter((entry): entry is [string, string] => !!entry[1])
 				.map(async ([type, url]) => {
-					const blob = await fetchAsBlob(url!);
+					const blob = await fetchAsBlob(url);
 					zip.file(`${name}_${type}.png`, blob);
 				}),
 		);

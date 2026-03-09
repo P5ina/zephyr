@@ -6,4 +6,5 @@ export const GUEST_CONFIG = {
 	cookieName: 'guest-session',
 } as const;
 
-export type GuestAllowedAssetType = (typeof GUEST_CONFIG.allowedAssetTypes)[number];
+export type GuestAllowedAssetType =
+	(typeof GUEST_CONFIG.allowedAssetTypes)[number];

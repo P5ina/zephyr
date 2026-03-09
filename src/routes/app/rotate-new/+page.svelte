@@ -1,4 +1,5 @@
 <script lang="ts">
+import JSZip from 'jszip';
 import {
 	ArrowDown,
 	ArrowLeft,
@@ -21,11 +22,10 @@ import {
 	Upload,
 	X,
 } from 'lucide-svelte';
-import JSZip from 'jszip';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import { PRICING } from '$lib/pricing';
-import { tokenState } from '$lib/token-state.svelte';
 import type { RotationJobNew } from '$lib/server/db/schema';
+import { tokenState } from '$lib/token-state.svelte';
 import type { LayoutData } from '../$types';
 import type { PageData } from './$types';
 
@@ -65,13 +65,11 @@ const SINGLE_VIEW_TOKEN_COST = PRICING.tokenCosts.rotationSingleView;
 let guestRotationsUsed = $state(data.guestRotationsUsed ?? 0);
 
 const guestGenerationsRemaining = $derived(
-	GUEST_CONFIG.maxRotationGenerations - guestRotationsUsed
+	GUEST_CONFIG.maxRotationGenerations - guestRotationsUsed,
 );
 
 const canGenerate = $derived(
-	data.isGuest
-		? guestGenerationsRemaining > 0
-		: tokenState.total >= TOKEN_COST
+	data.isGuest ? guestGenerationsRemaining > 0 : tokenState.total >= TOKEN_COST,
 );
 
 // Regeneration state
@@ -145,14 +143,14 @@ async function regenerateView() {
 
 		const result = await res.json();
 		tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
-		tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;
+		tokenState.bonusTokens =
+			result.bonusTokensRemaining ?? tokenState.bonusTokens;
 
 		// Update the job with the new image
-		const columnName = `rotation${targetDir.charAt(0).toUpperCase() + targetDir.slice(1)}` as keyof RotationJobNew;
+		const columnName =
+			`rotation${targetDir.charAt(0).toUpperCase() + targetDir.slice(1)}` as keyof RotationJobNew;
 		rotationJobs = rotationJobs.map((j) =>
-			j.id === jobId
-				? { ...j, [columnName]: result.url }
-				: j,
+			j.id === jobId ? { ...j, [columnName]: result.url } : j,
 		);
 	} catch (e) {
 		console.error('Regeneration error:', e);
@@ -166,13 +164,14 @@ async function regenerateView() {
 // Get available source images for regeneration
 const availableSources = $derived(() => {
 	if (!selectedJob) return [];
-	const sources: { key: SourceDirection; label: string; url: string | null }[] = [
-		{ key: 'input', label: 'Original Input', url: selectedJob.inputImageUrl },
-		{ key: 'front', label: 'Front View', url: selectedJob.rotationFront },
-		{ key: 'right', label: 'Right View', url: selectedJob.rotationRight },
-		{ key: 'back', label: 'Back View', url: selectedJob.rotationBack },
-		{ key: 'left', label: 'Left View', url: selectedJob.rotationLeft },
-	];
+	const sources: { key: SourceDirection; label: string; url: string | null }[] =
+		[
+			{ key: 'input', label: 'Original Input', url: selectedJob.inputImageUrl },
+			{ key: 'front', label: 'Front View', url: selectedJob.rotationFront },
+			{ key: 'right', label: 'Right View', url: selectedJob.rotationRight },
+			{ key: 'back', label: 'Back View', url: selectedJob.rotationBack },
+			{ key: 'left', label: 'Left View', url: selectedJob.rotationLeft },
+		];
 	return sources.filter((s) => s.url);
 });
 
@@ -319,10 +318,12 @@ async function generate() {
 		const result = await res.json();
 
 		if (result.isGuest) {
-			guestRotationsUsed = GUEST_CONFIG.maxRotationGenerations - result.generationsRemaining;
+			guestRotationsUsed =
+				GUEST_CONFIG.maxRotationGenerations - result.generationsRemaining;
 		} else {
 			tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
-			tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;
+			tokenState.bonusTokens =
+				result.bonusTokensRemaining ?? tokenState.bonusTokens;
 		}
 
 		if (result.job) {
@@ -442,12 +443,15 @@ async function downloadAll() {
 	downloading = true;
 	try {
 		const zip = new JSZip();
-		const entries = Object.entries(displayRotations) as [string, string | null][];
+		const entries = Object.entries(displayRotations) as [
+			string,
+			string | null,
+		][];
 		await Promise.all(
 			entries
-				.filter(([, url]) => url)
+				.filter((entry): entry is [string, string] => !!entry[1])
 				.map(async ([dir, url]) => {
-					const blob = await fetchAsBlob(url!);
+					const blob = await fetchAsBlob(url);
 					zip.file(`sprite_${dir}.png`, blob);
 				}),
 		);
@@ -483,7 +487,11 @@ function formatDate(date: Date | string | null) {
 
 function getJobPreviewImage(job: RotationJobNew): string | null {
 	return (
-		job.rotationFront || job.rotationBack || job.rotationRight || job.rotationLeft || null
+		job.rotationFront ||
+		job.rotationBack ||
+		job.rotationRight ||
+		job.rotationLeft ||
+		null
 	);
 }
 
@@ -557,7 +565,8 @@ const currentViewerImage = $derived(
 	],
 );
 const currentViewerLabel = $derived(
-	animationOrder[viewerDirection].charAt(0).toUpperCase() + animationOrder[viewerDirection].slice(1),
+	animationOrder[viewerDirection].charAt(0).toUpperCase() +
+		animationOrder[viewerDirection].slice(1),
 );
 
 // Export spritesheet
@@ -633,8 +642,10 @@ async function cancelJob(id: string) {
 				generating = false;
 				currentGeneratingId = null;
 			}
-			tokenState.tokens = tokenState.tokens + (result.regularTokensRefunded ?? 0);
-			tokenState.bonusTokens = tokenState.bonusTokens + (result.bonusTokensRefunded ?? 0);
+			tokenState.tokens =
+				tokenState.tokens + (result.regularTokensRefunded ?? 0);
+			tokenState.bonusTokens =
+				tokenState.bonusTokens + (result.bonusTokensRefunded ?? 0);
 		} else {
 			const error = await res.json();
 			alert(error.message || 'Failed to cancel');

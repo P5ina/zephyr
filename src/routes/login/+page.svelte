@@ -27,7 +27,7 @@ function applyPromoCode() {
 
 <div class="min-h-screen flex items-center justify-center bg-zinc-950">
 	<div class="w-full max-w-md p-8">
-		<h1 class="text-3xl font-bold text-white text-center mb-2">GenSprite</h1>
+		<h1 class="text-3xl font-bold text-white text-center mb-2"><a href="/">GenSprite</a></h1>
 		<p class="text-zinc-400 text-center mb-8">AI Image Generation Platform</p>
 
 		{#if data.promoCode}

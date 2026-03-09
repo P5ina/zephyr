@@ -1,10 +1,10 @@
 import { error, redirect } from '@sveltejs/kit';
+import { track } from '@vercel/analytics/server';
 import { decodeIdToken } from 'arctic';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { track } from '@vercel/analytics/server';
 import { GUEST_CONFIG } from '$lib/guest-config';
-import { validatePromoCode, PROMO_COOKIE_NAME } from '$lib/promo-codes';
+import { PROMO_COOKIE_NAME, validatePromoCode } from '$lib/promo-codes';
 import * as auth from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
@@ -30,7 +30,10 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		error(400, 'Invalid OAuth state');
 	}
 
-	const tokens = await google.validateAuthorizationCode(code, storedCodeVerifier);
+	const tokens = await google.validateAuthorizationCode(
+		code,
+		storedCodeVerifier,
+	);
 	const idToken = tokens.idToken();
 	const claims = decodeIdToken(idToken) as GoogleIdTokenClaims;
 
@@ -91,7 +94,9 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 					bonusTokens: sql`${table.user.bonusTokens} + ${promo.bonusTokens}`,
 				})
 				.where(eq(table.user.id, user.id));
-			console.log(`Applied promo code ${promo.code} (+${promo.bonusTokens} tokens) to user ${user.id}`);
+			console.log(
+				`Applied promo code ${promo.code} (+${promo.bonusTokens} tokens) to user ${user.id}`,
+			);
 		}
 		cookies.delete(PROMO_COOKIE_NAME, { path: '/' });
 	}
@@ -111,9 +116,14 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	const guestSessionId = cookies.get(GUEST_CONFIG.cookieName);
 	if (guestSessionId) {
 		try {
-			const transferred = await guestAuth.convertGuestToUser(guestSessionId, user.id);
+			const transferred = await guestAuth.convertGuestToUser(
+				guestSessionId,
+				user.id,
+			);
 			if (transferred > 0) {
-				console.log(`Transferred ${transferred} guest generations to user ${user.id}`);
+				console.log(
+					`Transferred ${transferred} guest generations to user ${user.id}`,
+				);
 			}
 		} catch (e) {
 			console.error('Failed to convert guest generations:', e);

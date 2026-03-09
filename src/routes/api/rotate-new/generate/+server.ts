@@ -44,15 +44,11 @@ async function parseInput(request: Request, ownerId: string) {
 			if (!env.BLOB_READ_WRITE_TOKEN) {
 				error(500, 'Image upload not configured.');
 			}
-			const blob = await put(
-				`rotations-new/${ownerId}/${nanoid()}.png`,
-				file,
-				{
-					access: 'public',
-					contentType: file.type,
-					token: env.BLOB_READ_WRITE_TOKEN,
-				},
-			);
+			const blob = await put(`rotations-new/${ownerId}/${nanoid()}.png`, file, {
+				access: 'public',
+				contentType: file.type,
+				token: env.BLOB_READ_WRITE_TOKEN,
+			});
 			inputImageUrl = blob.url;
 		}
 	} else {
@@ -74,7 +70,11 @@ async function parseInput(request: Request, ownerId: string) {
 	return { inputImageUrl, elevation };
 }
 
-export const POST: RequestHandler = async ({ request, locals, getClientAddress }) => {
+export const POST: RequestHandler = async ({
+	request,
+	locals,
+	getClientAddress,
+}) => {
 	// Guest flow
 	if (!locals.user) {
 		let guestSession = locals.guestSession;
@@ -87,7 +87,10 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 			error(429, 'Free rotation limit reached. Sign up to continue.');
 		}
 
-		const { inputImageUrl, elevation } = await parseInput(request, `guest-${guestSession.id}`);
+		const { inputImageUrl, elevation } = await parseInput(
+			request,
+			`guest-${guestSession.id}`,
+		);
 
 		const jobId = nanoid();
 		const [job] = await db
@@ -132,24 +135,32 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 		}
 
 		await guestAuth.incrementGuestUsage(guestSession.id);
-		const generationsRemaining = await guestAuth.getGuestRotationsRemaining(guestSession.id);
+		const generationsRemaining = await guestAuth.getGuestRotationsRemaining(
+			guestSession.id,
+		);
 
-		return json({
-			id: job.id,
-			job,
-			status: 'pending',
-			isGuest: true,
-			generationsRemaining,
-			guestSessionId: guestSession.id,
-		}, {
-			headers: {
-				'Set-Cookie': `${GUEST_CONFIG.cookieName}=${guestSession.id}; Path=/; HttpOnly; SameSite=Lax; Expires=${guestSession.expiresAt.toUTCString()}`,
+		return json(
+			{
+				id: job.id,
+				job,
+				status: 'pending',
+				isGuest: true,
+				generationsRemaining,
+				guestSessionId: guestSession.id,
 			},
-		});
+			{
+				headers: {
+					'Set-Cookie': `${GUEST_CONFIG.cookieName}=${guestSession.id}; Path=/; HttpOnly; SameSite=Lax; Expires=${guestSession.expiresAt.toUTCString()}`,
+				},
+			},
+		);
 	}
 
 	// Authenticated user flow
-	const { inputImageUrl, elevation } = await parseInput(request, locals.user.id);
+	const { inputImageUrl, elevation } = await parseInput(
+		request,
+		locals.user.id,
+	);
 
 	const total = locals.user.tokens + locals.user.bonusTokens;
 	if (total < TOKEN_COST) {

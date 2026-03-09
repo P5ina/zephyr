@@ -4,10 +4,17 @@
  * packages them into a zip archive.
  */
 
-import { spawn } from 'child_process';
-import { mkdirSync, readdirSync, readFileSync, unlinkSync, rmdirSync, writeFileSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
+import { spawn } from 'node:child_process';
+import {
+	mkdirSync,
+	readdirSync,
+	readFileSync,
+	rmdirSync,
+	unlinkSync,
+	writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import ffmpegPath from 'ffmpeg-static';
 import JSZip from 'jszip';
 import sharp from 'sharp';
@@ -16,8 +23,14 @@ import { removeImageBackground } from '$lib/server/fal';
 
 const DIRECTIONS_4 = ['south', 'west', 'north', 'east'] as const;
 const DIRECTIONS_8 = [
-	'south', 'southwest', 'west', 'northwest',
-	'north', 'northeast', 'east', 'southeast',
+	'south',
+	'southwest',
+	'west',
+	'northwest',
+	'north',
+	'northeast',
+	'east',
+	'southeast',
 ] as const;
 
 async function downloadFile(url: string, destPath: string): Promise<void> {
@@ -38,7 +51,9 @@ function runFfmpeg(args: string[]): Promise<void> {
 
 		const proc = spawn(ffmpegPath, args, { stdio: ['pipe', 'pipe', 'pipe'] });
 		let stderr = '';
-		proc.stderr?.on('data', (data) => { stderr += data.toString(); });
+		proc.stderr?.on('data', (data) => {
+			stderr += data.toString();
+		});
 		proc.on('close', (code) => {
 			if (code !== 0) {
 				reject(new Error(`ffmpeg failed (code ${code}): ${stderr}`));
@@ -46,7 +61,9 @@ function runFfmpeg(args: string[]): Promise<void> {
 			}
 			resolve();
 		});
-		proc.on('error', (err) => reject(new Error(`ffmpeg error: ${err.message}`)));
+		proc.on('error', (err) =>
+			reject(new Error(`ffmpeg error: ${err.message}`)),
+		);
 	});
 }
 
@@ -83,7 +100,10 @@ export async function trimVideoToLoopBuffer(
 	sourceUrl: string,
 	durationSeconds: number,
 ): Promise<{ buffer: Buffer; contentType: 'video/webm'; extension: '.webm' }> {
-	const tempDir = join(tmpdir(), `animate-trim-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+	const tempDir = join(
+		tmpdir(),
+		`animate-trim-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+	);
 	mkdirSync(tempDir, { recursive: true });
 
 	try {
@@ -121,7 +141,10 @@ export async function trimVideoToLoopBuffer(
 	}
 }
 
-async function extractAllFrames(videoPath: string, outputDir: string): Promise<string[]> {
+async function extractAllFrames(
+	videoPath: string,
+	outputDir: string,
+): Promise<string[]> {
 	return new Promise((resolve, reject) => {
 		// Force RGBA so alpha from Bria's transparent video survives frame extraction.
 		const args = [
@@ -136,11 +159,11 @@ async function extractAllFrames(videoPath: string, outputDir: string): Promise<s
 		];
 		runFfmpeg(args)
 			.then(() => {
-			const files = readdirSync(outputDir)
-				.filter((f) => f.startsWith('frame_') && f.endsWith('.png'))
-				.sort()
-				.map((f) => join(outputDir, f));
-			resolve(files);
+				const files = readdirSync(outputDir)
+					.filter((f) => f.startsWith('frame_') && f.endsWith('.png'))
+					.sort()
+					.map((f) => join(outputDir, f));
+				resolve(files);
 			})
 			.catch(reject);
 	});
@@ -182,19 +205,27 @@ export async function buildFrameArchive(
 			const videoUrl = directionVideos[dir];
 			if (!videoUrl) continue;
 
-			const videoPath = join(tempDir, `${dir}${getVideoTempExtension(videoUrl)}`);
+			const videoPath = join(
+				tempDir,
+				`${dir}${getVideoTempExtension(videoUrl)}`,
+			);
 			const framesDir = join(tempDir, `${dir}_frames`);
 			mkdirSync(framesDir, { recursive: true });
 
 			const dlProgress = Math.round(65 + (di / directions.length) * 10);
-			await onProgress?.(`Downloading ${dir} (${di + 1}/${directions.length})...`, dlProgress);
+			await onProgress?.(
+				`Downloading ${dir} (${di + 1}/${directions.length})...`,
+				dlProgress,
+			);
 
 			await downloadFile(videoUrl, videoPath);
 			const allExtracted = await extractAllFrames(videoPath, framesDir);
 			const firstLoopFrames = allExtracted.slice(0, meta.framesPerLoop);
 			allFrames.push({ direction: dir, frames: firstLoopFrames });
 
-			console.log(`[frames] ${dir}: ${allExtracted.length} total, using ${firstLoopFrames.length}`);
+			console.log(
+				`[frames] ${dir}: ${allExtracted.length} total, using ${firstLoopFrames.length}`,
+			);
 		}
 
 		const frameCount = Math.min(...allFrames.map((f) => f.frames.length));
@@ -203,25 +234,37 @@ export async function buildFrameArchive(
 		}
 
 		const firstFrameMeta = await sharp(allFrames[0].frames[0]).metadata();
-		const tileWidth = firstFrameMeta.width!;
-		const tileHeight = firstFrameMeta.height!;
+		const tileWidth = firstFrameMeta.width ?? 0;
+		const tileHeight = firstFrameMeta.height ?? 0;
 
 		// Phase 2: Remove backgrounds frame-by-frame and add PNGs to the zip
 		const totalFrames = allFrames.length * frameCount;
 		let processedFrames = 0;
 
 		for (const { direction, frames } of allFrames) {
-			const folder = zip.folder(direction)!;
+			const folder = zip.folder(direction);
+			if (!folder) {
+				throw new Error(
+					`Failed to create zip folder for direction: ${direction}`,
+				);
+			}
 			const processedDirectionFrames = await mapWithConcurrency(
 				frames.slice(0, frameCount),
 				8,
 				async (framePath, index) => {
-					const frameData = await removeImageBackground(readFileSync(framePath));
+					const frameData = await removeImageBackground(
+						readFileSync(framePath),
+					);
 					processedFrames++;
 
 					if (processedFrames % 3 === 0 || processedFrames === totalFrames) {
-						const bgProgress = Math.round(78 + (processedFrames / totalFrames) * 17);
-						await onProgress?.(`Removing backgrounds (${processedFrames}/${totalFrames})...`, bgProgress);
+						const bgProgress = Math.round(
+							78 + (processedFrames / totalFrames) * 17,
+						);
+						await onProgress?.(
+							`Removing backgrounds (${processedFrames}/${totalFrames})...`,
+							bgProgress,
+						);
 					}
 
 					return {
@@ -237,7 +280,9 @@ export async function buildFrameArchive(
 		}
 
 		await onProgress?.('Compressing archive...', 96);
-		const buffer = Buffer.from(await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }));
+		const buffer = Buffer.from(
+			await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }),
+		);
 
 		return { buffer, frameCount, tileWidth, tileHeight };
 	} finally {

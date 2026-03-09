@@ -131,7 +131,10 @@ export async function addToWaitlist(email: string, firstName?: string) {
 }
 
 // ─── Magic link ───
-export async function sendMagicLinkEmail(email: string, magicLinkUrl: string): Promise<void> {
+export async function sendMagicLinkEmail(
+	email: string,
+	magicLinkUrl: string,
+): Promise<void> {
 	await resend.emails.send({
 		from: 'GenSprite <noreply@gensprite.ai>',
 		to: email,

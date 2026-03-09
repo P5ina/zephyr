@@ -144,11 +144,14 @@ function buildEmailHtml(username: string | null) {
 async function main() {
 	console.log('Fetching users...');
 	const EXCLUDE_DOMAINS = ['.local', 'uiemail.com', 'juhxs.com'];
-	const allUsers = await sql`SELECT id, email, username FROM "user" ORDER BY created_at`;
+	const allUsers =
+		await sql`SELECT id, email, username FROM "user" ORDER BY created_at`;
 	const users = allUsers.filter(
 		(u) => !EXCLUDE_DOMAINS.some((d) => (u.email as string).endsWith(d)),
 	);
-	console.log(`Found ${allUsers.length} users, ${users.length} after filtering (excluded ${allUsers.length - users.length} test/disposable)`);
+	console.log(
+		`Found ${allUsers.length} users, ${users.length} after filtering (excluded ${allUsers.length - users.length} test/disposable)`,
+	);
 
 	if (users.length === 0) {
 		console.log('No users to email. Exiting.');
@@ -159,7 +162,9 @@ async function main() {
 	if (process.argv.includes('--dry-run')) {
 		console.log('\n--- DRY RUN ---');
 		for (const u of users) {
-			console.log(`  Would send to: ${u.email} (${u.username || 'no username'})`);
+			console.log(
+				`  Would send to: ${u.email} (${u.username || 'no username'})`,
+			);
 		}
 		console.log(`\nTotal: ${users.length} emails`);
 		return;
@@ -181,13 +186,15 @@ async function main() {
 		}));
 
 		try {
-			const { data, error } = await resend.batch.send(emails);
+			const { error } = await resend.batch.send(emails);
 			if (error) {
 				console.error(`Batch ${i / BATCH_SIZE + 1} error:`, error);
 				failed += batch.length;
 			} else {
 				sent += batch.length;
-				console.log(`Batch ${i / BATCH_SIZE + 1}: sent ${batch.length} emails (${sent}/${users.length})`);
+				console.log(
+					`Batch ${i / BATCH_SIZE + 1}: sent ${batch.length} emails (${sent}/${users.length})`,
+				);
 			}
 		} catch (err) {
 			console.error(`Batch ${i / BATCH_SIZE + 1} exception:`, err);

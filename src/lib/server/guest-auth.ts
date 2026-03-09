@@ -1,6 +1,6 @@
 import { encodeBase64url } from '@oslojs/encoding';
 import type { RequestEvent } from '@sveltejs/kit';
-import { eq, and, gt, isNull, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
@@ -16,7 +16,9 @@ export async function createGuestSession(
 	ipAddress: string,
 ): Promise<table.GuestSession> {
 	const id = generateGuestSessionId();
-	const expiresAt = new Date(Date.now() + DAY_IN_MS * GUEST_CONFIG.sessionDurationDays);
+	const expiresAt = new Date(
+		Date.now() + DAY_IN_MS * GUEST_CONFIG.sessionDurationDays,
+	);
 
 	const [session] = await db
 		.insert(table.guestSession)
@@ -54,7 +56,9 @@ export async function incrementGuestUsage(sessionId: string): Promise<void> {
 		.where(eq(table.guestSession.id, sessionId));
 }
 
-export function getGuestRemainingGenerations(session: table.GuestSession): number {
+export function getGuestRemainingGenerations(
+	session: table.GuestSession,
+): number {
 	return Math.max(0, GUEST_CONFIG.maxGenerations - session.generationsUsed);
 }
 
@@ -62,7 +66,9 @@ export function canGuestGenerate(session: table.GuestSession): boolean {
 	return session.generationsUsed < GUEST_CONFIG.maxGenerations;
 }
 
-export async function countGuestRotations(guestSessionId: string): Promise<number> {
+export async function countGuestRotations(
+	guestSessionId: string,
+): Promise<number> {
 	const rotations8dir = await db.query.rotationJob.findMany({
 		where: eq(table.rotationJob.guestSessionId, guestSessionId),
 		columns: { id: true },
@@ -79,7 +85,9 @@ export async function canGuestRotate(guestSessionId: string): Promise<boolean> {
 	return count < GUEST_CONFIG.maxRotationGenerations;
 }
 
-export async function getGuestRotationsRemaining(guestSessionId: string): Promise<number> {
+export async function getGuestRotationsRemaining(
+	guestSessionId: string,
+): Promise<number> {
 	const count = await countGuestRotations(guestSessionId);
 	return Math.max(0, GUEST_CONFIG.maxRotationGenerations - count);
 }
@@ -156,7 +164,9 @@ export type GuestSessionInfo = {
 	expiresAt: Date;
 };
 
-export function getGuestSessionInfo(session: table.GuestSession): GuestSessionInfo {
+export function getGuestSessionInfo(
+	session: table.GuestSession,
+): GuestSessionInfo {
 	return {
 		id: session.id,
 		generationsUsed: session.generationsUsed,

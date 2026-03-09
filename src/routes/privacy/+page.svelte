@@ -9,7 +9,7 @@ import Header from '$lib/components/Header.svelte';
 </svelte:head>
 
 <div class="min-h-screen bg-zinc-950">
-	<Header variant="simple" showBack showAuth={false} maxWidth="4xl" />
+	<Header variant="simple" showBack showAuth={false} />
 
 	<main class="max-w-4xl mx-auto px-4 py-12">
 		<h1 class="text-3xl font-bold text-white mb-2">Privacy Policy</h1>

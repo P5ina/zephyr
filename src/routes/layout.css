@@ -1,7 +1,23 @@
 @import "tailwindcss";
 
+:root {
+	--panel-bg: rgba(24, 24, 27, 0.5);
+	--panel-border: rgba(63, 63, 70, 0.35);
+	--panel-radius: 1rem;
+	--panel-padding: 1.5rem;
+	--panel-blur: blur(6px);
+	--btn-radius: 0.55rem;
+	--accent: #fbbf24;
+	--accent-hover: #f59e0b;
+	--accent-bg: rgba(245, 158, 11, 0.08);
+	--text-primary: #fff;
+	--text-secondary: #a1a1aa;
+	--text-muted: #71717a;
+	--text-dim: #52525b;
+}
+
 html,
 body {
 	background-color: #09090b;
-	font-family: 'DM Sans', system-ui, sans-serif;
+	font-family: "DM Sans", system-ui, sans-serif;
 }

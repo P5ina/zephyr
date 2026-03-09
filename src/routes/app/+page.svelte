@@ -1,4 +1,5 @@
 <script lang="ts">
+import { track } from '@vercel/analytics';
 import {
 	Calendar,
 	Check,
@@ -10,11 +11,10 @@ import {
 	Sparkles,
 	X,
 } from 'lucide-svelte';
-import { track } from '@vercel/analytics';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import { PRICING } from '$lib/pricing';
-import { tokenState } from '$lib/token-state.svelte';
 import type { AssetGeneration } from '$lib/server/db/schema';
+import { tokenState } from '$lib/token-state.svelte';
 import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
@@ -25,7 +25,7 @@ const initialGenerations = data.assetGenerations;
 let showSignupPrompt = $state(false);
 
 const guestGenerationsRemaining = $derived(
-	GUEST_CONFIG.maxGenerations - tokenState.guestGenerationsUsed
+	GUEST_CONFIG.maxGenerations - tokenState.guestGenerationsUsed,
 );
 
 // Generation form
@@ -60,9 +60,7 @@ const TOKEN_COST = PRICING.tokenCosts.sprite;
 
 // Can generate check
 const canGenerate = $derived(
-	data.isGuest
-		? guestGenerationsRemaining > 0
-		: tokenState.total >= TOKEN_COST
+	data.isGuest ? guestGenerationsRemaining > 0 : tokenState.total >= TOKEN_COST,
 );
 
 // Track which generations we're already polling
@@ -111,7 +109,8 @@ async function generate() {
 
 		if (result.isGuest) {
 			// Update guest state
-			tokenState.guestGenerationsUsed = GUEST_CONFIG.maxGenerations - result.generationsRemaining;
+			tokenState.guestGenerationsUsed =
+				GUEST_CONFIG.maxGenerations - result.generationsRemaining;
 			// Show signup prompt after first generation
 			showSignupPrompt = true;
 		} else {
@@ -263,6 +262,10 @@ function getAssetTypeLabel(type: string) {
 	}
 }
 </script>
+
+<svelte:head>
+	<title>Generate Sprite - GenSprite</title>
+</svelte:head>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 	<!-- Generation Form -->

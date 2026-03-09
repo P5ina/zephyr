@@ -1,27 +1,27 @@
 import { error, json } from '@sveltejs/kit';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, type SQL, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { cancelRotation8DirJob } from '$lib/server/fal';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ params, locals }) => {
-	let ownershipCondition;
+	let ownershipCondition: SQL | undefined;
 	const isGuest = !locals.user;
 
 	if (locals.user) {
 		ownershipCondition = eq(table.rotationJob.userId, locals.user.id);
 	} else if (locals.guestSession) {
-		ownershipCondition = eq(table.rotationJob.guestSessionId, locals.guestSession.id);
+		ownershipCondition = eq(
+			table.rotationJob.guestSessionId,
+			locals.guestSession.id,
+		);
 	} else {
 		error(401, 'Unauthorized');
 	}
 
 	const rotation = await db.query.rotationJob.findFirst({
-		where: and(
-			eq(table.rotationJob.id, params.id),
-			ownershipCondition,
-		),
+		where: and(eq(table.rotationJob.id, params.id), ownershipCondition),
 	});
 
 	if (!rotation) {

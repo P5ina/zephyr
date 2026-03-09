@@ -31,6 +31,7 @@ const maxWidthClass = {
 					</a>
 					<div class="flex items-center gap-6 text-sm text-zinc-400">
 						<a href="/pricing" class="hover:text-white transition-colors">Pricing</a>
+						<a href="/docs" class="hover:text-white transition-colors">API Docs</a>
 						<a href="/terms" class="hover:text-white transition-colors">Terms</a>
 						<a href="/privacy" class="hover:text-white transition-colors">Privacy</a>
 						<a href="/refund" class="hover:text-white transition-colors">Refunds</a>
@@ -43,6 +44,7 @@ const maxWidthClass = {
 			</div>
 		{:else}
 			<div class="flex flex-wrap items-center justify-center gap-6 text-sm text-zinc-500">
+				<a href="/docs" class="hover:text-white transition-colors">API Docs</a>
 				<a href="/terms" class="hover:text-white transition-colors">Terms of Service</a>
 				<a href="/privacy" class="hover:text-white transition-colors">Privacy Policy</a>
 				<a href="/refund" class="hover:text-white transition-colors">Refund Policy</a>

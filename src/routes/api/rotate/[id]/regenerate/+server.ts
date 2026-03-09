@@ -1,11 +1,16 @@
-import { error, json } from '@sveltejs/kit';
 import { fal } from '@fal-ai/client';
+import { error, json } from '@sveltejs/kit';
 import { and, eq, sql } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
 import { PRICING } from '$lib/pricing';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { DIRECTION_ANGLES_8DIR, calculateHorizontalAngle8Dir, type RotationDirection8Dir, type SourceDirection8Dir } from '$lib/server/fal';
+import {
+	calculateHorizontalAngle8Dir,
+	DIRECTION_ANGLES_8DIR,
+	type RotationDirection8Dir,
+	type SourceDirection8Dir,
+} from '$lib/server/fal';
 import type { RequestHandler } from './$types';
 
 const TOKEN_COST = PRICING.tokenCosts.rotationSingleView;
@@ -31,7 +36,8 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 
 	const body = await request.json();
 	const targetDirection = body.targetDirection as RotationDirection8Dir;
-	const sourceDirection = (body.sourceDirection as SourceDirection8Dir) || 'input';
+	const sourceDirection =
+		(body.sourceDirection as SourceDirection8Dir) || 'input';
 
 	if (!VALID_DIRECTIONS.includes(targetDirection)) {
 		error(400, `Invalid target direction: ${targetDirection}`);
@@ -60,7 +66,8 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 	if (sourceDirection === 'input') {
 		sourceImageUrl = job.inputImageUrl;
 	} else {
-		sourceImageUrl = job[DIRECTION_COLUMNS[sourceDirection as RotationDirection8Dir]];
+		sourceImageUrl =
+			job[DIRECTION_COLUMNS[sourceDirection as RotationDirection8Dir]];
 	}
 
 	if (!sourceImageUrl) {
@@ -70,7 +77,10 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 	// Check tokens
 	const total = locals.user.tokens + locals.user.bonusTokens;
 	if (total < TOKEN_COST) {
-		error(402, `Not enough tokens. Required: ${TOKEN_COST}, available: ${total}`);
+		error(
+			402,
+			`Not enough tokens. Required: ${TOKEN_COST}, available: ${total}`,
+		);
 	}
 
 	// Deduct tokens
@@ -85,9 +95,14 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 		})
 		.where(eq(table.user.id, locals.user.id));
 
-	const horizontalAngle = calculateHorizontalAngle8Dir(sourceDirection, targetDirection);
+	const horizontalAngle = calculateHorizontalAngle8Dir(
+		sourceDirection,
+		targetDirection,
+	);
 
-	console.log(`[fal.ai] Regenerating 8dir ${targetDirection} from ${sourceDirection}, angle: ${horizontalAngle}°`);
+	console.log(
+		`[fal.ai] Regenerating 8dir ${targetDirection} from ${sourceDirection}, angle: ${horizontalAngle}°`,
+	);
 
 	if (!env.FAL_KEY) {
 		error(500, 'FAL_KEY not configured');

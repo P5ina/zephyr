@@ -1,11 +1,16 @@
-import { error, json } from '@sveltejs/kit';
 import { fal } from '@fal-ai/client';
+import { error, json } from '@sveltejs/kit';
 import { and, eq, sql } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
 import { PRICING } from '$lib/pricing';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { DIRECTION_ANGLES, calculateHorizontalAngle, type RotationDirection, type SourceDirection } from '$lib/server/fal';
+import {
+	calculateHorizontalAngle,
+	DIRECTION_ANGLES,
+	type RotationDirection,
+	type SourceDirection,
+} from '$lib/server/fal';
 import type { RequestHandler } from './$types';
 
 const TOKEN_COST = PRICING.tokenCosts.rotationSingleView;
@@ -69,7 +74,10 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 	// Check tokens
 	const total = locals.user.tokens + locals.user.bonusTokens;
 	if (total < TOKEN_COST) {
-		error(402, `Not enough tokens. Required: ${TOKEN_COST}, available: ${total}`);
+		error(
+			402,
+			`Not enough tokens. Required: ${TOKEN_COST}, available: ${total}`,
+		);
 	}
 
 	// Deduct tokens
@@ -85,9 +93,14 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 		.where(eq(table.user.id, locals.user.id));
 
 	// Calculate horizontal angle
-	const horizontalAngle = calculateHorizontalAngle(sourceDirection, targetDirection);
+	const horizontalAngle = calculateHorizontalAngle(
+		sourceDirection,
+		targetDirection,
+	);
 
-	console.log(`[fal.ai] Regenerating ${targetDirection} from ${sourceDirection}, angle: ${horizontalAngle}°`);
+	console.log(
+		`[fal.ai] Regenerating ${targetDirection} from ${sourceDirection}, angle: ${horizontalAngle}°`,
+	);
 
 	// Configure fal
 	if (!env.FAL_KEY) {
@@ -105,7 +118,10 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 			},
 		});
 
-		console.log('[fal.ai] Single view result:', JSON.stringify(result.data, null, 2));
+		console.log(
+			'[fal.ai] Single view result:',
+			JSON.stringify(result.data, null, 2),
+		);
 
 		const data = result.data as { rotated?: { url: string } };
 		const newImageUrl = data?.rotated?.url;

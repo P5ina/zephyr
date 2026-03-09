@@ -6,13 +6,13 @@ import sharp from 'sharp';
 import { env } from '$env/dynamic/private';
 import {
 	ANIMATION_TYPES,
+	type AnimationType,
 	DIRECTIONS_4,
 	DIRECTIONS_8,
-	ELEVATION_PRESETS,
-	getReferenceVideoUrl,
-	type AnimationType,
 	type Direction,
+	ELEVATION_PRESETS,
 	type ElevationPreset,
+	getReferenceVideoUrl,
 } from '$lib/animation-config';
 import { getAnimationGenerationTokenCost } from '$lib/pricing';
 import { db } from '$lib/server/db';
@@ -53,7 +53,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		directionCount = 8;
 	}
 
-	const directions: readonly Direction[] = directionCount === 4 ? DIRECTIONS_4 : DIRECTIONS_8;
+	const directions: readonly Direction[] =
+		directionCount === 4 ? DIRECTIONS_4 : DIRECTIONS_8;
 
 	if (!env.BLOB_READ_WRITE_TOKEN) {
 		error(500, 'Image upload not configured');
@@ -103,11 +104,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		error(400, 'At least one direction image is required');
 	}
 
-	const TOKEN_COST = getAnimationGenerationTokenCost(animationType, directionCount);
+	const TOKEN_COST = getAnimationGenerationTokenCost(
+		animationType,
+		directionCount,
+	);
 
 	const total = locals.user.tokens + locals.user.bonusTokens;
 	if (total < TOKEN_COST) {
-		error(402, `Not enough tokens. Required: ${TOKEN_COST}, available: ${total}`);
+		error(
+			402,
+			`Not enough tokens. Required: ${TOKEN_COST}, available: ${total}`,
+		);
 	}
 
 	// Deduct tokens
@@ -124,7 +131,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	// Use the first uploaded image as the "primary" input image for display
 	const firstDirection = directions.find((d) => directionImageUrls[d]);
-	const inputImageUrl = firstDirection ? directionImageUrls[firstDirection] : null;
+	const inputImageUrl = firstDirection
+		? directionImageUrls[firstDirection]
+		: null;
 
 	// Create animation job record
 	const jobId = nanoid();
@@ -150,7 +159,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
 		const submissions = await Promise.all(
 			providedDirections.map(async (direction) => {
-				const referenceVideoUrl = getReferenceVideoUrl(animationType, elevation, direction as Direction);
+				const referenceVideoUrl = getReferenceVideoUrl(
+					animationType,
+					elevation,
+					direction as Direction,
+				);
 				const webhookUrl = buildFalWebhookUrl('animate', jobId, { direction });
 				const result = await submitAnimateJob({
 					imageUrl: directionImageUrls[direction],

@@ -31,7 +31,11 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 		const guestSession = await guestAuth.validateGuestSession(guestSessionId);
 		if (guestSession) {
 			// Refresh the cookie expiry
-			guestAuth.setGuestSessionCookie(event, guestSessionId, guestSession.expiresAt);
+			guestAuth.setGuestSessionCookie(
+				event,
+				guestSessionId,
+				guestSession.expiresAt,
+			);
 			event.locals.guestSession = guestSession;
 		} else {
 			// Invalid or expired guest session

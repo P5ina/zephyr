@@ -134,7 +134,10 @@ export const guestSession = pgTable('guest_session', {
 	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
 		.notNull()
 		.defaultNow(),
-	expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }).notNull(),
+	expiresAt: timestamp('expires_at', {
+		withTimezone: true,
+		mode: 'date',
+	}).notNull(),
 	convertedToUserId: text('converted_to_user_id').references(() => user.id),
 });
 
@@ -320,7 +323,10 @@ export const magicLinkToken = pgTable('magic_link_token', {
 	id: text('id').primaryKey(),
 	email: text('email').notNull(),
 	token: text('token').notNull().unique(),
-	expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }).notNull(),
+	expiresAt: timestamp('expires_at', {
+		withTimezone: true,
+		mode: 'date',
+	}).notNull(),
 	usedAt: timestamp('used_at', { withTimezone: true, mode: 'date' }),
 	createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
 		.notNull()
@@ -425,7 +431,9 @@ export const animationJob = pgTable('animation_job', {
 
 	// Input
 	inputImageUrl: text('input_image_url'),
-	directionInputImages: json('direction_input_images').$type<Record<string, string>>(),
+	directionInputImages: json('direction_input_images').$type<
+		Record<string, string>
+	>(),
 	animationType: text('animation_type', {
 		enum: ['walk', 'run', 'idle', 'attack'],
 	}).notNull(),
@@ -439,7 +447,9 @@ export const animationJob = pgTable('animation_job', {
 	directionVideos: json('direction_videos').$type<Record<string, string>>(),
 
 	// Background removal tracking
-	bgRemovalRequestIds: json('bg_removal_request_ids').$type<Record<string, string>>(),
+	bgRemovalRequestIds: json('bg_removal_request_ids').$type<
+		Record<string, string>
+	>(),
 	bgRemovedVideos: json('bg_removed_videos').$type<Record<string, string>>(),
 
 	// Results

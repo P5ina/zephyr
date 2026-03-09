@@ -1,4 +1,4 @@
-import { desc, eq, or, and, isNotNull } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import type { PageServerLoad } from './$types';

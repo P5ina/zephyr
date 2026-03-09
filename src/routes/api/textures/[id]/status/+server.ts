@@ -30,7 +30,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 
 	if (needsRunpodCheck) {
 		try {
-			const runpodStatus = await getJobStatus(texture.runpodJobId!);
+			const runpodStatus = await getJobStatus(texture.runpodJobId as string);
 
 			if (runpodStatus.status === 'IN_PROGRESS') {
 				if (texture.status !== 'processing') {
@@ -42,9 +42,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 						})
 						.where(eq(table.textureGeneration.id, texture.id));
 
-					texture = (await db.query.textureGeneration.findFirst({
+					const refreshedTexture = await db.query.textureGeneration.findFirst({
 						where: eq(table.textureGeneration.id, params.id),
-					}))!;
+					});
+					if (!refreshedTexture) error(404, 'Texture not found');
+					texture = refreshedTexture;
 				}
 			} else if (
 				runpodStatus.status === 'FAILED' ||
@@ -69,9 +71,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 					})
 					.where(eq(table.textureGeneration.id, texture.id));
 
-				texture = (await db.query.textureGeneration.findFirst({
+				const failedTexture = await db.query.textureGeneration.findFirst({
 					where: eq(table.textureGeneration.id, params.id),
-				}))!;
+				});
+				if (!failedTexture) error(404, 'Texture not found');
+				texture = failedTexture;
 			} else if (runpodStatus.status === 'COMPLETED' && runpodStatus.output) {
 				const raw = runpodStatus.output as Record<string, unknown>;
 				// Unwrap nested {result: {...}} from old worker format
@@ -92,9 +96,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 						})
 						.where(eq(table.textureGeneration.id, texture.id));
 
-					texture = (await db.query.textureGeneration.findFirst({
+					const completedTexture = await db.query.textureGeneration.findFirst({
 						where: eq(table.textureGeneration.id, params.id),
-					}))!;
+					});
+					if (!completedTexture) error(404, 'Texture not found');
+					texture = completedTexture;
 				}
 			}
 		} catch (e) {

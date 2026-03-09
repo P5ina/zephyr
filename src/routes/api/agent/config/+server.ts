@@ -1,8 +1,8 @@
-import { json, error } from '@sveltejs/kit';
-import { nanoid } from 'nanoid';
 import { sha256 } from '@oslojs/crypto/sha2';
 import { encodeHexLowerCase } from '@oslojs/encoding';
-import { eq, and, isNull } from 'drizzle-orm';
+import { error, json } from '@sveltejs/kit';
+import { and, eq, isNull } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
@@ -18,19 +18,14 @@ export const GET: RequestHandler = async ({ request }) => {
 	}
 
 	const rawKey = authHeader.slice(7);
-	const keyHash = encodeHexLowerCase(
-		sha256(new TextEncoder().encode(rawKey)),
-	);
+	const keyHash = encodeHexLowerCase(sha256(new TextEncoder().encode(rawKey)));
 
 	// Look up active key
 	const [apiKeyRecord] = await db
 		.select()
 		.from(table.apiKey)
 		.where(
-			and(
-				eq(table.apiKey.keyHash, keyHash),
-				isNull(table.apiKey.revokedAt),
-			),
+			and(eq(table.apiKey.keyHash, keyHash), isNull(table.apiKey.revokedAt)),
 		);
 
 	if (!apiKeyRecord) {

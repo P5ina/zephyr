@@ -1,25 +1,25 @@
 import { error, json } from '@sveltejs/kit';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, type SQL, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { getRotationJobStatus } from '$lib/server/fal';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
-	let ownershipCondition;
+	let ownershipCondition: SQL | undefined;
 	if (locals.user) {
 		ownershipCondition = eq(table.rotationJobNew.userId, locals.user.id);
 	} else if (locals.guestSession) {
-		ownershipCondition = eq(table.rotationJobNew.guestSessionId, locals.guestSession.id);
+		ownershipCondition = eq(
+			table.rotationJobNew.guestSessionId,
+			locals.guestSession.id,
+		);
 	} else {
 		error(401, 'Unauthorized');
 	}
 
 	let job = await db.query.rotationJobNew.findFirst({
-		where: and(
-			eq(table.rotationJobNew.id, params.id),
-			ownershipCondition,
-		),
+		where: and(eq(table.rotationJobNew.id, params.id), ownershipCondition),
 	});
 
 	if (!job) {
@@ -35,21 +35,27 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 
 	if (needsFalCheck) {
 		try {
-			const falStatus = await getRotationJobStatus(job.falRequestId!);
+			const falStatus = await getRotationJobStatus(job.falRequestId as string);
 
-			if (falStatus.status === 'IN_PROGRESS' || falStatus.status === 'IN_QUEUE') {
+			if (
+				falStatus.status === 'IN_PROGRESS' ||
+				falStatus.status === 'IN_QUEUE'
+			) {
 				if (job.status !== 'processing') {
 					await db
 						.update(table.rotationJobNew)
 						.set({
 							status: 'processing',
-							currentStage: falStatus.status === 'IN_QUEUE' ? 'Queued...' : 'Processing...',
+							currentStage:
+								falStatus.status === 'IN_QUEUE' ? 'Queued...' : 'Processing...',
 						})
 						.where(eq(table.rotationJobNew.id, job.id));
 
-					job = (await db.query.rotationJobNew.findFirst({
+					const refreshedJob = await db.query.rotationJobNew.findFirst({
 						where: eq(table.rotationJobNew.id, params.id),
-					}))!;
+					});
+					if (!refreshedJob) error(404, 'Job not found');
+					job = refreshedJob;
 				}
 			} else if (
 				falStatus.status === 'FAILED' ||
@@ -77,9 +83,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 					})
 					.where(eq(table.rotationJobNew.id, job.id));
 
-				job = (await db.query.rotationJobNew.findFirst({
+				const failedJob = await db.query.rotationJobNew.findFirst({
 					where: eq(table.rotationJobNew.id, params.id),
-				}))!;
+				});
+				if (!failedJob) error(404, 'Job not found');
+				job = failedJob;
 			} else if (falStatus.status === 'COMPLETED' && falStatus.output) {
 				if (falStatus.output.front && !job.rotationFront) {
 					await db
@@ -96,9 +104,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 						})
 						.where(eq(table.rotationJobNew.id, job.id));
 
-					job = (await db.query.rotationJobNew.findFirst({
+					const completedJob = await db.query.rotationJobNew.findFirst({
 						where: eq(table.rotationJobNew.id, params.id),
-					}))!;
+					});
+					if (!completedJob) error(404, 'Job not found');
+					job = completedJob;
 				}
 			}
 		} catch (e) {

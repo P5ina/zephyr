@@ -15,7 +15,11 @@ import type { RequestHandler } from './$types';
 
 const TOKEN_COST = PRICING.tokenCosts.spin;
 
-export const POST: RequestHandler = async ({ request, locals, getClientAddress }) => {
+export const POST: RequestHandler = async ({
+	request,
+	locals,
+	getClientAddress,
+}) => {
 	const contentType = request.headers.get('content-type') || '';
 
 	let imageBuffer: Buffer | null = null;
@@ -128,26 +132,33 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 
 		// Increment guest usage
 		await guestAuth.incrementGuestUsage(guestSession.id);
-		const generationsRemaining = guestAuth.getGuestRemainingGenerations(guestSession) - 1;
+		const generationsRemaining =
+			guestAuth.getGuestRemainingGenerations(guestSession) - 1;
 
-		return json({
-			id: job.id,
-			job,
-			isGuest: true,
-			generationsRemaining,
-			guestSessionId: guestSession.id,
-		}, {
-			headers: {
-				'Set-Cookie': `${GUEST_CONFIG.cookieName}=${guestSession.id}; Path=/; HttpOnly; SameSite=Lax; Expires=${guestSession.expiresAt.toUTCString()}`,
+		return json(
+			{
+				id: job.id,
+				job,
+				isGuest: true,
+				generationsRemaining,
+				guestSessionId: guestSession.id,
 			},
-		});
+			{
+				headers: {
+					'Set-Cookie': `${GUEST_CONFIG.cookieName}=${guestSession.id}; Path=/; HttpOnly; SameSite=Lax; Expires=${guestSession.expiresAt.toUTCString()}`,
+				},
+			},
+		);
 	}
 
 	// Authenticated user flow
 	const total = locals.user.tokens + locals.user.bonusTokens;
 
 	if (total < TOKEN_COST) {
-		error(402, `Not enough tokens. Required: ${TOKEN_COST}, available: ${total}`);
+		error(
+			402,
+			`Not enough tokens. Required: ${TOKEN_COST}, available: ${total}`,
+		);
 	}
 
 	// Deduct tokens before generation
@@ -221,7 +232,10 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
 			})
 			.where(eq(table.spinJob.id, jobId));
 
-		error(500, 'Failed to submit job for processing. Tokens have been refunded.');
+		error(
+			500,
+			'Failed to submit job for processing. Tokens have been refunded.',
+		);
 	}
 
 	const tokensRemaining = locals.user.tokens - regularDeduct;

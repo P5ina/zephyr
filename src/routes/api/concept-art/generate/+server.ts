@@ -43,15 +43,11 @@ async function uploadImage(file: File, userId: string): Promise<string> {
 		error(500, 'Image upload not configured.');
 	}
 
-	const blob = await put(
-		`concept-art/${userId}/${nanoid()}.png`,
-		file,
-		{
-			access: 'public',
-			contentType: file.type,
-			token: env.BLOB_READ_WRITE_TOKEN,
-		},
-	);
+	const blob = await put(`concept-art/${userId}/${nanoid()}.png`, file, {
+		access: 'public',
+		contentType: file.type,
+		token: env.BLOB_READ_WRITE_TOKEN,
+	});
 	return blob.url;
 }
 
@@ -101,14 +97,19 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 			// Control method
 			const controlMethodField = formData.get('controlMethod') as string | null;
-			if (controlMethodField && ['canny', 'depth'].includes(controlMethodField)) {
+			if (
+				controlMethodField &&
+				['canny', 'depth'].includes(controlMethodField)
+			) {
 				controlMethod = controlMethodField;
 			} else {
 				controlMethod = 'canny';
 			}
 
 			// Control strength (0-100)
-			const controlStrengthField = formData.get('controlStrength') as string | null;
+			const controlStrengthField = formData.get('controlStrength') as
+				| string
+				| null;
 			if (controlStrengthField) {
 				const parsed = parseInt(controlStrengthField, 10);
 				if (!Number.isNaN(parsed) && parsed >= 0 && parsed <= 100) {
@@ -159,9 +160,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		error(400, 'Invalid style preset');
 	}
 
-	const TOKEN_COST = mode === 'restyle'
-		? PRICING.tokenCosts.conceptArtRestyle
-		: PRICING.tokenCosts.conceptArt;
+	const TOKEN_COST =
+		mode === 'restyle'
+			? PRICING.tokenCosts.conceptArtRestyle
+			: PRICING.tokenCosts.conceptArt;
 
 	const total = locals.user.tokens + locals.user.bonusTokens;
 	if (total < TOKEN_COST) {
@@ -186,33 +188,38 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const genId = nanoid();
 
 	// Build the full prompt with style prefix
-	const fullPrompt = style && STYLE_PREFIXES[style]
-		? STYLE_PREFIXES[style] + prompt.trim()
-		: prompt.trim();
+	const fullPrompt =
+		style && STYLE_PREFIXES[style]
+			? STYLE_PREFIXES[style] + prompt.trim()
+			: prompt.trim();
 
-	await db
-		.insert(table.conceptArtGeneration)
-		.values({
-			id: genId,
-			userId: locals.user.id,
-			prompt: prompt.trim(),
-			style,
-			imageSize,
-			referenceImageUrl,
-			referenceStrength,
-			mode,
-			compositionImageUrl,
-			controlMethod,
-			controlStrength,
-			status: 'pending',
-			tokenCost: TOKEN_COST,
-			bonusTokenCost: bonusDeduct,
-			currentStage: mode === 'restyle' ? 'Extracting structure...' : 'Queued for processing...',
-		});
+	await db.insert(table.conceptArtGeneration).values({
+		id: genId,
+		userId: locals.user.id,
+		prompt: prompt.trim(),
+		style,
+		imageSize,
+		referenceImageUrl,
+		referenceStrength,
+		mode,
+		compositionImageUrl,
+		controlMethod,
+		controlStrength,
+		status: 'pending',
+		tokenCost: TOKEN_COST,
+		bonusTokenCost: bonusDeduct,
+		currentStage:
+			mode === 'restyle'
+				? 'Extracting structure...'
+				: 'Queued for processing...',
+	});
 
 	// Submit to fal.ai
 	const isRestyle = mode === 'restyle';
-	const webhookUrl = buildFalWebhookUrl(isRestyle ? 'preprocessor' : 'conceptart', genId);
+	const webhookUrl = buildFalWebhookUrl(
+		isRestyle ? 'preprocessor' : 'conceptart',
+		genId,
+	);
 	try {
 		let falResponse: { requestId: string };
 
@@ -221,7 +228,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			// Submit the preprocessor job to the queue and return immediately.
 			// The status endpoint drives phase transitions.
 			falResponse = await submitPreprocessorJob({
-				imageUrl: compositionImageUrl!,
+				imageUrl: compositionImageUrl as string,
 				method: controlMethod as 'canny' | 'depth',
 				webhookUrl,
 			});
@@ -231,7 +238,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				imageSize,
 				seed,
 				imageUrl: referenceImageUrl ?? undefined,
-				strength: referenceStrength != null ? referenceStrength / 100 : undefined,
+				strength:
+					referenceStrength != null ? referenceStrength / 100 : undefined,
 				webhookUrl,
 			});
 		}
@@ -243,7 +251,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	} catch (err: unknown) {
 		const body = (err as { body?: unknown })?.body;
 		console.error('fal.ai submission failed:', err);
-		if (body) console.error('fal.ai error body:', JSON.stringify(body, null, 2));
+		if (body)
+			console.error('fal.ai error body:', JSON.stringify(body, null, 2));
 
 		// Refund tokens
 		await db

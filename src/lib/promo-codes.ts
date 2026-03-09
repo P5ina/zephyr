@@ -21,7 +21,9 @@ export const PROMO_COOKIE_NAME = 'promo_code';
 
 export function validatePromoCode(code: string): PromoCode | null {
 	const normalizedCode = code.toUpperCase().trim();
-	const promo = PROMO_CODES.find((p) => p.code.toUpperCase() === normalizedCode);
+	const promo = PROMO_CODES.find(
+		(p) => p.code.toUpperCase() === normalizedCode,
+	);
 
 	if (!promo) {
 		return null;

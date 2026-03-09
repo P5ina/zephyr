@@ -1,4 +1,6 @@
 <script lang="ts">
+import { track } from '@vercel/analytics';
+import JSZip from 'jszip';
 import {
 	ArrowDown,
 	ArrowDownLeft,
@@ -25,12 +27,10 @@ import {
 	Upload,
 	X,
 } from 'lucide-svelte';
-import { track } from '@vercel/analytics';
-import JSZip from 'jszip';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import { PRICING } from '$lib/pricing';
-import { tokenState } from '$lib/token-state.svelte';
 import type { RotationJob } from '$lib/server/db/schema';
+import { tokenState } from '$lib/token-state.svelte';
 import type { LayoutData } from '../$types';
 import type { PageData } from './$types';
 
@@ -69,13 +69,11 @@ const TOKEN_COST = PRICING.tokenCosts.rotation;
 let guestRotationsUsed = $state(data.guestRotationsUsed ?? 0);
 
 const guestGenerationsRemaining = $derived(
-	GUEST_CONFIG.maxRotationGenerations - guestRotationsUsed
+	GUEST_CONFIG.maxRotationGenerations - guestRotationsUsed,
 );
 
 const canGenerate = $derived(
-	data.isGuest
-		? guestGenerationsRemaining > 0
-		: tokenState.total >= TOKEN_COST
+	data.isGuest ? guestGenerationsRemaining > 0 : tokenState.total >= TOKEN_COST,
 );
 
 // Regeneration state
@@ -131,7 +129,11 @@ const directionColumnMap: Record<Direction8, keyof RotationJob> = {
 
 const availableSources8 = $derived(() => {
 	if (!selectedJob) return [];
-	const sources: { key: SourceDirection8; label: string; url: string | null }[] = [
+	const sources: {
+		key: SourceDirection8;
+		label: string;
+		url: string | null;
+	}[] = [
 		{ key: 'input', label: 'Original Input', url: selectedJob.inputImageUrl },
 		{ key: 'n', label: 'N (Front)', url: selectedJob.rotationN },
 		{ key: 'ne', label: 'NE', url: selectedJob.rotationNE },
@@ -180,13 +182,12 @@ async function regenerateView() {
 
 		const result = await res.json();
 		tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
-		tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;
+		tokenState.bonusTokens =
+			result.bonusTokensRemaining ?? tokenState.bonusTokens;
 
 		const columnName = directionColumnMap[targetDir];
 		rotationJobs = rotationJobs.map((j) =>
-			j.id === jobId
-				? { ...j, [columnName]: result.url }
-				: j,
+			j.id === jobId ? { ...j, [columnName]: result.url } : j,
 		);
 	} catch (e) {
 		console.error('Regeneration error:', e);
@@ -348,10 +349,12 @@ async function generate() {
 		const result = await res.json();
 
 		if (result.isGuest) {
-			guestRotationsUsed = GUEST_CONFIG.maxRotationGenerations - result.generationsRemaining;
+			guestRotationsUsed =
+				GUEST_CONFIG.maxRotationGenerations - result.generationsRemaining;
 		} else {
 			tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
-			tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;
+			tokenState.bonusTokens =
+				result.bonusTokensRemaining ?? tokenState.bonusTokens;
 		}
 
 		if (result.job) {
@@ -361,7 +364,10 @@ async function generate() {
 			pollingSet.add(result.job.id);
 			clearSelection();
 
-			track('generation_started', { type: 'rotation', is_guest: result.isGuest });
+			track('generation_started', {
+				type: 'rotation',
+				is_guest: result.isGuest,
+			});
 
 			pollJobStatus(result.job.id);
 		}
@@ -483,12 +489,15 @@ async function downloadAll() {
 	downloading = true;
 	try {
 		const zip = new JSZip();
-		const entries = Object.entries(displayRotations) as [string, string | null][];
+		const entries = Object.entries(displayRotations) as [
+			string,
+			string | null,
+		][];
 		await Promise.all(
 			entries
-				.filter(([, url]) => url)
+				.filter((entry): entry is [string, string] => !!entry[1])
 				.map(async ([dir, url]) => {
-					const blob = await fetchAsBlob(url!);
+					const blob = await fetchAsBlob(url);
 					zip.file(`sprite_${dir}.png`, blob);
 				}),
 		);
@@ -664,8 +673,10 @@ async function cancelJob(id: string) {
 				generating = false;
 				currentGeneratingId = null;
 			}
-			tokenState.tokens = tokenState.tokens + (result.regularTokensRefunded ?? 0);
-			tokenState.bonusTokens = tokenState.bonusTokens + (result.bonusTokensRefunded ?? 0);
+			tokenState.tokens =
+				tokenState.tokens + (result.regularTokensRefunded ?? 0);
+			tokenState.bonusTokens =
+				tokenState.bonusTokens + (result.bonusTokensRefunded ?? 0);
 		} else {
 			const error = await res.json();
 			alert(error.message || 'Failed to cancel');
@@ -691,6 +702,10 @@ function scrollHistory(direction: 'left' | 'right') {
 	});
 }
 </script>
+
+<svelte:head>
+	<title>8-Direction Rotation - GenSprite</title>
+</svelte:head>
 
 <div class="flex flex-col h-full gap-4">
 	<!-- History Bar -->

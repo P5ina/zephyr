@@ -1,17 +1,17 @@
 <script lang="ts">
-	const title = 'GenSprite — Reddit Ad (Rotation)';
+const title = 'GenSprite — Reddit Ad (Rotation)';
 
-	const directions = [
-		{ dir: 'NW', row: 1, col: 1, src: '/showcase/rotation/sprite_nw.png' },
-		{ dir: 'N', row: 1, col: 2, src: '/showcase/rotation/sprite_n.png' },
-		{ dir: 'NE', row: 1, col: 3, src: '/showcase/rotation/sprite_ne.png' },
-		{ dir: 'W', row: 2, col: 1, src: '/showcase/rotation/sprite_w.png' },
-		{ dir: '', row: 2, col: 2, src: '/showcase/rotation/sprite_s.png' },
-		{ dir: 'E', row: 2, col: 3, src: '/showcase/rotation/sprite_e.png' },
-		{ dir: 'SW', row: 3, col: 1, src: '/showcase/rotation/sprite_sw.png' },
-		{ dir: 'S', row: 3, col: 2, src: '/showcase/rotation/sprite_s.png' },
-		{ dir: 'SE', row: 3, col: 3, src: '/showcase/rotation/sprite_se.png' },
-	];
+const directions = [
+	{ dir: 'NW', row: 1, col: 1, src: '/showcase/rotation/sprite_nw.png' },
+	{ dir: 'N', row: 1, col: 2, src: '/showcase/rotation/sprite_n.png' },
+	{ dir: 'NE', row: 1, col: 3, src: '/showcase/rotation/sprite_ne.png' },
+	{ dir: 'W', row: 2, col: 1, src: '/showcase/rotation/sprite_w.png' },
+	{ dir: '', row: 2, col: 2, src: '/showcase/rotation/sprite_s.png' },
+	{ dir: 'E', row: 2, col: 3, src: '/showcase/rotation/sprite_e.png' },
+	{ dir: 'SW', row: 3, col: 1, src: '/showcase/rotation/sprite_sw.png' },
+	{ dir: 'S', row: 3, col: 2, src: '/showcase/rotation/sprite_s.png' },
+	{ dir: 'SE', row: 3, col: 3, src: '/showcase/rotation/sprite_se.png' },
+];
 </script>
 
 <svelte:head>

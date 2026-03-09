@@ -1,10 +1,10 @@
 <script lang="ts">
 import './layout.css';
+import { injectAnalytics } from '@vercel/analytics/sveltekit';
 import { fade } from 'svelte/transition';
 import { browser } from '$app/environment';
 import { page } from '$app/state';
 import favicon from '$lib/assets/favicon.png';
-import { injectAnalytics } from '@vercel/analytics/sveltekit';
 
 let { children } = $props();
 

@@ -1,4 +1,4 @@
-import { json, error } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
@@ -257,7 +257,11 @@ async function refundAndFailRotation8(jobId: string, errorMessage: string) {
 // Rotation (single view regenerate)
 // ============================================================================
 
-async function handleRotationSingle(_jobId: string, _body: FalWebhookPayload, url: URL) {
+async function handleRotationSingle(
+	_jobId: string,
+	_body: FalWebhookPayload,
+	url: URL,
+) {
 	const direction = url.searchParams.get('direction');
 	// Single view regeneration updates individual direction columns on existing jobs.
 	// This is complex and the status endpoint already handles it via polling.
@@ -278,7 +282,9 @@ async function handleSpin(jobId: string, body: FalWebhookPayload) {
 		await refundAndFailSpin(jobId, body.error || 'Spin generation failed');
 		return;
 	}
-	console.log(`[fal-webhook] Spin ${jobId} completed on fal.ai, status endpoint will handle video creation`);
+	console.log(
+		`[fal-webhook] Spin ${jobId} completed on fal.ai, status endpoint will handle video creation`,
+	);
 }
 
 async function refundAndFailSpin(jobId: string, errorMessage: string) {
@@ -333,7 +339,7 @@ async function handleConceptArt(jobId: string, body: FalWebhookPayload) {
 			currentStage: 'Completed',
 			imageUrl,
 			seed:
-				data?.seed && data.seed <= 9223372036854775807 ? data.seed : null,
+				data?.seed && data.seed <= Number.MAX_SAFE_INTEGER ? data.seed : null,
 			completedAt: new Date(),
 		})
 		.where(eq(table.conceptArtGeneration.id, jobId));
@@ -343,7 +349,11 @@ async function handleConceptArt(jobId: string, body: FalWebhookPayload) {
 // Preprocessor (restyle step 1)
 // ============================================================================
 
-async function handlePreprocessor(jobId: string, body: FalWebhookPayload, _url: URL) {
+async function handlePreprocessor(
+	jobId: string,
+	body: FalWebhookPayload,
+	_url: URL,
+) {
 	if (body.status === 'ERROR' || !body.payload) {
 		await refundAndFailConceptArt(jobId, body.error || 'Preprocessing failed');
 		return;
@@ -353,7 +363,10 @@ async function handlePreprocessor(jobId: string, body: FalWebhookPayload, _url: 
 	const controlImageUrl = data?.image?.url;
 
 	if (!controlImageUrl) {
-		await refundAndFailConceptArt(jobId, 'No control image in preprocessor result');
+		await refundAndFailConceptArt(
+			jobId,
+			'No control image in preprocessor result',
+		);
 		return;
 	}
 
@@ -427,7 +440,9 @@ async function refundAndFailConceptArt(jobId: string, errorMessage: string) {
 async function handleAnimate(jobId: string, body: FalWebhookPayload, url: URL) {
 	const direction = url.searchParams.get('direction');
 	if (!direction) {
-		console.error(`[fal-webhook] animate webhook missing direction for job ${jobId}`);
+		console.error(
+			`[fal-webhook] animate webhook missing direction for job ${jobId}`,
+		);
 		return;
 	}
 
@@ -457,7 +472,8 @@ async function handleAnimate(jobId: string, body: FalWebhookPayload, url: URL) {
 			.update(table.animationJob)
 			.set({
 				status: 'failed',
-				errorMessage: body.error || `Animation failed for direction: ${direction}`,
+				errorMessage:
+					body.error || `Animation failed for direction: ${direction}`,
 				directionVideos,
 			})
 			.where(eq(table.animationJob.id, jobId));
@@ -467,7 +483,9 @@ async function handleAnimate(jobId: string, body: FalWebhookPayload, url: URL) {
 	const data = body.payload as { video?: { url: string } };
 	const videoUrl = data?.video?.url;
 	if (!videoUrl) {
-		console.error(`[fal-webhook] animate webhook missing video URL for direction ${direction}, job ${jobId}`);
+		console.error(
+			`[fal-webhook] animate webhook missing video URL for direction ${direction}, job ${jobId}`,
+		);
 		return;
 	}
 
@@ -486,9 +504,11 @@ async function handleAnimate(jobId: string, body: FalWebhookPayload, url: URL) {
 	});
 	if (!updated) return;
 
-	const updatedVideos = (updated.directionVideos as Record<string, string>) || {};
+	const updatedVideos =
+		(updated.directionVideos as Record<string, string>) || {};
 	const completedCount = Object.keys(updatedVideos).length;
-	const allComplete = directions.length > 0 && directions.every((d) => updatedVideos[d]);
+	const allComplete =
+		directions.length > 0 && directions.every((d) => updatedVideos[d]);
 	const progress = Math.floor(5 + (completedCount / directions.length) * 55);
 
 	await db

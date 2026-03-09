@@ -3,10 +3,16 @@
  * Based on https://github.com/vercel-labs/ffmpeg-on-vercel
  */
 
-import { spawn } from 'child_process';
-import { createWriteStream, mkdirSync, readFileSync, unlinkSync, existsSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
+import { spawn } from 'node:child_process';
+import {
+	createWriteStream,
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	unlinkSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import ffmpegPath from 'ffmpeg-static';
 
 function getStaticPath(filename: string): string {
@@ -61,14 +67,18 @@ async function downloadFile(url: string, destPath: string): Promise<void> {
  * - Total duration: ~4 seconds
  * - Audio: OIIA track synced with spin start
  */
-export async function createSpinVideo(params: CreateSpinVideoParams): Promise<Buffer> {
+export async function createSpinVideo(
+	params: CreateSpinVideoParams,
+): Promise<Buffer> {
 	const { inputImageUrl, frames, addWatermark } = params;
 
 	if (frames.length === 0) {
 		throw new Error('No frames provided');
 	}
 
-	console.log(`[video] Creating spin video with ${frames.length} generated frames`);
+	console.log(
+		`[video] Creating spin video with ${frames.length} generated frames`,
+	);
 
 	// Create temp directory for this job
 	const tempDir = join(tmpdir(), `spin-${Date.now()}`);
@@ -92,7 +102,9 @@ export async function createSpinVideo(params: CreateSpinVideoParams): Promise<Bu
 		}
 
 		const totalFrames = frameFiles.length; // input + generated frames
-		console.log(`[video] Downloaded ${totalFrames} total frames (1 input + ${frames.length} generated)`);
+		console.log(
+			`[video] Downloaded ${totalFrames} total frames (1 input + ${frames.length} generated)`,
+		);
 
 		// Create frame list file for ffmpeg concat
 		// OIIA timing structure:
@@ -130,20 +142,20 @@ export async function createSpinVideo(params: CreateSpinVideoParams): Promise<Bu
 		};
 
 		// Build the sequence
-		addStatic(1.50);                    // 0:00.00 - 0:01.50: Static
-		addSpin(1.55, 8);                   // 0:01.50 - 0:03.05: Fast spin (8 rotations)
-		addStatic(1.19);                    // 0:03.05 - 0:04.24: Static
-		addSpin(2.15, 2);                   // 0:04.24 - 0:06.39: Slow spin (2 rotations)
-		addStatic(1.18);                    // 0:06.39 - 0:07.57: Static
-		addSpin(2.16, 2);                   // 0:07.57 - 0:09.73: Slow spin (2 rotations)
-		addStatic(0.32);                    // 0:09.73 - 0:10.05: Static
-		addSpin(1.51, 8);                   // 0:10.05 - 0:11.56: Fast spin (8 rotations)
-		addStatic(0.5);                     // 0:11.56 - end: Static (buffer)
+		addStatic(1.5); // 0:00.00 - 0:01.50: Static
+		addSpin(1.55, 8); // 0:01.50 - 0:03.05: Fast spin (8 rotations)
+		addStatic(1.19); // 0:03.05 - 0:04.24: Static
+		addSpin(2.15, 2); // 0:04.24 - 0:06.39: Slow spin (2 rotations)
+		addStatic(1.18); // 0:06.39 - 0:07.57: Static
+		addSpin(2.16, 2); // 0:07.57 - 0:09.73: Slow spin (2 rotations)
+		addStatic(0.32); // 0:09.73 - 0:10.05: Static
+		addSpin(1.51, 8); // 0:10.05 - 0:11.56: Fast spin (8 rotations)
+		addStatic(0.5); // 0:11.56 - end: Static (buffer)
 
 		// Add final frame (required by concat demuxer)
 		frameList += `file '${frontFrame}'\n`;
 
-		const fs = await import('fs');
+		const fs = await import('node:fs');
 		fs.writeFileSync(frameListPath, frameList);
 
 		console.log(`[video] Frame list created for OIIA sync (~12 seconds)`);
@@ -156,13 +168,18 @@ export async function createSpinVideo(params: CreateSpinVideoParams): Promise<Bu
 
 		console.log(`[video] CWD: ${process.cwd()}`);
 		console.log(`[video] Local audio path: ${audioPath}, exists: ${hasAudio}`);
-		console.log(`[video] Local watermark path: ${watermarkPath}, exists: ${watermarkExists}`);
+		console.log(
+			`[video] Local watermark path: ${watermarkPath}, exists: ${watermarkExists}`,
+		);
 
 		// If local audio doesn't exist, download from CDN
 		if (!hasAudio) {
 			try {
 				const audioTempPath = join(tempDir, 'oiia.mp3');
-				await downloadFile('https://cdn.p5ina.dev/gensprite/oiia.mp3', audioTempPath);
+				await downloadFile(
+					'https://cdn.p5ina.dev/gensprite/oiia.mp3',
+					audioTempPath,
+				);
 				audioPath = audioTempPath;
 				hasAudio = true;
 				console.log(`[video] Downloaded audio from CDN to ${audioTempPath}`);
@@ -174,25 +191,35 @@ export async function createSpinVideo(params: CreateSpinVideoParams): Promise<Bu
 		if (!watermarkExists && addWatermark) {
 			try {
 				const watermarkTempPath = join(tempDir, 'watermark.png');
-				await downloadFile('https://cdn.p5ina.dev/gensprite/watermark.png', watermarkTempPath);
+				await downloadFile(
+					'https://cdn.p5ina.dev/gensprite/watermark.png',
+					watermarkTempPath,
+				);
 				watermarkPath = watermarkTempPath;
 				watermarkExists = true;
-				console.log(`[video] Downloaded watermark from CDN to ${watermarkTempPath}`);
+				console.log(
+					`[video] Downloaded watermark from CDN to ${watermarkTempPath}`,
+				);
 			} catch (e) {
 				console.error(`[video] Failed to download watermark from CDN:`, e);
 			}
 		}
 
 		const hasWatermarkFile = addWatermark && watermarkExists;
-		console.log(`[video] Audio available: ${hasAudio}, Watermark: addWatermark=${addWatermark}, available=${watermarkExists}, willApply=${hasWatermarkFile}`);
+		console.log(
+			`[video] Audio available: ${hasAudio}, Watermark: addWatermark=${addWatermark}, available=${watermarkExists}, willApply=${hasWatermarkFile}`,
+		);
 
 		// Build ffmpeg command
 		const outputPath = join(tempDir, 'output.mp4');
 		const ffmpegArgs: string[] = [
 			'-y', // Overwrite output
-			'-f', 'concat',
-			'-safe', '0',
-			'-i', frameListPath,
+			'-f',
+			'concat',
+			'-safe',
+			'0',
+			'-i',
+			frameListPath,
 		];
 
 		// Add audio if available
@@ -217,19 +244,17 @@ export async function createSpinVideo(params: CreateSpinVideoParams): Promise<Bu
 			ffmpegArgs.push(
 				'-filter_complex',
 				`[0:v]${scaleFilter}[scaled];` +
-				`[2:v]scale=w=-1:h=100,format=rgba,colorchannelmixer=aa=0.8[wm];` +
-				`[scaled][wm]overlay=W-w-20:H-h-20:eval=frame[out]`,
-				'-map', '[out]',
+					`[2:v]scale=w=-1:h=100,format=rgba,colorchannelmixer=aa=0.8[wm];` +
+					`[scaled][wm]overlay=W-w-20:H-h-20:eval=frame[out]`,
+				'-map',
+				'[out]',
 			);
 			if (hasAudio) {
 				ffmpegArgs.push('-map', '1:a');
 			}
 		} else {
 			// Just scale, no watermark
-			ffmpegArgs.push(
-				'-vf', scaleFilter,
-				'-map', '0:v',
-			);
+			ffmpegArgs.push('-vf', scaleFilter, '-map', '0:v');
 			if (hasAudio) {
 				ffmpegArgs.push('-map', '1:a');
 			}
@@ -237,18 +262,19 @@ export async function createSpinVideo(params: CreateSpinVideoParams): Promise<Bu
 
 		// Video encoding options
 		ffmpegArgs.push(
-			'-c:v', 'libx264',
-			'-preset', 'fast',
-			'-crf', '23',
-			'-pix_fmt', 'yuv420p',
+			'-c:v',
+			'libx264',
+			'-preset',
+			'fast',
+			'-crf',
+			'23',
+			'-pix_fmt',
+			'yuv420p',
 		);
 
 		// Audio encoding
 		if (hasAudio) {
-			ffmpegArgs.push(
-				'-c:a', 'aac',
-				'-b:a', '128k',
-			);
+			ffmpegArgs.push('-c:a', 'aac', '-b:a', '128k');
 		}
 
 		// Limit duration to ~12 seconds (OIIA audio length)
@@ -268,7 +294,7 @@ export async function createSpinVideo(params: CreateSpinVideoParams): Promise<Bu
 	} finally {
 		// Cleanup temp directory
 		try {
-			const fs = await import('fs');
+			const fs = await import('node:fs');
 			const files = fs.readdirSync(tempDir);
 			for (const file of files) {
 				unlinkSync(join(tempDir, file));

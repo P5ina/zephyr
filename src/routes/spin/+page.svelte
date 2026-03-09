@@ -1,5 +1,4 @@
 <script lang="ts">
-import { browser } from '$app/environment';
 import {
 	ArrowRight,
 	Check,
@@ -12,6 +11,7 @@ import {
 	Upload,
 	X,
 } from 'lucide-svelte';
+import { browser } from '$app/environment';
 import Footer from '$lib/components/Footer.svelte';
 import Header from '$lib/components/Header.svelte';
 import { PRICING } from '$lib/pricing';
@@ -32,7 +32,9 @@ const initialBonusTokens = data.user?.bonusTokens ?? 0;
 const initialGenerationsRemaining = data.guestInfo?.generationsRemaining ?? 3;
 
 // Find any pending/processing job to resume
-const pendingJob = initialSpinJobs.find((j) => j.status === 'pending' || j.status === 'processing');
+const pendingJob = initialSpinJobs.find(
+	(j) => j.status === 'pending' || j.status === 'processing',
+);
 
 // State
 let uploadedFile = $state<File | null>(null);
@@ -142,7 +144,8 @@ async function generate() {
 
 		// Update tokens or guest remaining
 		if (result.isGuest) {
-			generationsRemaining = result.generationsRemaining ?? generationsRemaining - 1;
+			generationsRemaining =
+				result.generationsRemaining ?? generationsRemaining - 1;
 		} else {
 			tokens = result.tokensRemaining ?? tokens;
 			bonusTokens = result.bonusTokensRemaining ?? bonusTokens;
@@ -305,7 +308,8 @@ const canGenerate = $derived(
 );
 
 const title = 'OIIA OIIA Spin Generator | GenSprite';
-const description = 'Create funny spinning OIIA OIIA videos from any image. Free to try!';
+const description =
+	'Create funny spinning OIIA OIIA videos from any image. Free to try!';
 </script>
 
 <svelte:head>
@@ -324,7 +328,7 @@ const description = 'Create funny spinning OIIA OIIA videos from any image. Free
 		<div class="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-pink-500/20 via-transparent to-transparent rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
 	</div>
 
-	<Header user={data.user} variant="simple" showAuth={true} ctaText="Get More Spins" ctaHref="/app/billing" />
+	<Header variant="simple" user={data.user} ctaText="Get More Spins" ctaHref="/app/billing" />
 
 	<main class="relative z-10 flex-1">
 		<div class="max-w-4xl mx-auto px-4 py-12">

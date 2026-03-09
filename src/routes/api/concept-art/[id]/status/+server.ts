@@ -48,7 +48,8 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		try {
 			// Restyle two-phase: preprocessor (phase 1) → generation (phase 2)
 			// Phase is determined by whether controlImageUrl has been set yet
-			const isPreprocessorPhase = gen.mode === 'restyle' && !gen.controlImageUrl;
+			const isPreprocessorPhase =
+				gen.mode === 'restyle' && !gen.controlImageUrl;
 
 			if (isPreprocessorPhase) {
 				await handlePreprocessorPhase(gen, params.id);
@@ -57,9 +58,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 			}
 
 			// Re-read after updates
-			gen = (await db.query.conceptArtGeneration.findFirst({
+			const refreshedGen = await db.query.conceptArtGeneration.findFirst({
 				where: eq(table.conceptArtGeneration.id, params.id),
-			}))!;
+			});
+			if (!refreshedGen) error(404, 'Generation not found');
+			gen = refreshedGen;
 		} catch (e) {
 			console.error('Failed to check fal.ai status:', e);
 		}
@@ -102,10 +105,13 @@ export const GET: RequestHandler = async ({ params, locals }) => {
  */
 async function handlePreprocessorPhase(
 	gen: typeof table.conceptArtGeneration.$inferSelect,
-	paramId: string,
+	_paramId: string,
 ) {
 	const method = (gen.controlMethod as 'canny' | 'depth') ?? 'canny';
-	const falStatus = await getPreprocessorJobStatus(gen.falRequestId!, method);
+	const falStatus = await getPreprocessorJobStatus(
+		gen.falRequestId as string,
+		method,
+	);
 
 	if (falStatus.status === 'IN_PROGRESS' || falStatus.status === 'IN_QUEUE') {
 		if (gen.status !== 'processing') {
@@ -117,13 +123,17 @@ async function handlePreprocessorPhase(
 				})
 				.where(eq(table.conceptArtGeneration.id, gen.id));
 		}
-	} else if (falStatus.status === 'FAILED' || falStatus.status === 'CANCELLED') {
+	} else if (
+		falStatus.status === 'FAILED' ||
+		falStatus.status === 'CANCELLED'
+	) {
 		await refundAndFail(gen, falStatus.error || 'Preprocessor failed');
 	} else if (falStatus.status === 'COMPLETED' && falStatus.output?.imageUrl) {
 		// Preprocessor done — save control image and submit generation
-		const fullPrompt = gen.style && STYLE_PREFIXES[gen.style]
-			? STYLE_PREFIXES[gen.style] + gen.prompt
-			: gen.prompt;
+		const fullPrompt =
+			gen.style && STYLE_PREFIXES[gen.style]
+				? STYLE_PREFIXES[gen.style] + gen.prompt
+				: gen.prompt;
 
 		try {
 			const genResponse = await submitRestyleGeneration({
@@ -155,12 +165,16 @@ async function handlePreprocessorPhase(
  */
 async function handleGenerationStatus(
 	gen: typeof table.conceptArtGeneration.$inferSelect,
-	paramId: string,
+	_paramId: string,
 ) {
 	const method = (gen.controlMethod as 'canny' | 'depth') ?? 'canny';
-	const falStatus = gen.mode === 'restyle'
-		? await getRestyleJobStatus(gen.falRequestId!, method)
-		: await getConceptArtJobStatus(gen.falRequestId!, !!gen.referenceImageUrl);
+	const falStatus =
+		gen.mode === 'restyle'
+			? await getRestyleJobStatus(gen.falRequestId as string, method)
+			: await getConceptArtJobStatus(
+					gen.falRequestId as string,
+					!!gen.referenceImageUrl,
+				);
 
 	if (falStatus.status === 'IN_PROGRESS' || falStatus.status === 'IN_QUEUE') {
 		if (gen.status !== 'processing') {
@@ -168,11 +182,15 @@ async function handleGenerationStatus(
 				.update(table.conceptArtGeneration)
 				.set({
 					status: 'processing',
-					currentStage: falStatus.status === 'IN_QUEUE' ? 'Queued...' : 'Processing...',
+					currentStage:
+						falStatus.status === 'IN_QUEUE' ? 'Queued...' : 'Processing...',
 				})
 				.where(eq(table.conceptArtGeneration.id, gen.id));
 		}
-	} else if (falStatus.status === 'FAILED' || falStatus.status === 'CANCELLED') {
+	} else if (
+		falStatus.status === 'FAILED' ||
+		falStatus.status === 'CANCELLED'
+	) {
 		await refundAndFail(gen, falStatus.error || 'Job failed on fal.ai');
 	} else if (falStatus.status === 'COMPLETED' && falStatus.output) {
 		if (falStatus.output.imageUrl && !gen.imageUrl) {
@@ -183,7 +201,11 @@ async function handleGenerationStatus(
 					progress: 100,
 					currentStage: 'Completed',
 					imageUrl: falStatus.output.imageUrl,
-					seed: falStatus.output.seed && falStatus.output.seed <= 9223372036854775807 ? falStatus.output.seed : null,
+					seed:
+						falStatus.output.seed &&
+						falStatus.output.seed <= Number.MAX_SAFE_INTEGER
+							? falStatus.output.seed
+							: null,
 					completedAt: new Date(),
 				})
 				.where(eq(table.conceptArtGeneration.id, gen.id));

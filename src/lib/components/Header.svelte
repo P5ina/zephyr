@@ -1,38 +1,61 @@
 <script lang="ts">
-import { ArrowLeft, Menu, X } from 'lucide-svelte';
+import { Coins, Lock, Menu, Sparkles, X } from 'lucide-svelte';
+import { page } from '$app/state';
 import logo from '$lib/assets/favicon.png';
 
+interface Tab {
+	href: string;
+	label: string;
+	icon: typeof Sparkles;
+	guestAllowed: boolean;
+}
+
 interface Props {
-	user?: { id: string } | null;
-	variant?: 'full' | 'simple';
+	variant?: 'landing' | 'app' | 'simple';
+	user?: {
+		id: string;
+		email?: string;
+		username?: string | null;
+		avatarUrl?: string | null;
+	} | null;
+	// App variant
+	isGuest?: boolean;
+	guestGenerationsRemaining?: number;
+	tokenTotal?: number;
+	tabs?: Tab[];
+	// Simple / Landing variant
 	showBack?: boolean;
 	showAuth?: boolean;
 	ctaText?: string;
 	ctaHref?: string;
-	maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | '6xl';
 }
 
 let {
+	variant = 'landing',
 	user = null,
-	variant = 'full',
+	isGuest = false,
+	guestGenerationsRemaining = 0,
+	tokenTotal = 0,
+	tabs = [],
 	showBack = false,
 	showAuth = true,
 	ctaText,
 	ctaHref,
-	maxWidth = '6xl',
 }: Props = $props();
 
 let mobileMenuOpen = $state(false);
 
-const maxWidthClass = {
-	sm: 'max-w-sm',
-	md: 'max-w-md',
-	lg: 'max-w-lg',
-	xl: 'max-w-xl',
-	'2xl': 'max-w-2xl',
-	'4xl': 'max-w-4xl',
-	'6xl': 'max-w-6xl',
-};
+const landingLinks = [
+	{ href: '/app/rotate', label: '8-Dir Rotation', accent: true },
+	{ href: '/#features', label: 'Features', accent: false },
+	{ href: '/pricing', label: 'Pricing', accent: false },
+	{ href: '/docs', label: 'API', accent: false },
+];
+
+function isActive(href: string) {
+	if (href === '/app') return page.url.pathname === '/app';
+	return page.url.pathname === href || page.url.pathname.startsWith(`${href}/`);
+}
 
 function toggleMobileMenu() {
 	mobileMenuOpen = !mobileMenuOpen;
@@ -43,119 +66,425 @@ function closeMobileMenu() {
 }
 </script>
 
-<nav class="relative z-10 border-b border-zinc-800/50 backdrop-blur-sm">
-	<div class="{maxWidthClass[maxWidth]} mx-auto px-4 py-4 flex items-center justify-between">
-		<div class="flex items-center gap-4">
-			{#if showBack}
-				<a href="/" class="p-2 text-zinc-400 hover:text-white transition-colors">
-					<ArrowLeft class="w-5 h-5" />
+<header class="hdr">
+	<div class="hdr-inner">
+		<!-- Left: Logo + Nav -->
+		<div class="hdr-left">
+			{#if showBack && variant === 'simple'}
+				<a href="/" class="hdr-back" aria-label="Back to home">
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
 				</a>
 			{/if}
-			<a href="/" class="flex items-center gap-2">
-				<img src={logo} alt="GenSprite" class="w-8 h-8 rounded-lg" />
-				<span class="text-xl font-bold text-white">GenSprite</span>
+
+			<a href="/" class="hdr-logo">
+				<img src={logo} alt="" class="hdr-logo-img" />
+				<span class="hdr-logo-text">GenSprite</span>
 			</a>
+
+			<!-- Landing nav links (desktop) -->
+			{#if variant === 'landing'}
+				<nav class="hdr-nav hdr-desktop">
+					{#each landingLinks as link}
+						<a href={link.href} class="hdr-link" class:hdr-link-accent={link.accent}>
+							{link.label}
+						</a>
+					{/each}
+				</nav>
+			{/if}
+
+			<!-- App tab nav (desktop) -->
+			{#if variant === 'app' && tabs.length > 0}
+				<nav class="hdr-nav hdr-desktop">
+					{#each tabs as tab}
+						{#if isGuest && !tab.guestAllowed}
+							<span class="hdr-tab hdr-tab-locked" title="Sign up to unlock">
+								<tab.icon class="w-4 h-4" />
+								<span class="hdr-tab-label">{tab.label}</span>
+								<Lock class="w-3 h-3 opacity-40" />
+							</span>
+						{:else}
+							<a
+								href={tab.href}
+								class="hdr-tab {isActive(tab.href) ? 'hdr-tab-active' : 'hdr-tab-idle'}"
+							>
+								<tab.icon class="w-4 h-4" />
+								<span class="hdr-tab-label">{tab.label}</span>
+							</a>
+						{/if}
+					{/each}
+				</nav>
+			{/if}
 		</div>
 
-		<!-- Desktop navigation -->
-		{#if variant === 'full' || showAuth}
-			<div class="hidden sm:flex items-center gap-6">
-				{#if variant === 'full'}
-					<a href="/app/rotate" class="text-sm font-medium text-orange-400 hover:text-orange-300 transition-colors">
-						8-Dir Rotation
+		<!-- Right: Auth / Tokens / User -->
+		<div class="hdr-right hdr-desktop">
+			{#if variant === 'app'}
+				<!-- App: token badge + user -->
+				{#if isGuest}
+					<div class="hdr-badge" title="Free generations remaining">
+						<Sparkles class="w-3.5 h-3.5 text-amber-400" />
+						<span>{guestGenerationsRemaining} free</span>
+					</div>
+					<a href="/login" class="hdr-cta">Sign up</a>
+				{:else if user}
+					<a href="/app/billing" class="hdr-badge hdr-badge-link" title="Tokens available">
+						<Coins class="w-3.5 h-3.5 text-amber-400" />
+						<span>{tokenTotal}</span>
 					</a>
-					<a href="/#features" class="text-sm text-zinc-400 hover:text-white transition-colors">
-						Features
-					</a>
-					<a href="/pricing" class="text-sm text-zinc-400 hover:text-white transition-colors">
-						Pricing
-					</a>
-				{/if}
-
-				{#if showAuth}
-					{#if user}
-						<a
-							href={ctaHref || '/app/rotate'}
-							class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 text-sm font-medium rounded-lg transition-colors"
-						>
-							{ctaText || (variant === 'full' ? 'Go to App' : 'Open App')}
-						</a>
-					{:else}
-						<a
-							href="/login"
-							class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg transition-colors backdrop-blur-sm border border-white/10"
-						>
-							Sign in
-						</a>
+					{#if user.avatarUrl}
+						<img src={user.avatarUrl} alt="" class="hdr-avatar" />
 					{/if}
+					<a href="/dashboard" class="hdr-username">{user.username || user.email}</a>
+					<a href="/logout" class="hdr-signout">Sign out</a>
 				{/if}
-			</div>
-		{/if}
+			{:else if variant === 'landing'}
+				<!-- Landing: auth buttons -->
+				{#if user}
+					<a href={ctaHref || '/app/rotate'} class="hdr-cta">
+						{ctaText || 'Go to App'}
+					</a>
+				{:else}
+					<a href="/login" class="hdr-signin">Sign in</a>
+				{/if}
+			{:else if variant === 'simple' && showAuth}
+				<!-- Simple: optional CTA -->
+				{#if user}
+					<a href={ctaHref || '/app'} class="hdr-cta">
+						{ctaText || 'Open App'}
+					</a>
+				{:else}
+					<a href="/login" class="hdr-signin">Sign in</a>
+				{/if}
+			{/if}
+		</div>
 
-		<!-- Mobile menu button -->
-		{#if variant === 'full' || showAuth}
-			<button
-				onclick={toggleMobileMenu}
-				class="sm:hidden p-2 text-zinc-400 hover:text-white transition-colors"
-				aria-label="Toggle menu"
-			>
+		<!-- Mobile: token + hamburger -->
+		<div class="hdr-right hdr-mobile">
+			{#if variant === 'app'}
+				{#if isGuest}
+					<div class="hdr-badge">
+						<Sparkles class="w-3.5 h-3.5 text-amber-400" />
+						<span>{guestGenerationsRemaining}</span>
+					</div>
+				{:else if user}
+					<a href="/app/billing" class="hdr-badge hdr-badge-link">
+						<Coins class="w-3.5 h-3.5 text-amber-400" />
+						<span>{tokenTotal}</span>
+					</a>
+				{/if}
+			{/if}
+			<button onclick={toggleMobileMenu} class="hdr-burger" aria-label="Toggle menu">
 				{#if mobileMenuOpen}
 					<X class="w-5 h-5" />
 				{:else}
 					<Menu class="w-5 h-5" />
 				{/if}
 			</button>
-		{/if}
+		</div>
 	</div>
 
-	<!-- Mobile menu -->
-	{#if mobileMenuOpen && (variant === 'full' || showAuth)}
-		<div class="sm:hidden border-t border-zinc-800/50 bg-zinc-900/95 backdrop-blur-sm">
-			<div class="{maxWidthClass[maxWidth]} mx-auto px-4 py-4 flex flex-col gap-4">
-				{#if variant === 'full'}
-					<a
-						href="/app/rotate"
-						onclick={closeMobileMenu}
-						class="text-sm font-medium text-orange-400 py-2"
-					>
-						8-Dir Rotation
-					</a>
-					<a
-						href="/#features"
-						onclick={closeMobileMenu}
-						class="text-sm text-zinc-400 hover:text-white transition-colors py-2"
-					>
-						Features
-					</a>
-					<a
-						href="/pricing"
-						onclick={closeMobileMenu}
-						class="text-sm text-zinc-400 hover:text-white transition-colors py-2"
-					>
-						Pricing
-					</a>
+	<!-- Mobile dropdown -->
+	{#if mobileMenuOpen}
+		<div class="mob-menu">
+			<div class="mob-inner">
+				{#if variant === 'landing'}
+					{#each landingLinks as link}
+						<a href={link.href} onclick={closeMobileMenu} class="mob-link" class:mob-link-accent={link.accent}>
+							{link.label}
+						</a>
+					{/each}
 				{/if}
 
-				{#if showAuth}
+				{#if variant === 'app' && tabs.length > 0}
+					{#each tabs as tab}
+						{#if isGuest && !tab.guestAllowed}
+							<span class="mob-tab mob-tab-locked" title="Sign up to unlock">
+								<tab.icon class="w-4 h-4" />
+								{tab.label}
+								<Lock class="w-3 h-3 opacity-40" />
+							</span>
+						{:else}
+							<a
+								href={tab.href}
+								onclick={closeMobileMenu}
+								class="mob-tab {isActive(tab.href) ? 'mob-tab-active' : 'mob-tab-idle'}"
+							>
+								<tab.icon class="w-4 h-4" />
+								{tab.label}
+							</a>
+						{/if}
+					{/each}
+				{/if}
+
+				<div class="mob-divider"></div>
+
+				{#if variant === 'app'}
+					{#if isGuest}
+						<a href="/login" onclick={closeMobileMenu} class="hdr-cta mob-cta">Sign up</a>
+					{:else if user}
+						<div class="mob-user">
+							{#if user.avatarUrl}
+								<img src={user.avatarUrl} alt="" class="hdr-avatar" />
+							{/if}
+							<a href="/dashboard" class="hdr-username">{user.username || user.email}</a>
+						</div>
+						<a href="/logout" onclick={closeMobileMenu} class="mob-tab mob-tab-idle">Sign out</a>
+					{/if}
+				{:else if variant === 'landing'}
 					{#if user}
-						<a
-							href={ctaHref || '/app/rotate'}
-							onclick={closeMobileMenu}
-							class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-900 text-sm font-medium rounded-lg transition-colors text-center"
-						>
-							{ctaText || (variant === 'full' ? 'Go to App' : 'Open App')}
+						<a href={ctaHref || '/app/rotate'} onclick={closeMobileMenu} class="hdr-cta mob-cta">
+							{ctaText || 'Go to App'}
 						</a>
 					{:else}
-						<a
-							href="/login"
-							onclick={closeMobileMenu}
-							class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg transition-colors backdrop-blur-sm border border-white/10 text-center"
-						>
-							Sign in
+						<a href="/login" onclick={closeMobileMenu} class="hdr-signin mob-cta">Sign in</a>
+					{/if}
+				{:else if variant === 'simple' && showAuth}
+					{#if user}
+						<a href={ctaHref || '/app'} onclick={closeMobileMenu} class="hdr-cta mob-cta">
+							{ctaText || 'Open App'}
 						</a>
+					{:else}
+						<a href="/login" onclick={closeMobileMenu} class="hdr-signin mob-cta">Sign in</a>
 					{/if}
 				{/if}
 			</div>
 		</div>
 	{/if}
-</nav>
+</header>
+
+<style>
+	/* ===== Core ===== */
+	.hdr {
+		position: sticky; top: 0; z-index: 40;
+		border-bottom: 1px solid rgba(63,63,70,.3);
+		background: rgba(9,9,11,.85);
+		backdrop-filter: blur(14px);
+		-webkit-backdrop-filter: blur(14px);
+	}
+	.hdr-inner {
+		max-width: 80rem; margin: 0 auto;
+		padding: .7rem 1rem;
+		display: flex; align-items: center; justify-content: space-between;
+	}
+
+	/* Left group */
+	.hdr-left {
+		display: flex; align-items: center; gap: .5rem;
+	}
+
+	/* Back arrow */
+	.hdr-back {
+		display: flex; align-items: center; justify-content: center;
+		width: 2rem; height: 2rem;
+		border-radius: .45rem;
+		color: #71717a;
+		transition: color .2s, background .2s;
+	}
+	.hdr-back:hover { color: #fff; background: rgba(63,63,70,.3); }
+
+	/* Logo */
+	.hdr-logo {
+		display: flex; align-items: center; gap: .5rem;
+		text-decoration: none;
+		margin-right: .75rem;
+		transition: opacity .2s;
+	}
+	.hdr-logo:hover { opacity: .85; }
+	.hdr-logo-img {
+		width: 1.65rem; height: 1.65rem;
+		border-radius: .4rem;
+	}
+	.hdr-logo-text {
+		font-family: 'Syne', system-ui, sans-serif;
+		font-weight: 800; font-size: 1.1rem;
+		color: #fff;
+	}
+
+	/* Navigation (desktop) */
+	.hdr-nav {
+		display: flex; align-items: center; gap: .15rem;
+	}
+
+	/* Landing links */
+	.hdr-link {
+		padding: .35rem .7rem;
+		border-radius: .45rem;
+		font-size: .8125rem; font-weight: 500;
+		color: #a1a1aa;
+		text-decoration: none;
+		transition: color .2s, background .2s;
+	}
+	.hdr-link:hover {
+		color: #fff; background: rgba(63,63,70,.25);
+	}
+	.hdr-link-accent {
+		color: #fb923c;
+	}
+	.hdr-link-accent:hover { color: #fdba74; }
+
+	/* App tabs */
+	.hdr-tab {
+		display: flex; align-items: center; gap: .4rem;
+		padding: .35rem .7rem; border-radius: .5rem;
+		font-size: .8125rem; font-weight: 500;
+		text-decoration: none; transition: all .2s;
+		white-space: nowrap;
+	}
+	.hdr-tab-idle { color: #a1a1aa; }
+	.hdr-tab-idle:hover { color: #fff; background: rgba(63,63,70,.3); }
+	.hdr-tab-active {
+		color: #fbbf24;
+		background: rgba(245,158,11,.08);
+		box-shadow: inset 0 0 0 1px rgba(245,158,11,.2);
+	}
+	.hdr-tab-locked {
+		color: rgba(113,113,122,.55); cursor: not-allowed;
+	}
+	.hdr-tab-label {
+		display: none;
+	}
+	@media (min-width: 1024px) {
+		.hdr-tab-label { display: inline; }
+	}
+
+	/* Right group */
+	.hdr-right { display: flex; align-items: center; gap: .6rem; }
+
+	/* Token / generations badge */
+	.hdr-badge {
+		display: flex; align-items: center; gap: .35rem;
+		padding: .25rem .6rem; border-radius: .45rem;
+		background: rgba(63,63,70,.25);
+		border: 1px solid rgba(63,63,70,.3);
+		font-size: .8125rem; font-weight: 600; color: #fff;
+	}
+	.hdr-badge-link {
+		text-decoration: none;
+		transition: background .2s, border-color .2s;
+	}
+	.hdr-badge-link:hover {
+		background: rgba(63,63,70,.4);
+		border-color: rgba(63,63,70,.5);
+	}
+
+	/* Primary CTA */
+	.hdr-cta {
+		display: inline-flex; align-items: center;
+		padding: .4rem .95rem; border-radius: .5rem;
+		background: linear-gradient(135deg, #fbbf24, #f59e0b);
+		color: #18181b; font-size: .8125rem; font-weight: 600;
+		text-decoration: none;
+		box-shadow: 0 0 14px rgba(245,158,11,.12);
+		transition: box-shadow .2s, transform .15s;
+	}
+	.hdr-cta:hover {
+		box-shadow: 0 0 22px rgba(245,158,11,.25);
+		transform: translateY(-1px);
+	}
+
+	/* Sign in (ghost) */
+	.hdr-signin {
+		display: inline-flex; align-items: center;
+		padding: .4rem .95rem; border-radius: .5rem;
+		background: rgba(255,255,255,.06);
+		border: 1px solid rgba(255,255,255,.08);
+		color: #fff; font-size: .8125rem; font-weight: 500;
+		text-decoration: none;
+		transition: background .2s, border-color .2s;
+	}
+	.hdr-signin:hover {
+		background: rgba(255,255,255,.12);
+		border-color: rgba(255,255,255,.15);
+	}
+
+	/* User info */
+	.hdr-avatar {
+		width: 1.75rem; height: 1.75rem;
+		border-radius: 50%;
+		border: 1px solid rgba(63,63,70,.4);
+	}
+	.hdr-username {
+		font-size: .8125rem; color: #a1a1aa;
+		text-decoration: none; transition: color .2s;
+	}
+	.hdr-username:hover { color: #fff; }
+	.hdr-signout {
+		font-size: .8125rem; color: #52525b;
+		text-decoration: none; transition: color .2s;
+	}
+	.hdr-signout:hover { color: #fff; }
+
+	/* Responsive visibility */
+	.hdr-desktop { display: none; }
+	.hdr-mobile { display: flex; }
+	@media (min-width: 768px) {
+		.hdr-desktop { display: flex; }
+		.hdr-mobile { display: none; }
+	}
+
+	/* Burger */
+	.hdr-burger {
+		display: flex; align-items: center; justify-content: center;
+		padding: .4rem;
+		color: #71717a;
+		background: none; border: none;
+		cursor: pointer;
+		transition: color .2s;
+	}
+	.hdr-burger:hover { color: #fff; }
+
+	/* ===== Mobile menu ===== */
+	.mob-menu {
+		border-top: 1px solid rgba(63,63,70,.25);
+		background: rgba(9,9,11,.96);
+		backdrop-filter: blur(14px);
+		-webkit-backdrop-filter: blur(14px);
+	}
+	.mob-inner {
+		max-width: 80rem; margin: 0 auto;
+		padding: .65rem 1rem;
+		display: flex; flex-direction: column; gap: .2rem;
+	}
+	.mob-divider {
+		margin: .4rem 0;
+		border-top: 1px solid rgba(63,63,70,.25);
+	}
+
+	/* Mobile landing links */
+	.mob-link {
+		display: flex; align-items: center;
+		padding: .6rem .85rem; border-radius: .5rem;
+		font-size: .875rem; font-weight: 500;
+		color: #a1a1aa; text-decoration: none;
+		transition: color .2s, background .2s;
+	}
+	.mob-link:hover { color: #fff; background: rgba(63,63,70,.2); }
+	.mob-link-accent { color: #fb923c; font-weight: 600; }
+
+	/* Mobile app tabs */
+	.mob-tab {
+		display: flex; align-items: center; gap: .5rem;
+		padding: .6rem .85rem; border-radius: .5rem;
+		font-size: .875rem; font-weight: 500;
+		text-decoration: none; transition: all .2s;
+	}
+	.mob-tab-idle { color: #a1a1aa; }
+	.mob-tab-idle:hover { color: #fff; background: rgba(63,63,70,.2); }
+	.mob-tab-active {
+		color: #fbbf24;
+		background: rgba(245,158,11,.08);
+		box-shadow: inset 0 0 0 1px rgba(245,158,11,.2);
+	}
+	.mob-tab-locked {
+		color: rgba(113,113,122,.5); cursor: not-allowed;
+	}
+
+	/* Mobile user row */
+	.mob-user {
+		display: flex; align-items: center; gap: .65rem;
+		padding: .5rem .85rem;
+	}
+
+	/* Mobile CTA (centered) */
+	.mob-cta { text-align: center; justify-content: center; }
+</style>

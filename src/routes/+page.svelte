@@ -9,6 +9,7 @@ import {
 } from 'lucide-svelte';
 import Footer from '$lib/components/Footer.svelte';
 import Header from '$lib/components/Header.svelte';
+import { PRICING } from '$lib/pricing';
 import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
@@ -55,12 +56,24 @@ const jsonLd = {
 	],
 };
 
-const ANIM_DIRECTIONS = ['south', 'southwest', 'west', 'northwest', 'north', 'northeast', 'east', 'southeast'] as const;
+const ANIM_DIRECTIONS = [
+	'south',
+	'southwest',
+	'west',
+	'northwest',
+	'north',
+	'northeast',
+	'east',
+	'southeast',
+] as const;
 const ANIM_DIR_LABELS = ['S', 'SW', 'W', 'NW', 'N', 'NE', 'E', 'SE'] as const;
 const ANIM_CDN = 'https://cdn.p5ina.dev/gensprite/showcase/animation';
 
 function inView(node: HTMLElement) {
-	if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+	if (
+		typeof window !== 'undefined' &&
+		window.matchMedia('(prefers-reduced-motion: reduce)').matches
+	) {
 		node.classList.add('in-view');
 		return {};
 	}
@@ -108,7 +121,7 @@ function inView(node: HTMLElement) {
 		<div class="dot-grid"></div>
 	</div>
 
-	<Header user={data.user} />
+	<Header variant="landing" user={data.user} />
 
 	<!-- Promo Bar -->
 	<div class="oiia-bar">
@@ -138,9 +151,9 @@ function inView(node: HTMLElement) {
 			<div class="hero-ctas hero-reveal" style="animation-delay:.22s">
 				<a href="/app/rotate" class="btn-primary">
 					{#if data.user}
-						Upload & Rotate
+						Upload & rotate
 					{:else}
-						Upload & Rotate FREE
+						Upload & rotate free
 					{/if}
 					<ArrowRight class="w-4 h-4" />
 				</a>
@@ -208,7 +221,7 @@ function inView(node: HTMLElement) {
 						Upload any sprite and get all 8 cardinal directions. Uses SV3D reconstruction with ControlNet refinement for consistent output.
 					</p>
 					<div class="feat-foot">
-						<span class="feat-cost">6 tokens</span>
+						<span class="feat-cost">{PRICING.tokenCosts.rotation} tokens</span>
 						<span class="feat-detail">N / NE / E / SE / S / SW / W / NW</span>
 					</div>
 				</div>
@@ -236,7 +249,7 @@ function inView(node: HTMLElement) {
 						Characters, items, weapons, UI elements — describe it and get a transparent PNG in seconds. Powered by SDXL with automatic background removal.
 					</p>
 					<div class="feat-foot">
-						<span class="feat-cost">3 tokens</span>
+						<span class="feat-cost">{PRICING.tokenCosts.sprite} tokens</span>
 						<span class="feat-detail">Up to 1024 &times; 1024</span>
 					</div>
 				</div>
@@ -250,7 +263,7 @@ function inView(node: HTMLElement) {
 						Complete material sets with base color, normal, roughness, and metallic maps. Preview in real-time 3D before downloading.
 					</p>
 					<div class="feat-foot">
-						<span class="feat-cost">4 tokens</span>
+						<span class="feat-cost">{PRICING.tokenCosts.texture} tokens</span>
 						<span class="feat-detail">4 map types included</span>
 					</div>
 				</div>
@@ -264,8 +277,8 @@ function inView(node: HTMLElement) {
 						Generate full-scene concept art from text prompts. Choose from 9 style presets, multiple aspect ratios, and restyle mode to preserve structure.
 					</p>
 					<div class="feat-foot">
-						<span class="feat-cost">4 tokens</span>
-						<span class="feat-detail">Restyle mode: 6 tokens</span>
+						<span class="feat-cost">{PRICING.tokenCosts.conceptArt} tokens</span>
+						<span class="feat-detail">Restyle mode: {PRICING.tokenCosts.conceptArtRestyle} tokens</span>
 					</div>
 				</div>
 			</div>
@@ -504,7 +517,7 @@ function inView(node: HTMLElement) {
 			<p class="cta-sub">Upload your sprite and get all 8 directions in seconds.</p>
 			<a href="/app/rotate" class="btn-primary btn-lg">
 				{#if data.user}
-					Upload & Rotate
+					Upload & rotate
 				{:else}
 					Try free — no signup
 				{/if}
@@ -778,7 +791,7 @@ function inView(node: HTMLElement) {
 		.features-grid { grid-template-columns: repeat(3,1fr); }
 	}
 	.feat-card {
-		padding: 1.75rem; border-radius: 1.15rem;
+		padding: 1.75rem; border-radius: var(--panel-radius);
 		background: rgba(24,24,27,.55); backdrop-filter: blur(6px);
 		border: 1px solid rgba(63,63,70,.35);
 		transition: border-color .3s, box-shadow .3s, transform .3s;
@@ -877,7 +890,7 @@ function inView(node: HTMLElement) {
 		padding: 1.75rem;
 		background: rgba(24,24,27,.45);
 		border: 1px solid rgba(63,63,70,.3);
-		border-radius: 1.15rem;
+		border-radius: var(--panel-radius);
 		opacity: 0; transform: translateY(22px);
 		transition: opacity .65s cubic-bezier(.16,1,.3,1),
 		            transform .65s cubic-bezier(.16,1,.3,1);

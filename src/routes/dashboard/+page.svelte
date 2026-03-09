@@ -1,15 +1,17 @@
 <script lang="ts">
 import {
-	ArrowLeft,
-	Clipboard,
+	Book,
 	Check,
+	Clipboard,
 	Coins,
+	History,
 	Key,
 	Loader2,
 	Plus,
 	ShieldX,
-	History,
 } from 'lucide-svelte';
+import Footer from '$lib/components/Footer.svelte';
+import Header from '$lib/components/Header.svelte';
 import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
@@ -85,7 +87,9 @@ function copyKey() {
 	if (!newKey) return;
 	navigator.clipboard.writeText(newKey);
 	copied = true;
-	setTimeout(() => (copied = false), 2000);
+	setTimeout(() => {
+		copied = false;
+	}, 2000);
 }
 
 function formatDate(date: Date | string | null) {
@@ -111,13 +115,14 @@ function actionLabel(action: string) {
 }
 </script>
 
+<svelte:head>
+	<title>Dashboard - GenSprite</title>
+</svelte:head>
+
+<Header user={data.user} variant="simple" showBack ctaText="API Docs" ctaHref="/docs" />
+
 <div class="dash-page">
-	<div class="page-header">
-		<a href="/app" class="back-link">
-			<ArrowLeft class="w-5 h-5" />
-		</a>
-		<h1 class="page-title">Dashboard</h1>
-	</div>
+	<h1 class="page-title">Dashboard</h1>
 
 	<div class="dash-content">
 		{#if error}
@@ -131,7 +136,7 @@ function actionLabel(action: string) {
 					<Coins class="w-5 h-5" />
 				</div>
 				<div>
-					<h2 class="panel-heading">Credits</h2>
+					<h2 class="panel-heading">Tokens</h2>
 					<p class="panel-sub">Your current balance</p>
 				</div>
 			</div>
@@ -256,7 +261,7 @@ function actionLabel(action: string) {
 							<tr>
 								<th>Date</th>
 								<th>Action</th>
-								<th>Credits</th>
+								<th>Tokens</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -281,22 +286,14 @@ function actionLabel(action: string) {
 	</div>
 </div>
 
-<style>
-	.dash-page { max-width: 56rem; margin: 0 auto; }
+<Footer />
 
-	.page-header {
-		display: flex; align-items: center; gap: .75rem;
-		margin-bottom: 1.5rem;
-	}
-	.back-link {
-		padding: .45rem;
-		color: #71717a;
-		border-radius: .5rem;
-		transition: color .2s, background .2s;
-	}
-	.back-link:hover { color: #fff; background: rgba(63,63,70,.3); }
+<style>
+	.dash-page { max-width: 56rem; margin: 0 auto; padding: 1.5rem 1rem 0; }
+
 	.page-title {
 		font-weight: 800; font-size: 1.35rem; color: #fff;
+		margin-bottom: 1.5rem;
 	}
 
 	.dash-content { display: flex; flex-direction: column; gap: 1.5rem; }
@@ -311,11 +308,11 @@ function actionLabel(action: string) {
 	}
 
 	.panel {
-		background: rgba(24,24,27,.5);
-		border: 1px solid rgba(63,63,70,.35);
-		border-radius: 1rem;
-		padding: 1.5rem;
-		backdrop-filter: blur(6px);
+		background: var(--panel-bg);
+		border: 1px solid var(--panel-border);
+		border-radius: var(--panel-radius);
+		padding: var(--panel-padding);
+		backdrop-filter: var(--panel-blur);
 	}
 	.panel-heading { font-weight: 700; font-size: 1.05rem; color: #fff; }
 	.panel-sub { font-size: .8125rem; color: #71717a; }

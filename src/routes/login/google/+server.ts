@@ -6,7 +6,11 @@ import type { RequestHandler } from './$types';
 export const GET: RequestHandler = async ({ cookies }) => {
 	const state = generateState();
 	const codeVerifier = generateCodeVerifier();
-	const url = google.createAuthorizationURL(state, codeVerifier, ['openid', 'email', 'profile']);
+	const url = google.createAuthorizationURL(state, codeVerifier, [
+		'openid',
+		'email',
+		'profile',
+	]);
 
 	cookies.set('google_oauth_state', state, {
 		path: '/',

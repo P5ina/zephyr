@@ -33,7 +33,9 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 			eq(table.spinJob.id, params.id),
 			or(
 				locals.user ? eq(table.spinJob.userId, locals.user.id) : undefined,
-				locals.guestSession ? eq(table.spinJob.guestSessionId, locals.guestSession.id) : undefined,
+				locals.guestSession
+					? eq(table.spinJob.guestSessionId, locals.guestSession.id)
+					: undefined,
 			),
 		),
 	});
@@ -50,9 +52,12 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 
 	if (needsFalCheck) {
 		try {
-			const falStatus = await getSpinJobStatus(job.falRequestId!);
+			const falStatus = await getSpinJobStatus(job.falRequestId as string);
 
-			if (falStatus.status === 'IN_PROGRESS' || falStatus.status === 'IN_QUEUE') {
+			if (
+				falStatus.status === 'IN_PROGRESS' ||
+				falStatus.status === 'IN_QUEUE'
+			) {
 				// Calculate simulated progress based on time elapsed
 				const elapsedMs = Date.now() - new Date(job.createdAt).getTime();
 				const elapsedSec = elapsedMs / 1000;
@@ -60,8 +65,12 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 				// Estimate ~60 seconds for fal.ai processing, map to 0-40% progress
 				const falProgress = Math.min(40, Math.floor((elapsedSec / 60) * 40));
 
-				const newStage = falStatus.status === 'IN_QUEUE' ? 'Queued...' : 'Generating frames...';
-				const newProgress = falStatus.status === 'IN_QUEUE' ? 5 : Math.max(10, falProgress);
+				const newStage =
+					falStatus.status === 'IN_QUEUE'
+						? 'Queued...'
+						: 'Generating frames...';
+				const newProgress =
+					falStatus.status === 'IN_QUEUE' ? 5 : Math.max(10, falProgress);
 
 				await db
 					.update(table.spinJob)
@@ -72,10 +81,15 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 					})
 					.where(eq(table.spinJob.id, job.id));
 
-				job = (await db.query.spinJob.findFirst({
+				const refreshedJob = await db.query.spinJob.findFirst({
 					where: eq(table.spinJob.id, params.id),
-				}))!;
-			} else if (falStatus.status === 'FAILED' || falStatus.status === 'CANCELLED') {
+				});
+				if (!refreshedJob) error(404, 'Job not found');
+				job = refreshedJob;
+			} else if (
+				falStatus.status === 'FAILED' ||
+				falStatus.status === 'CANCELLED'
+			) {
 				// Refund tokens if user job
 				if (job.userId && job.status !== 'failed') {
 					const regularTokens = job.tokenCost - job.bonusTokenCost;
@@ -96,9 +110,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 					})
 					.where(eq(table.spinJob.id, job.id));
 
-				job = (await db.query.spinJob.findFirst({
+				const failedJob = await db.query.spinJob.findFirst({
 					where: eq(table.spinJob.id, params.id),
-				}))!;
+				});
+				if (!failedJob) error(404, 'Job not found');
+				job = failedJob;
 			} else if (falStatus.status === 'COMPLETED' && falStatus.output) {
 				// fal.ai completed - now create the video
 				await db
@@ -116,7 +132,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 
 					// Create video with ffmpeg
 					const videoBuffer = await createSpinVideo({
-						inputImageUrl: job.inputImageUrl!,
+						inputImageUrl: job.inputImageUrl as string,
 						frames: falStatus.output.frames,
 						addWatermark,
 					});
@@ -148,9 +164,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 						})
 						.where(eq(table.spinJob.id, job.id));
 
-					job = (await db.query.spinJob.findFirst({
+					const completedJob = await db.query.spinJob.findFirst({
 						where: eq(table.spinJob.id, params.id),
-					}))!;
+					});
+					if (!completedJob) error(404, 'Job not found');
+					job = completedJob;
 				} catch (videoError) {
 					console.error('Video creation failed:', videoError);
 
@@ -174,9 +192,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 						})
 						.where(eq(table.spinJob.id, job.id));
 
-					job = (await db.query.spinJob.findFirst({
+					const errorJob = await db.query.spinJob.findFirst({
 						where: eq(table.spinJob.id, params.id),
-					}))!;
+					});
+					if (!errorJob) error(404, 'Job not found');
+					job = errorJob;
 				}
 			}
 		} catch (e) {

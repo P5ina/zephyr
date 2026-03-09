@@ -4,13 +4,25 @@
 export const ANIMATION_TYPES = ['walk', 'run', 'idle', 'attack'] as const;
 export type AnimationType = (typeof ANIMATION_TYPES)[number];
 
-export const ELEVATION_PRESETS = ['side', 'low', 'iso', 'iso45', 'topdown'] as const;
+export const ELEVATION_PRESETS = [
+	'side',
+	'low',
+	'iso',
+	'iso45',
+	'topdown',
+] as const;
 export type ElevationPreset = (typeof ELEVATION_PRESETS)[number];
 
 export const DIRECTIONS_4 = ['south', 'west', 'north', 'east'] as const;
 export const DIRECTIONS_8 = [
-	'south', 'southwest', 'west', 'northwest',
-	'north', 'northeast', 'east', 'southeast',
+	'south',
+	'southwest',
+	'west',
+	'northwest',
+	'north',
+	'northeast',
+	'east',
+	'southeast',
 ] as const;
 
 export type Direction = (typeof DIRECTIONS_8)[number];

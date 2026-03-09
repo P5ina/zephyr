@@ -17,19 +17,23 @@ import {
 } from 'lucide-svelte';
 import {
 	ANIMATION_META,
-	ANIMATION_TYPES,
 	ANIMATION_TYPE_LABELS,
+	ANIMATION_TYPES,
+	type AnimationType,
 	DIRECTIONS_4,
 	DIRECTIONS_8,
+	type Direction,
 	ELEVATION_LABELS,
 	ELEVATION_PRESETS,
-	type AnimationType,
-	type Direction,
 	type ElevationPreset,
 } from '$lib/animation-config';
-import { PRICING, getAnimationReprocessTokenCost, getAnimationGenerationTokenCost } from '$lib/pricing';
-import { tokenState } from '$lib/token-state.svelte';
+import {
+	getAnimationGenerationTokenCost,
+	getAnimationReprocessTokenCost,
+	PRICING,
+} from '$lib/pricing';
 import type { AnimationJob } from '$lib/server/db/schema';
+import { tokenState } from '$lib/token-state.svelte';
 import type { LayoutData } from '../$types';
 import type { PageData } from './$types';
 
@@ -50,7 +54,9 @@ let viewMode = $state<'new' | string>(
 );
 
 // Per-direction image state
-let directionImages = $state<Record<string, { file?: File; url?: string; previewUrl?: string }>>({});
+let directionImages = $state<
+	Record<string, { file?: File; url?: string; previewUrl?: string }>
+>({});
 let showSpriteSelector = $state<string | null>(null); // which direction's sprite selector is open
 
 // Animation options
@@ -79,7 +85,8 @@ const directions = $derived<readonly Direction[]>(
 );
 
 const filledDirectionCount = $derived(
-	directions.filter((d) => directionImages[d]?.file || directionImages[d]?.url).length,
+	directions.filter((d) => directionImages[d]?.file || directionImages[d]?.url)
+		.length,
 );
 
 const hasAnyImage = $derived(filledDirectionCount > 0);
@@ -164,7 +171,10 @@ $effect(() => {
 	const job = selectedJob;
 
 	if (!job || job.status !== 'completed' || !job.spritesheetUrl) {
-		if (archivePreview.sourceUrl || Object.keys(archivePreview.frames).length > 0) {
+		if (
+			archivePreview.sourceUrl ||
+			Object.keys(archivePreview.frames).length > 0
+		) {
 			clearArchivePreview();
 		}
 		return;
@@ -222,7 +232,10 @@ $effect(() => {
 		}
 	}
 
-	return () => cleanups.forEach((fn) => fn());
+	return () =>
+		cleanups.forEach((fn) => {
+			fn();
+		});
 });
 
 function handleFileSelectForDirection(direction: string, event: Event) {
@@ -338,11 +351,15 @@ function applyRotation8(rotation: (typeof rotations8)[number]) {
 	directionImages = updated;
 }
 
-function getRotation4PreviewUrl(rotation: (typeof rotations4)[number]): string | null {
+function getRotation4PreviewUrl(
+	rotation: (typeof rotations4)[number],
+): string | null {
 	return rotation.rotationFront || rotation.inputImageUrl || null;
 }
 
-function getRotation8PreviewUrl(rotation: (typeof rotations8)[number]): string | null {
+function getRotation8PreviewUrl(
+	rotation: (typeof rotations8)[number],
+): string | null {
 	return rotation.rotationS || rotation.inputImageUrl || null;
 }
 
@@ -371,11 +388,12 @@ async function loadArchivePreview(job: AnimationJob, requestId: number) {
 		}
 
 		const zip = await JSZip.loadAsync(await res.arrayBuffer());
-		const directions = (job.directionCount === 4 ? DIRECTIONS_4 : DIRECTIONS_8)
-			.filter((dir) => {
-				const videos = job.directionVideos as Record<string, string> | null;
-				return videos?.[dir];
-			});
+		const directions = (
+			job.directionCount === 4 ? DIRECTIONS_4 : DIRECTIONS_8
+		).filter((dir) => {
+			const videos = job.directionVideos as Record<string, string> | null;
+			return videos?.[dir];
+		});
 
 		const frames: Record<string, string[]> = {};
 
@@ -403,7 +421,10 @@ async function loadArchivePreview(job: AnimationJob, requestId: number) {
 			sourceUrl,
 			frames,
 			loading: false,
-			error: Object.keys(frames).length > 0 ? null : 'No PNG frames found in archive.',
+			error:
+				Object.keys(frames).length > 0
+					? null
+					: 'No PNG frames found in archive.',
 		};
 	} catch (error) {
 		if (requestId !== archivePreviewRequestId) return;
@@ -412,7 +433,10 @@ async function loadArchivePreview(job: AnimationJob, requestId: number) {
 			sourceUrl,
 			frames: {},
 			loading: false,
-			error: error instanceof Error ? error.message : 'Failed to load archive preview.',
+			error:
+				error instanceof Error
+					? error.message
+					: 'Failed to load archive preview.',
 		};
 	}
 }
@@ -457,7 +481,8 @@ async function generate() {
 		const result = await res.json();
 
 		tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
-		tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;
+		tokenState.bonusTokens =
+			result.bonusTokensRemaining ?? tokenState.bonusTokens;
 
 		if (result.job) {
 			animationJobs = [result.job, ...animationJobs];
@@ -557,7 +582,11 @@ async function cancelJob(id: string) {
 			const result = await res.json();
 			animationJobs = animationJobs.map((j) =>
 				j.id === id
-					? { ...j, status: 'failed' as const, errorMessage: 'Cancelled by user' }
+					? {
+							...j,
+							status: 'failed' as const,
+							errorMessage: 'Cancelled by user',
+						}
 					: j,
 			);
 			pollingSet.delete(id);
@@ -565,8 +594,10 @@ async function cancelJob(id: string) {
 				generating = false;
 				currentGeneratingId = null;
 			}
-			tokenState.tokens = tokenState.tokens + (result.regularTokensRefunded ?? 0);
-			tokenState.bonusTokens = tokenState.bonusTokens + (result.bonusTokensRefunded ?? 0);
+			tokenState.tokens =
+				tokenState.tokens + (result.regularTokensRefunded ?? 0);
+			tokenState.bonusTokens =
+				tokenState.bonusTokens + (result.bonusTokensRefunded ?? 0);
 		} else {
 			const error = await res.json();
 			alert(error.message || 'Failed to cancel');
@@ -602,8 +633,13 @@ function getJobPreviewImage(job: AnimationJob): string | null {
 }
 
 function getReexportCost(job: AnimationJob): number {
-	const frameCount = job.frameCount ?? ANIMATION_META[job.animationType as AnimationType].framesPerLoop;
-	return getAnimationReprocessTokenCost(frameCount, job.directionCount as 4 | 8);
+	const frameCount =
+		job.frameCount ??
+		ANIMATION_META[job.animationType as AnimationType].framesPerLoop;
+	return getAnimationReprocessTokenCost(
+		frameCount,
+		job.directionCount as 4 | 8,
+	);
 }
 
 let reexporting = $state(false);
@@ -615,7 +651,14 @@ async function reexportJob(id: string) {
 	try {
 		// Set job to processing state locally for immediate UI feedback
 		animationJobs = animationJobs.map((j) =>
-			j.id === id ? { ...j, status: 'processing' as const, currentStage: 'Starting re-export...', progress: 65 } : j,
+			j.id === id
+				? {
+						...j,
+						status: 'processing' as const,
+						currentStage: 'Starting re-export...',
+						progress: 65,
+					}
+				: j,
 		);
 
 		const res = await fetch(`/api/animate/${id}/reexport`, { method: 'POST' });
@@ -625,7 +668,14 @@ async function reexportJob(id: string) {
 			alert(err.message || 'Re-export failed');
 			// Restore completed state
 			animationJobs = animationJobs.map((j) =>
-				j.id === id ? { ...j, status: 'completed' as const, currentStage: 'Completed', progress: 100 } : j,
+				j.id === id
+					? {
+							...j,
+							status: 'completed' as const,
+							currentStage: 'Completed',
+							progress: 100,
+						}
+					: j,
 			);
 			reexporting = false;
 			return;
@@ -633,7 +683,8 @@ async function reexportJob(id: string) {
 
 		const result = await res.json();
 		tokenState.tokens = result.tokensRemaining ?? tokenState.tokens;
-		tokenState.bonusTokens = result.bonusTokensRemaining ?? tokenState.bonusTokens;
+		tokenState.bonusTokens =
+			result.bonusTokensRemaining ?? tokenState.bonusTokens;
 
 		// Start polling to track progress
 		pollingSet.add(id);
@@ -659,7 +710,8 @@ async function downloadArchive() {
 		a.click();
 		URL.revokeObjectURL(blobUrl);
 	} catch {
-		if (selectedJob?.spritesheetUrl) window.open(selectedJob.spritesheetUrl, '_blank');
+		if (selectedJob?.spritesheetUrl)
+			window.open(selectedJob.spritesheetUrl, '_blank');
 	}
 }
 
