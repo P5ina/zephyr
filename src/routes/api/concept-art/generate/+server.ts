@@ -2,6 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import { put } from '@vercel/blob';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { getPostHogClient } from '$lib/server/posthog';
 import { env } from '$env/dynamic/private';
 import { PRICING } from '$lib/pricing';
 import { db } from '$lib/server/db';
@@ -276,6 +277,20 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			'Failed to submit job for processing. Tokens have been refunded.',
 		);
 	}
+
+	const posthog = getPostHogClient();
+	posthog.capture({
+		distinctId: locals.user.id,
+		event: 'concept_art_generation_started',
+		properties: {
+			mode,
+			style,
+			image_size: imageSize,
+			token_cost: TOKEN_COST,
+			has_reference_image: !!referenceImageUrl,
+		},
+	});
+	await posthog.flush();
 
 	return json({
 		id: genId,

@@ -8,6 +8,8 @@ import {
 	RotateCw,
 	Sparkles,
 } from 'lucide-svelte';
+import { browser } from '$app/environment';
+import posthog from 'posthog-js';
 import type { Snippet } from 'svelte';
 import Header from '$lib/components/Header.svelte';
 import { GUEST_CONFIG } from '$lib/guest-config';
@@ -22,6 +24,16 @@ tokenState.init(
 	data.user?.bonusTokens ?? 0,
 	data.guestSession?.generationsUsed ?? 0,
 );
+
+// Identify user in PostHog when logged in
+$effect(() => {
+	if (browser && data.user) {
+		posthog.identify(data.user.id, {
+			email: data.user.email,
+			username: data.user.username,
+		});
+	}
+});
 
 const guestGenerationsRemaining = $derived(
 	GUEST_CONFIG.maxGenerations - tokenState.guestGenerationsUsed,

@@ -1,5 +1,6 @@
 <script lang="ts">
 import { track } from '@vercel/analytics';
+import posthog from 'posthog-js';
 import {
 	ArrowLeft,
 	Coins,
@@ -23,6 +24,14 @@ async function buyPack(packType: keyof typeof PRICING.creditPacks) {
 	error = null;
 
 	track('checkout_start', { pack: packType });
+
+	const pack = PRICING.creditPacks[packType];
+	posthog.capture('checkout_started', {
+		pack_type: packType,
+		pack_name: pack.name,
+		price_usd: pack.price,
+		tokens: pack.tokens,
+	});
 
 	try {
 		const res = await fetch('/api/billing/checkout', {

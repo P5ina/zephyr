@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 import type Stripe from 'stripe';
+import { getPostHogClient } from '$lib/server/posthog';
 import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
@@ -69,6 +70,19 @@ export const POST: RequestHandler = async ({ request }) => {
 		console.log(
 			`Granted ${txn.tokensGranted} tokens to user ${userId} (transaction ${transactionId})`,
 		);
+
+		const posthog = getPostHogClient();
+		posthog.capture({
+			distinctId: userId,
+			event: 'tokens_purchased',
+			properties: {
+				tokens_granted: txn.tokensGranted,
+				amount_usd: txn.amount,
+				pack_type: session.metadata?.packType,
+				transaction_id: transactionId,
+			},
+		});
+		await posthog.flush();
 	}
 
 	if (event.type === 'checkout.session.expired') {

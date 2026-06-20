@@ -1,7 +1,44 @@
-import type { Handle } from '@sveltejs/kit';
+import { sequence } from '@sveltejs/kit/hooks';
+import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import * as auth from '$lib/server/auth';
 import * as guestAuth from '$lib/server/guest-auth';
+import { getPostHogClient } from '$lib/server/posthog';
+
+const handleIngest: Handle = async ({ event, resolve }) => {
+	const { pathname } = event.url;
+
+	if (pathname.startsWith('/ingest')) {
+		const useAssetHost =
+			pathname.startsWith('/ingest/static/') || pathname.startsWith('/ingest/array/');
+		const hostname = useAssetHost ? 'us-assets.i.posthog.com' : 'us.i.posthog.com';
+
+		const url = new URL(event.request.url);
+		url.protocol = 'https:';
+		url.hostname = hostname;
+		url.port = '443';
+		url.pathname = pathname.replace(/^\/ingest/, '');
+
+		const headers = new Headers(event.request.headers);
+		headers.set('host', hostname);
+		headers.set('accept-encoding', '');
+
+		const clientIp = event.request.headers.get('x-forwarded-for') || event.getClientAddress();
+		if (clientIp) {
+			headers.set('x-forwarded-for', clientIp);
+		}
+
+		return fetch(url.toString(), {
+			method: event.request.method,
+			headers,
+			body: event.request.body,
+			// @ts-expect-error - duplex is required for streaming request bodies
+			duplex: 'half',
+		});
+	}
+
+	return resolve(event);
+};
 
 const handleAuth: Handle = async ({ event, resolve }) => {
 	const sessionToken = event.cookies.get(auth.sessionCookieName);
@@ -49,4 +86,23 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-export const handle: Handle = handleAuth;
+export const handle: Handle = sequence(handleIngest, handleAuth);
+
+export const handleError: HandleServerError = async ({ error, status, message }) => {
+	const posthog = getPostHogClient();
+
+	posthog.capture({
+		distinctId: 'server',
+		event: 'server_error',
+		properties: {
+			error: error instanceof Error ? error.message : String(error),
+			status,
+			message,
+		},
+	});
+
+	return {
+		message,
+		status,
+	};
+};

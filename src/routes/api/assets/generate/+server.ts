@@ -1,6 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { getPostHogClient } from '$lib/server/posthog';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import { PRICING } from '$lib/pricing';
 import { db } from '$lib/server/db';
@@ -151,6 +152,20 @@ export const POST: RequestHandler = async ({
 		const generationsRemaining =
 			guestAuth.getGuestRemainingGenerations(guestSession) - 1;
 
+		const posthog = getPostHogClient();
+		posthog.capture({
+			distinctId: `guest-${guestSession.id}`,
+			event: 'sprite_generation_started',
+			properties: {
+				is_guest: true,
+				asset_type: assetType,
+				style: body.style,
+				width: body.width || 512,
+				height: body.height || 512,
+			},
+		});
+		await posthog.flush();
+
 		return json(
 			{
 				asset,
@@ -260,6 +275,21 @@ export const POST: RequestHandler = async ({
 
 	const tokensRemaining = locals.user.tokens - regularDeduct;
 	const bonusRemaining = locals.user.bonusTokens - bonusDeduct;
+
+	const posthog = getPostHogClient();
+	posthog.capture({
+		distinctId: locals.user.id,
+		event: 'sprite_generation_started',
+		properties: {
+			is_guest: false,
+			asset_type: assetType,
+			style: body.style,
+			token_cost: cost,
+			width: body.width || 512,
+			height: body.height || 512,
+		},
+	});
+	await posthog.flush();
 
 	return json({
 		asset,

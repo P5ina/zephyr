@@ -2,6 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import { put } from '@vercel/blob';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { getPostHogClient } from '$lib/server/posthog';
 import sharp from 'sharp';
 import { env } from '$env/dynamic/private';
 import {
@@ -213,6 +214,20 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	const tokensRemaining = locals.user.tokens - regularDeduct;
 	const bonusRemaining = locals.user.bonusTokens - bonusDeduct;
+
+	const posthog = getPostHogClient();
+	posthog.capture({
+		distinctId: locals.user.id,
+		event: 'animation_started',
+		properties: {
+			animation_type: animationType,
+			elevation,
+			direction_count: directionCount,
+			directions_provided: providedDirections.length,
+			token_cost: TOKEN_COST,
+		},
+	});
+	await posthog.flush();
 
 	return json({
 		id: job.id,

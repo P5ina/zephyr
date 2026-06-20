@@ -2,6 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import { put } from '@vercel/blob';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { getPostHogClient } from '$lib/server/posthog';
 import { env } from '$env/dynamic/private';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import { PRICING } from '$lib/pricing';
@@ -143,6 +144,19 @@ export const POST: RequestHandler = async ({
 			guestSession.id,
 		);
 
+		const posthog = getPostHogClient();
+		posthog.capture({
+			distinctId: `guest-${guestSession.id}`,
+			event: 'rotation_started',
+			properties: {
+				is_guest: true,
+				job_id: job.id,
+				elevation,
+				has_prompt: !!prompt,
+			},
+		});
+		await posthog.flush();
+
 		return json(
 			{
 				id: job.id,
@@ -238,6 +252,20 @@ export const POST: RequestHandler = async ({
 			'Failed to submit job for processing. Tokens have been refunded.',
 		);
 	}
+
+	const posthog = getPostHogClient();
+	posthog.capture({
+		distinctId: locals.user.id,
+		event: 'rotation_started',
+		properties: {
+			is_guest: false,
+			job_id: job.id,
+			token_cost: TOKEN_COST,
+			elevation,
+			has_prompt: !!prompt,
+		},
+	});
+	await posthog.flush();
 
 	return json({
 		id: job.id,

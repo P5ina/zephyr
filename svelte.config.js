@@ -9,6 +9,9 @@ const config = {
 		adapter: adapter({
 			runtime: 'nodejs22.x',
 		}),
+		paths: {
+			relative: false,
+		},
 	},
 };
 

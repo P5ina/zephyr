@@ -1,6 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { getPostHogClient } from '$lib/server/posthog';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import { PROMO_COOKIE_NAME, validatePromoCode } from '$lib/promo-codes';
 import * as auth from '$lib/server/auth';
@@ -43,6 +44,17 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 			})
 			.returning();
 		user = newUser;
+
+		const posthog = getPostHogClient();
+		posthog.capture({
+			distinctId: user.id,
+			event: 'user_signed_up',
+			properties: {
+				method: 'magic_link',
+				email: result.email,
+			},
+		});
+		await posthog.flush();
 	}
 
 	// Apply promo code bonus for new users
@@ -59,6 +71,18 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 			console.log(
 				`Applied promo code ${promo.code} (+${promo.bonusTokens} tokens) to user ${user.id}`,
 			);
+
+			const posthog = getPostHogClient();
+			posthog.capture({
+				distinctId: user.id,
+				event: 'promo_code_applied',
+				properties: {
+					promo_code: promo.code,
+					bonus_tokens: promo.bonusTokens,
+					method: 'magic_link',
+				},
+			});
+			await posthog.flush();
 		}
 		cookies.delete(PROMO_COOKIE_NAME, { path: '/' });
 	}

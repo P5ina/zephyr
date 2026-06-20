@@ -1,6 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import { track } from '@vercel/analytics/server';
 import { eq, sql } from 'drizzle-orm';
+import { getPostHogClient } from '$lib/server/posthog';
 import { nanoid } from 'nanoid';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import { PROMO_COOKIE_NAME, validatePromoCode } from '$lib/promo-codes';
@@ -91,6 +92,18 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 
 			// Track signup
 			await track('signup', { method: 'github' });
+
+			const posthog = getPostHogClient();
+			posthog.capture({
+				distinctId: user.id,
+				event: 'user_signed_up',
+				properties: {
+					method: 'github',
+					email,
+					username: githubUser.login,
+				},
+			});
+			await posthog.flush();
 		}
 	}
 
@@ -108,6 +121,18 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 			console.log(
 				`Applied promo code ${promo.code} (+${promo.bonusTokens} tokens) to user ${user.id}`,
 			);
+
+			const posthog = getPostHogClient();
+			posthog.capture({
+				distinctId: user.id,
+				event: 'promo_code_applied',
+				properties: {
+					promo_code: promo.code,
+					bonus_tokens: promo.bonusTokens,
+					method: 'github',
+				},
+			});
+			await posthog.flush();
 		}
 		cookies.delete(PROMO_COOKIE_NAME, { path: '/' });
 	}

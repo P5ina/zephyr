@@ -24,3 +24,6 @@ vite.config.ts.timestamp-*
 .env*.local
 # Playwright
 test-results
+
+# Claude Code local settings
+.claude/settings.local.json
