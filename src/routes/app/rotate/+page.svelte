@@ -27,6 +27,7 @@ import {
 	Upload,
 	X,
 } from 'lucide-svelte';
+import { uploadImageToBlob } from '$lib/blob-upload';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import { PRICING } from '$lib/pricing';
 import type { RotationJob } from '$lib/server/db/schema';
@@ -328,7 +329,15 @@ async function generate() {
 		const formData = new FormData();
 
 		if (uploadedFile) {
-			formData.append('image', uploadedFile);
+			if (data.user) {
+				// Signed-in users upload directly to Blob (avoids the 4.5MB
+				// function-body limit), then we send only the URL.
+				const url = await uploadImageToBlob(uploadedFile, 'rotations');
+				formData.append('imageUrl', url);
+			} else {
+				// Guests upload a single image through the function (small payload).
+				formData.append('image', uploadedFile);
+			}
 		} else if (selectedImageUrl) {
 			formData.append('imageUrl', selectedImageUrl);
 		}

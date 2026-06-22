@@ -2,13 +2,13 @@ import { error, json } from '@sveltejs/kit';
 import { put } from '@vercel/blob';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { getPostHogClient } from '$lib/server/posthog';
 import { env } from '$env/dynamic/private';
 import { PRICING } from '$lib/pricing';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { submitConceptArtJob, submitPreprocessorJob } from '$lib/server/fal';
 import { buildFalWebhookUrl } from '$lib/server/fal-webhook';
+import { getPostHogClient } from '$lib/server/posthog';
 import type { RequestHandler } from './$types';
 
 const VALID_IMAGE_SIZES = [
@@ -89,12 +89,22 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		if (modeField === 'restyle') {
 			mode = 'restyle';
 
-			// Upload composition image
+			// Composition image: uploaded to Blob client-side (URL), with a
+			// legacy fallback for a raw file in the multipart body.
+			const compositionUrlField = formData.get('compositionImageUrl') as
+				| string
+				| null;
 			const compositionFile = formData.get('compositionImage') as File | null;
-			if (!compositionFile || compositionFile.size === 0) {
+			if (compositionUrlField) {
+				compositionImageUrl = compositionUrlField;
+			} else if (compositionFile && compositionFile.size > 0) {
+				compositionImageUrl = await uploadImage(
+					compositionFile,
+					locals.user.id,
+				);
+			} else {
 				error(400, 'Composition image is required for restyle mode');
 			}
-			compositionImageUrl = await uploadImage(compositionFile, locals.user.id);
 
 			// Control method
 			const controlMethodField = formData.get('controlMethod') as string | null;

@@ -27,6 +27,7 @@ import {
 	ELEVATION_PRESETS,
 	type ElevationPreset,
 } from '$lib/animation-config';
+import { uploadImageToBlob } from '$lib/blob-upload';
 import {
 	getAnimationGenerationTokenCost,
 	getAnimationReprocessTokenCost,
@@ -451,20 +452,26 @@ async function generate() {
 	try {
 		const formData = new FormData();
 
-		for (const dir of directions) {
-			const data = directionImages[dir];
-			if (!data) continue;
-
-			if (data.file) {
-				formData.append(`image_${dir}`, data.file);
-			} else if (data.url) {
-				formData.append(`imageUrl_${dir}`, data.url);
-			}
-		}
-
 		formData.append('animationType', animationType);
 		formData.append('elevation', elevation);
 		formData.append('directionCount', directionCount.toString());
+
+		// Upload selected files straight to Blob (in parallel), then send only
+		// URLs — keeps the request body tiny and under Vercel's 4.5MB limit.
+		await Promise.all(
+			directions.map(async (dir) => {
+				const data = directionImages[dir];
+				if (!data) return;
+
+				let url = data.url;
+				if (data.file) {
+					url = await uploadImageToBlob(data.file, 'animates');
+				}
+				if (url) {
+					formData.append(`imageUrl_${dir}`, url);
+				}
+			}),
+		);
 
 		const res = await fetch('/api/animate/generate', {
 			method: 'POST',

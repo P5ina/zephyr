@@ -1,10 +1,6 @@
 import { error, json } from '@sveltejs/kit';
-import { put } from '@vercel/blob';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { getPostHogClient } from '$lib/server/posthog';
-import sharp from 'sharp';
-import { env } from '$env/dynamic/private';
 import {
 	ANIMATION_TYPES,
 	type AnimationType,
@@ -20,6 +16,7 @@ import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { submitAnimateJob } from '$lib/server/fal';
 import { buildFalWebhookUrl } from '$lib/server/fal-webhook';
+import { getPostHogClient } from '$lib/server/posthog';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -57,45 +54,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const directions: readonly Direction[] =
 		directionCount === 4 ? DIRECTIONS_4 : DIRECTIONS_8;
 
-	if (!env.BLOB_READ_WRITE_TOKEN) {
-		error(500, 'Image upload not configured');
-	}
-
-	// Collect per-direction images (file uploads or URLs)
+	// Images are uploaded directly to Blob from the browser; we only receive URLs.
 	const directionImageUrls: Record<string, string> = {};
 
 	for (const dir of directions) {
-		const file = formData.get(`image_${dir}`) as File | null;
 		const url = formData.get(`imageUrl_${dir}`) as string | null;
-
-		if (file && file.size > 0) {
-			if (file.size > 10 * 1024 * 1024) {
-				error(400, `Image for ${dir} must be less than 10MB`);
-			}
-
-			const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
-			if (!allowedTypes.includes(file.type)) {
-				error(400, `Image for ${dir} must be PNG, JPEG, or WebP`);
-			}
-
-			const rawBuffer = Buffer.from(await file.arrayBuffer());
-			const imageBuffer = await sharp(rawBuffer)
-				.rotate()
-				.resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
-				.png()
-				.toBuffer();
-
-			const blob = await put(
-				`animates/${locals.user.id}/${nanoid()}_${dir}.png`,
-				imageBuffer,
-				{
-					access: 'public',
-					contentType: 'image/png',
-					token: env.BLOB_READ_WRITE_TOKEN,
-				},
-			);
-			directionImageUrls[dir] = blob.url;
-		} else if (url) {
+		if (url) {
 			directionImageUrls[dir] = url;
 		}
 	}

@@ -14,6 +14,7 @@ import {
 	Zap,
 } from 'lucide-svelte';
 import { slide } from 'svelte/transition';
+import { uploadImageToBlob } from '$lib/blob-upload';
 import { PRICING } from '$lib/pricing';
 import type { ConceptArtGeneration } from '$lib/server/db/schema';
 import { tokenState } from '$lib/token-state.svelte';
@@ -175,7 +176,10 @@ async function generate() {
 			formData.append('prompt', prompt.trim());
 			formData.append('imageSize', selectedSize);
 			if (selectedStyle) formData.append('style', selectedStyle);
-			formData.append('compositionImage', sourceFile as File);
+			formData.append(
+				'compositionImageUrl',
+				await uploadImageToBlob(sourceFile as File, 'concept-art'),
+			);
 			formData.append('controlMethod', controlMethod);
 			formData.append('controlStrength', String(structureStrength));
 			res = await fetch('/api/concept-art/generate', {
@@ -187,7 +191,10 @@ async function generate() {
 			formData.append('prompt', prompt.trim());
 			formData.append('imageSize', selectedSize);
 			if (selectedStyle) formData.append('style', selectedStyle);
-			formData.append('image', sourceFile);
+			formData.append(
+				'imageUrl',
+				await uploadImageToBlob(sourceFile, 'concept-art'),
+			);
 			formData.append('strength', String(influenceStrength));
 			res = await fetch('/api/concept-art/generate', {
 				method: 'POST',
