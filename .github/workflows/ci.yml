@@ -23,13 +23,21 @@ jobs:
       # you want CI builds to match production byte for byte.
       PUBLIC_POSTHOG_PROJECT_TOKEN: ${{ vars.PUBLIC_POSTHOG_PROJECT_TOKEN || 'phc_ci_placeholder' }}
       PUBLIC_POSTHOG_HOST: ${{ vars.PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com' }}
-      # Not used to connect to anything. After bundling, SvelteKit runs a
-      # postbuild "analyse" pass that imports the server modules to read each
-      # route's config, and src/lib/server/db/index.ts throws at module scope
-      # when DATABASE_URL is absent. So the build needs the variable to exist,
-      # not to be valid. The real fix is to construct the client lazily instead
-      # of throwing on import — until then, a syntactically valid placeholder.
+      # Neither of these connects to anything during a build. After bundling,
+      # SvelteKit runs a postbuild "analyse" pass that imports the server
+      # modules to read each route's config, and two of them fail at module
+      # scope without these: src/lib/server/db/index.ts throws when
+      # DATABASE_URL is absent, and src/lib/server/email.ts calls
+      # `new Resend(env.RESEND_API_KEY || '')`, which rejects the empty string
+      # its own fallback produces. So the build needs the variables to exist,
+      # not to be valid.
+      #
+      # Reading config through $env/dynamic/private keeps secrets out of the
+      # bundle, but it does not help when a module throws on import. The real
+      # fix is to build both clients lazily on first use; these placeholders
+      # are the stopgap.
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      RESEND_API_KEY: re_ci_placeholder
 
     steps:
       - uses: actions/checkout@v4
