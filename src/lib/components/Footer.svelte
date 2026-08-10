@@ -41,13 +41,17 @@ const maxWidthClass = {
 					</div>
 					<p class="text-sm text-zinc-500">MIT License</p>
 				</div>
+				<p class="text-sm text-zinc-500">&copy; 2026 Triangle Interactive, LLC</p>
 			</div>
 		{:else}
-			<div class="flex flex-wrap items-center justify-center gap-6 text-sm text-zinc-500">
-				<a href="/docs" class="hover:text-white transition-colors">API Docs</a>
-				<a href="/terms" class="hover:text-white transition-colors">Terms of Service</a>
-				<a href="/privacy" class="hover:text-white transition-colors">Privacy Policy</a>
-				<a href="/refund" class="hover:text-white transition-colors">Refund Policy</a>
+			<div class="flex flex-col items-center gap-4">
+				<div class="flex flex-wrap items-center justify-center gap-6 text-sm text-zinc-500">
+					<a href="/docs" class="hover:text-white transition-colors">API Docs</a>
+					<a href="/terms" class="hover:text-white transition-colors">Terms of Service</a>
+					<a href="/privacy" class="hover:text-white transition-colors">Privacy Policy</a>
+					<a href="/refund" class="hover:text-white transition-colors">Refund Policy</a>
+				</div>
+				<p class="text-sm text-zinc-500">&copy; 2026 Triangle Interactive, LLC</p>
 			</div>
 		{/if}
 	</div>
