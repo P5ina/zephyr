@@ -180,8 +180,9 @@ async function cancelGeneration(id: string) {
 				: g,
 		);
 
-		tokens = tokens + result.regularTokensRefunded;
-		bonusTokens = bonusTokens + result.bonusTokensRefunded;
+		tokenState.tokens = tokenState.tokens + result.regularTokensRefunded;
+		tokenState.bonusTokens =
+			tokenState.bonusTokens + result.bonusTokensRefunded;
 
 		pollingSet.delete(id);
 

@@ -141,6 +141,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 					.returning({ id: table.animationJob.id });
 
 				if (claimed) {
+					const jobId = job.id;
 					try {
 						const result = await buildFrameArchive(
 							directionVideos,
@@ -153,7 +154,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 										currentStage: `!exporting@${exportStartTime}:${stage}`,
 										progress,
 									})
-									.where(eq(table.animationJob.id, job?.id));
+									.where(eq(table.animationJob.id, jobId));
 							},
 						);
 
