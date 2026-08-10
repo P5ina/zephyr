@@ -1,11 +1,15 @@
 import { error, json } from '@sveltejs/kit';
 import { put } from '@vercel/blob';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { env } from '$env/dynamic/private';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import { PRICING } from '$lib/pricing';
-import { chargeCredits, claimJobAndRefund } from '$lib/server/credits';
+import {
+	chargeCredits,
+	claimJobAndRefund,
+	NOT_TERMINAL,
+} from '$lib/server/credits';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { submitRotationJob } from '$lib/server/fal';
@@ -80,14 +84,18 @@ export const POST: RequestHandler = async ({
 	if (!locals.user) {
 		let guestSession = locals.guestSession;
 		if (!guestSession) {
-			// Checked before minting a session, not after: a fresh session always
-			// reads generationsUsed = 0, so the per-session cap below can never
-			// reject a caller that simply omits the cookie.
-			const ipAddress = getClientAddress();
-			if (!(await guestAuth.canGuestGenerateFromIp(ipAddress))) {
+			// The address allowance and the insert are one statement. Checking
+			// first and minting afterwards leaves a window in which simultaneous
+			// cookie-less requests all read zero and all mint a session, which is
+			// the same read-check-write defect being cleared out elsewhere.
+			const minted = await guestAuth.createGuestSessionForAddress({
+				ipAddress: getClientAddress(),
+				cap: GUEST_CONFIG.maxRotationGenerations,
+			});
+			if (!minted) {
 				error(429, 'Free rotation limit reached. Sign up to continue.');
 			}
-			guestSession = await guestAuth.createGuestSession(ipAddress);
+			guestSession = minted;
 		}
 
 		if (!(await guestAuth.canGuestRotate(guestSession.id))) {
@@ -226,7 +234,7 @@ export const POST: RequestHandler = async ({
 			job: table.rotationJobNew,
 			jobId,
 			errorMessage: 'Failed to submit job for processing',
-			claimableWhen: sql`status NOT IN ('completed', 'failed')`,
+			claimableWhen: NOT_TERMINAL,
 		});
 
 		error(

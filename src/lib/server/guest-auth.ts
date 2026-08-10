@@ -67,37 +67,83 @@ export function canGuestGenerate(session: table.GuestSession): boolean {
 }
 
 /**
- * Whether this address may start another free generation.
- *
- * The per-session counter alone enforces nothing: a caller that sends no
- * cookie gets a brand-new session with generationsUsed = 0, and 0 < the cap is
- * always true, so the quota only ever binds on callers who volunteer their
- * cookie. Summing what the address has already spent is what makes the cap
- * real — the ip_address column has been written on every session since the
- * beginning and read by nothing.
- *
- * Expired sessions are excluded so the cap refills on the same schedule a
- * cookie-carrying guest already gets, rather than banning an address forever.
- * Addresses are shared behind NAT and trivially changed, so this raises the
- * cost of abuse rather than preventing it; a rate limit at the edge is the
- * durable answer.
+ * How much one address may spend in a day, as a multiple of the per-visitor
+ * cap. This is a backstop against scripted abuse, NOT a per-person quota:
+ * addresses are shared by everyone behind an office router, a campus, a hotel,
+ * or a mobile carrier's CGNAT, so a limit set at the per-visitor cap would
+ * refuse the third colleague's very first click. Set generously — turning
+ * "unlimited free GPU jobs from one machine" into "a few dozen" is the win;
+ * squeezing it further only hurts real visitors. A rate limit at the edge,
+ * keyed on more than an address, is the durable answer.
  */
-export async function canGuestGenerateFromIp(
-	ipAddress: string,
-): Promise<boolean> {
-	const [row] = await db
-		.select({
-			used: sql<number>`coalesce(sum(${table.guestSession.generationsUsed}), 0)`,
-		})
-		.from(table.guestSession)
-		.where(
-			and(
-				eq(table.guestSession.ipAddress, ipAddress),
-				gt(table.guestSession.expiresAt, new Date()),
-			),
-		);
+const ADDRESS_BURST_MULTIPLIER = 5;
+const ADDRESS_WINDOW_HOURS = 24;
 
-	return Number(row?.used ?? 0) < GUEST_CONFIG.maxGenerations;
+/**
+ * Creates a guest session for `ipAddress`, unless that address has already
+ * spent its daily allowance. Returns null when the allowance is exhausted.
+ *
+ * Why the check and the insert are one statement: the per-session counter
+ * enforces nothing on its own, because a caller that sends no cookie gets a
+ * fresh session with generationsUsed = 0 and 0 < cap is always true. Summing
+ * what the address already spent fixes that — but only if the sum and the
+ * insert cannot be separated. Checking first and inserting afterwards leaves a
+ * window in which N simultaneous cookie-less requests all read zero and all
+ * mint a session, which is the same read-check-write defect this codebase is
+ * being cleared of. Here the sum is a subquery in the INSERT's WHERE, so the
+ * row is created only if the address was still under its allowance at the
+ * moment of the write.
+ *
+ * Sessions already converted to accounts are excluded — a neighbour who signed
+ * up should stop consuming the address's allowance — and the window is a day
+ * rather than the session's seven-day lifetime, so the allowance refills.
+ */
+export async function createGuestSessionForAddress(params: {
+	ipAddress: string;
+	/** The per-visitor cap this endpoint enforces; the address allowance is a multiple of it. */
+	cap: number;
+}): Promise<table.GuestSession | null> {
+	const { ipAddress, cap } = params;
+	const id = generateGuestSessionId();
+	const expiresAt = new Date(
+		Date.now() + DAY_IN_MS * GUEST_CONFIG.sessionDurationDays,
+	);
+	const allowance = cap * ADDRESS_BURST_MULTIPLIER;
+
+	const result = await db.execute(sql`
+		INSERT INTO guest_session (id, ip_address, generations_used, expires_at)
+		SELECT ${id}, ${ipAddress}, 0, ${expiresAt.toISOString()}::timestamptz
+		 WHERE (
+		     SELECT coalesce(sum(generations_used), 0)
+		       FROM guest_session
+		      WHERE ip_address = ${ipAddress}
+		        AND converted_to_user_id IS NULL
+		        AND created_at > now() - ${`${ADDRESS_WINDOW_HOURS} hours`}::interval
+		   ) < ${allowance}
+		RETURNING id, ip_address, generations_used, created_at, expires_at,
+		          converted_to_user_id
+	`);
+
+	const row = result.rows[0] as
+		| {
+				id: string;
+				ip_address: string;
+				generations_used: number;
+				created_at: Date | string;
+				expires_at: Date | string;
+				converted_to_user_id: string | null;
+		  }
+		| undefined;
+	if (!row) return null;
+
+	return {
+		id: row.id,
+		ipAddress: row.ip_address,
+		generationsUsed: Number(row.generations_used),
+		createdAt: new Date(row.created_at),
+		expiresAt: new Date(row.expires_at),
+		convertedToUserId: row.converted_to_user_id,
+	};
 }
 
 export async function countGuestRotations(

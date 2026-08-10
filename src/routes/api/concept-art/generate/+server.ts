@@ -1,10 +1,14 @@
 import { error, json } from '@sveltejs/kit';
 import { put } from '@vercel/blob';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { env } from '$env/dynamic/private';
 import { PRICING } from '$lib/pricing';
-import { chargeCredits, claimJobAndRefund } from '$lib/server/credits';
+import {
+	chargeCredits,
+	claimJobAndRefund,
+	NOT_TERMINAL,
+} from '$lib/server/credits';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { submitConceptArtJob, submitPreprocessorJob } from '$lib/server/fal';
@@ -270,7 +274,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			job: table.conceptArtGeneration,
 			jobId: genId,
 			errorMessage: 'Failed to submit job for processing',
-			claimableWhen: sql`status <> 'failed'`,
+			claimableWhen: NOT_TERMINAL,
 		});
 
 		error(

@@ -23,6 +23,16 @@ import { db } from '$lib/server/db';
  * drives each endpoint end to end; a table that drifts will fail there.
  */
 
+/**
+ * The one spelling of "this job has not settled yet".
+ *
+ * Both terminal states must be excluded, not just 'failed'. A row at
+ * 'completed' has already delivered its result, so claiming it would refund a
+ * generation the user is holding and flip a delivered asset back to failed —
+ * which is reachable whenever a write after a successful submission throws.
+ */
+export const NOT_TERMINAL = sql`status NOT IN ('completed', 'failed')`;
+
 export interface CreditCharge {
 	/** Taken from the bonus bucket, which is spent first. */
 	bonusCharged: number;

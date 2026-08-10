@@ -14,8 +14,13 @@
  *
  *  2. Guest quota. The per-session counter enforces nothing on a caller that
  *     never sends the cookie, because a freshly minted session always reads
- *     generationsUsed = 0. The cap has to be consulted before the session is
- *     minted, against something the client cannot discard.
+ *     generationsUsed = 0. The bound has to be consulted before the session is
+ *     minted, against something the client cannot discard — the recorded ip
+ *     address. But an address is not a visitor: offices, campuses and CGNAT put
+ *     many first-time visitors behind one, so the address gets
+ *     ADDRESS_BURST_MULTIPLIER visitors' worth of rotations per day rather than
+ *     one visitor's. Both halves are pinned below — a visitor that exceeds the
+ *     allowance is refused, a visitor that merely follows another one is not.
  */
 import {
 	afterAll,
@@ -77,6 +82,19 @@ const CONCURRENT_REQUESTS = 10;
 const GUEST_IP = '203.0.113.7';
 const SESSION_ID = 'guest-session-1';
 const IMAGE_URL = 'https://blob.test/input.png';
+
+/**
+ * Mirrors ADDRESS_BURST_MULTIPLIER in $lib/server/guest-auth, which is module
+ * private, so this copy has to be kept in step with it by hand. An address may
+ * spend this multiple of the per-visitor cap inside the 24-hour window before
+ * cookie-less callers from it are refused.
+ */
+const ADDRESS_BURST_MULTIPLIER = 5;
+/** What one address may spend on this endpoint in a day. */
+const ADDRESS_ALLOWANCE =
+	GUEST_CONFIG.maxRotationGenerations * ADDRESS_BURST_MULTIPLIER;
+/** Comfortably more cookie-less arrivals than the allowance can pay for. */
+const CONCURRENT_GUESTS = ADDRESS_ALLOWANCE + 7;
 
 interface UserSnapshot {
 	id: string;
@@ -317,9 +335,19 @@ describe('POST /api/rotate-new/generate — guest quota', () => {
 		});
 	}
 
-	// Baseline: the cookie-carrying path does honour the cap. This one holds
-	// already, and it is what makes the two below meaningful — the rule exists,
-	// it is just trivially opted out of.
+	/** N cookie-less arrivals at once; how many were served a rotation. */
+	async function burst(size: number, ip = GUEST_IP): Promise<number> {
+		const results = await Promise.allSettled(
+			Array.from({ length: size }, () => guestGenerate({ ip })),
+		);
+		return results.filter(
+			(r) => r.status === 'fulfilled' && r.value.status === 200,
+		).length;
+	}
+
+	// Baseline: the cookie-carrying path does honour the per-visitor cap. This
+	// one holds already, and it is what makes the rest meaningful — the rule
+	// exists, it is just trivially opted out of.
 	it('cuts a cookie-carrying guest off after the rotation cap', async () => {
 		await seedSession(SESSION_ID, 0);
 
@@ -337,33 +365,24 @@ describe('POST /api/rotate-new/generate — guest quota', () => {
 		expect(await allJobCount()).toBe(GUEST_CONFIG.maxRotationGenerations);
 	});
 
-	// The invariant. A caller that never sends the cookie is still one anonymous
-	// visitor and must still be capped. Minting a fresh session per call gives
-	// every request generationsUsed = 0, so the cap would never bind.
-	it('caps an anonymous caller that never sends a guest session', async () => {
-		const attempts = GUEST_CONFIG.maxGenerations + 2;
+	// The rule the address allowance exists for, and the half a per-visitor cap
+	// on the address got wrong: one address is not one visitor. A colleague who
+	// has already spent a whole visitor's cap from the office router must not
+	// make the next person's very first click a 429.
+	it('serves a fresh cookie-less visitor from an address one visitor has already used', async () => {
+		await seedSession(SESSION_ID, GUEST_CONFIG.maxRotationGenerations);
 
-		let accepted = 0;
-		for (let i = 0; i < attempts; i++) {
-			try {
-				const response = await guestGenerate({ guestSession: null });
-				if (response.status === 200) accepted++;
-			} catch {
-				// 429 once the cap is enforced — that is the point of the test.
-			}
-		}
+		const response = await guestGenerate({ guestSession: null, ip: GUEST_IP });
 
-		expect(accepted).toBeLessThanOrEqual(GUEST_CONFIG.maxGenerations);
-		expect(await allJobCount()).toBeLessThanOrEqual(
-			GUEST_CONFIG.maxGenerations,
-		);
+		expect(response.status).toBe(200);
+		expect(await allJobCount()).toBe(1);
 	});
 
-	// The ip_address column is written on every guest session. If the quota is
-	// enforced against it, an exhausted address cannot buy more generations by
-	// dropping its cookie.
-	it('consults the recorded ip address when a caller drops its cookie', async () => {
-		await seedSession(SESSION_ID, GUEST_CONFIG.maxGenerations);
+	// ...and the half it got right. The address is bounded: once the day's
+	// allowance is spent, the caller that drops its cookie is refused, because
+	// the fresh session it would have been handed is never minted.
+	it('refuses a cookie-less caller once the address has spent its allowance', async () => {
+		await seedSession(SESSION_ID, ADDRESS_ALLOWANCE);
 
 		await expect(
 			guestGenerate({ guestSession: null, ip: GUEST_IP }),
@@ -372,9 +391,66 @@ describe('POST /api/rotate-new/generate — guest quota', () => {
 		expect(await allJobCount()).toBe(0);
 	});
 
-	// The cap is per address, so an unrelated visitor is unaffected by it.
+	// The invariant that matters. A caller that never sends the cookie is the
+	// one caller the per-session counter cannot see, so it must be bounded by
+	// the address instead. Arriving one after another, the bound is exact:
+	// every served rotation spends one unit of the allowance.
+	it('caps a cookie-less caller at exactly the address allowance', async () => {
+		const attempts = ADDRESS_ALLOWANCE + 2;
+
+		let accepted = 0;
+		for (let i = 0; i < attempts; i++) {
+			try {
+				const response = await guestGenerate({ guestSession: null });
+				if (response.status === 200) accepted++;
+			} catch {
+				// 429 once the allowance is spent — that is the point of the test.
+			}
+		}
+
+		expect(accepted).toBe(ADDRESS_ALLOWANCE);
+		expect(await allJobCount()).toBe(ADDRESS_ALLOWANCE);
+	});
+
+	// Concurrency. CONCURRENT_GUESTS requests arrive together, none of them
+	// carrying a session, at an address whose allowance is already gone. They
+	// all reach the mint before any of them can finish, so nothing any of them
+	// does can inform the others: the refusal has to come from the write itself.
+	// Not one may be served.
+	it('serves none of a simultaneous cookie-less burst once the address is spent', async () => {
+		await seedSession(SESSION_ID, ADDRESS_ALLOWANCE);
+
+		const accepted = await burst(CONCURRENT_GUESTS);
+
+		expect(accepted).toBe(0);
+		expect(await allJobCount()).toBe(0);
+	});
+
+	// KNOWN GAP, kept executable rather than described in a comment nobody runs.
+	//
+	// The same burst against an address that has NOT yet spent its allowance is
+	// not bounded at all: all CONCURRENT_GUESTS are served. The mint's WHERE
+	// sums generations_used, and a session it has just created contributes 0
+	// until the request that owns it finishes and increments — so every request
+	// in the burst reads the same pre-burst total and every one of them passes.
+	// Fusing the check into the INSERT closed the read-check-write window but
+	// not this one; the fix is for the mint to charge the allowance for the
+	// session it creates (count the row, e.g. sum(greatest(generations_used, 1))
+	// or + count(*)), which lives in $lib/server/guest-auth.
+	//
+	// Left honestly red rather than marked as an expected failure: the assertion
+	// is the rule we want, and the address counter cannot serialise a burst
+	// without a lockable per-address row. Tracked, not hidden.
+	it('bounds a simultaneous cookie-less burst at the address allowance', async () => {
+		const accepted = await burst(CONCURRENT_GUESTS);
+
+		expect(accepted).toBeLessThanOrEqual(ADDRESS_ALLOWANCE);
+	});
+
+	// A different address is a different set of visitors: the backstop must not
+	// spill one address's exhaustion onto everyone else.
 	it('lets a different address through when one address is exhausted', async () => {
-		await seedSession(SESSION_ID, GUEST_CONFIG.maxGenerations);
+		await seedSession(SESSION_ID, ADDRESS_ALLOWANCE);
 
 		const response = await guestGenerate({
 			guestSession: null,
@@ -382,5 +458,23 @@ describe('POST /api/rotate-new/generate — guest quota', () => {
 		});
 
 		expect(response.status).toBe(200);
+		expect(await allJobCount()).toBe(1);
+	});
+
+	// A neighbour who signed up stops consuming the address's allowance —
+	// otherwise one converted visitor would keep the office locked out for the
+	// rest of the day.
+	it('stops counting a session once it converts to an account', async () => {
+		await seedUser(0);
+		await seedSession(SESSION_ID, ADDRESS_ALLOWANCE);
+		await ctx.db
+			.update(table.guestSession)
+			.set({ convertedToUserId: USER_ID })
+			.where(eq(table.guestSession.id, SESSION_ID));
+
+		const response = await guestGenerate({ guestSession: null, ip: GUEST_IP });
+
+		expect(response.status).toBe(200);
+		expect(await allJobCount()).toBe(1);
 	});
 });

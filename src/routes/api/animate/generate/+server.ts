@@ -1,5 +1,5 @@
 import { error, json } from '@sveltejs/kit';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import {
 	ANIMATION_TYPES,
@@ -12,7 +12,11 @@ import {
 	getReferenceVideoUrl,
 } from '$lib/animation-config';
 import { getAnimationGenerationTokenCost } from '$lib/pricing';
-import { chargeCredits, claimJobAndRefund } from '$lib/server/credits';
+import {
+	chargeCredits,
+	claimJobAndRefund,
+	NOT_TERMINAL,
+} from '$lib/server/credits';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { submitAnimateJob } from '$lib/server/fal';
@@ -164,7 +168,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			job: table.animationJob,
 			jobId,
 			errorMessage: 'Failed to submit animation jobs',
-			claimableWhen: sql`status <> 'failed'`,
+			claimableWhen: NOT_TERMINAL,
 		});
 
 		error(500, 'Failed to submit animation jobs. Tokens have been refunded.');

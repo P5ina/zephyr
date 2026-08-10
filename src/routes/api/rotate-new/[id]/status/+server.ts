@@ -1,5 +1,6 @@
 import { error, json } from '@sveltejs/kit';
-import { and, eq, type SQL, sql } from 'drizzle-orm';
+import { and, eq, isNull, ne, notInArray, type SQL } from 'drizzle-orm';
+import { claimJobAndRefund, NOT_TERMINAL } from '$lib/server/credits';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { getRotationJobStatus } from '$lib/server/fal';
@@ -42,6 +43,12 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 				falStatus.status === 'IN_QUEUE'
 			) {
 				if (job.status !== 'processing') {
+					// Guarded, because this statement writes `status`. Unguarded it
+					// drags a job the cancel endpoint or the webhook already
+					// failed-and-refunded back to 'processing' — which re-arms the
+					// claim below for the next poll that sees FAILED, and refunds a
+					// second time. The `job.status` test above is a stale read and
+					// cannot carry that weight on its own.
 					await db
 						.update(table.rotationJobNew)
 						.set({
@@ -49,7 +56,15 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 							currentStage:
 								falStatus.status === 'IN_QUEUE' ? 'Queued...' : 'Processing...',
 						})
-						.where(eq(table.rotationJobNew.id, job.id));
+						.where(
+							and(
+								eq(table.rotationJobNew.id, job.id),
+								notInArray(table.rotationJobNew.status, [
+									'completed',
+									'failed',
+								]),
+							),
+						);
 
 					const refreshedJob = await db.query.rotationJobNew.findFirst({
 						where: eq(table.rotationJobNew.id, params.id),
@@ -61,35 +76,50 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 				falStatus.status === 'FAILED' ||
 				falStatus.status === 'CANCELLED'
 			) {
-				if (job.status !== 'failed') {
-					// Only refund tokens for authenticated users
-					if (job.userId) {
-						const regularTokens = job.tokenCost - job.bonusTokenCost;
-						await db
-							.update(table.user)
-							.set({
-								tokens: sql`${table.user.tokens} + ${regularTokens}`,
-								bonusTokens: sql`${table.user.bonusTokens} + ${job.bonusTokenCost}`,
-							})
-							.where(eq(table.user.id, job.userId));
-					}
+				// One statement flips the job to 'failed' and credits its cost back,
+				// so the refund hangs off the state transition instead of off `job`,
+				// which was read before the fal.ai round trip above. Every poll in a
+				// page's loop holds that same stale copy, and the old code refunded
+				// off it once per request; five concurrent GETs paid out five times.
+				//
+				// A null claim means the row was already terminal — the cancel
+				// endpoint or the fal webhook has already failed-and-refunded it, or
+				// it completed. Nothing was written and nothing was credited, and
+				// that is the normal outcome of a poll racing a cancel, not an error.
+				const claim = await claimJobAndRefund({
+					job: table.rotationJobNew,
+					jobId: job.id,
+					errorMessage: falStatus.error || 'Job failed on fal.ai',
+					claimableWhen: NOT_TERMINAL,
+				});
+
+				if (!claim) {
+					console.log(
+						`[rotate-new/status] ${job.id} was already terminal — no refund`,
+					);
 				}
 
-				await db
-					.update(table.rotationJobNew)
-					.set({
-						status: 'failed',
-						errorMessage: falStatus.error || 'Job failed on fal.ai',
-					})
-					.where(eq(table.rotationJobNew.id, job.id));
-
-				const failedJob = await db.query.rotationJobNew.findFirst({
+				// Re-read whatever the row settled on. Usually that is the 'failed'
+				// this handler just claimed; when the claim lost it is the terminal
+				// state the winner wrote, and the response reports that instead of
+				// asserting a failure this request did not perform.
+				const settledJob = await db.query.rotationJobNew.findFirst({
 					where: eq(table.rotationJobNew.id, params.id),
 				});
-				if (!failedJob) error(404, 'Job not found');
-				job = failedJob;
+				if (!settledJob) error(404, 'Job not found');
+				job = settledJob;
 			} else if (falStatus.status === 'COMPLETED' && falStatus.output) {
 				if (falStatus.output.front && !job.rotationFront) {
+					// Not the plain terminal guard the two writes above use: the third
+					// arm of `needsFalCheck` exists precisely to backfill a row that is
+					// 'completed' with no images, so excluding 'completed' outright
+					// would disable the repair this branch is here to perform.
+					//
+					// `status <> 'failed'` stops a poll that raced a cancel from
+					// handing over the asset the user was just refunded for, and
+					// `rotation_front IS NULL` stops a duplicate delivery from
+					// rewriting `completedAt` and the URLs of an asset already held.
+					// Together they still let the empty-completed row be repaired.
 					await db
 						.update(table.rotationJobNew)
 						.set({
@@ -102,7 +132,13 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 							rotationLeft: falStatus.output.right || null,
 							completedAt: new Date(),
 						})
-						.where(eq(table.rotationJobNew.id, job.id));
+						.where(
+							and(
+								eq(table.rotationJobNew.id, job.id),
+								ne(table.rotationJobNew.status, 'failed'),
+								isNull(table.rotationJobNew.rotationFront),
+							),
+						);
 
 					const completedJob = await db.query.rotationJobNew.findFirst({
 						where: eq(table.rotationJobNew.id, params.id),
