@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Format, lint, types, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      # $env/static/public is inlined into the client bundle at build time, so
+      # the build fails without these. They are public tokens, not secrets —
+      # the real value already ships in the bundle. A placeholder is fine here
+      # because CI never deploys what it builds; set repository variables if
+      # you want CI builds to match production byte for byte.
+      PUBLIC_POSTHOG_PROJECT_TOKEN: ${{ vars.PUBLIC_POSTHOG_PROJECT_TOKEN || 'phc_ci_placeholder' }}
+      PUBLIC_POSTHOG_HOST: ${{ vars.PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Format
+        run: pnpm exec prettier --check .
+
+      - name: Lint
+        run: pnpm exec eslint .
+
+      - name: Types
+        run: pnpm run check
+
+      - name: Build
+        run: pnpm run build
+
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # Reported but not blocking, on purpose. Several tests encode invariants
+      # the credit path does not yet satisfy — they are red because production
+      # is wrong, and they are the acceptance criteria for that fix. Flip this
+      # to a blocking step (drop continue-on-error) once the refund path is
+      # atomic and the suite goes green.
+      - name: Unit tests (known-red until the credit path is atomic)
+        run: pnpm exec vitest run --reporter=verbose
+        continue-on-error: true
+
+# End-to-end tests are deliberately absent for now. Every request goes through
+# hooks.server.ts, which imports the db module, which throws unless
+# DATABASE_URL is set — so Playwright needs a real database, not just a build.
+# Add this job together with the disposable Neon branch used for integration
+# tests.
