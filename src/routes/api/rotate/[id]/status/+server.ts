@@ -1,5 +1,6 @@
 import { error, json } from '@sveltejs/kit';
-import { and, eq, type SQL, sql } from 'drizzle-orm';
+import { and, eq, ne, notInArray, type SQL } from 'drizzle-orm';
+import { claimJobAndRefund, NOT_TERMINAL } from '$lib/server/credits';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { getRotation8DirJobStatus } from '$lib/server/fal';
@@ -44,6 +45,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 				falStatus.status === 'IN_QUEUE'
 			) {
 				if (job.status !== 'processing') {
+					// Guarded on the row still being unsettled. `job` was read before
+					// the fal.ai round trip, so by now a cancel or the webhook may have
+					// failed-and-refunded it; an unguarded write here would drag that
+					// row back to 'processing' and re-arm the claim below, letting the
+					// next poll refund a job that was already paid back.
 					await db
 						.update(table.rotationJob)
 						.set({
@@ -51,7 +57,12 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 							currentStage:
 								falStatus.status === 'IN_QUEUE' ? 'Queued...' : 'Processing...',
 						})
-						.where(eq(table.rotationJob.id, job.id));
+						.where(
+							and(
+								eq(table.rotationJob.id, job.id),
+								notInArray(table.rotationJob.status, ['completed', 'failed']),
+							),
+						);
 
 					const refreshedJob = await db.query.rotationJob.findFirst({
 						where: eq(table.rotationJob.id, params.id),
@@ -63,27 +74,24 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 				falStatus.status === 'FAILED' ||
 				falStatus.status === 'CANCELLED'
 			) {
-				if (job.status !== 'failed') {
-					// Only refund tokens for authenticated users
-					if (job.userId) {
-						const regularTokens = job.tokenCost - job.bonusTokenCost;
-						await db
-							.update(table.user)
-							.set({
-								tokens: sql`${table.user.tokens} + ${regularTokens}`,
-								bonusTokens: sql`${table.user.bonusTokens} + ${job.bonusTokenCost}`,
-							})
-							.where(eq(table.user.id, job.userId));
-					}
-				}
-
-				await db
-					.update(table.rotationJob)
-					.set({
-						status: 'failed',
-						errorMessage: falStatus.error || 'Job failed on fal.ai',
-					})
-					.where(eq(table.rotationJob.id, job.id));
+				// One statement claims the `-> failed` transition and credits the cost
+				// back, so N polls in flight for one job produce exactly one refund.
+				// The old code gated the credit on `job.status`, a copy read before
+				// the fal.ai round trip that every concurrent poll held identically,
+				// then wrote 'failed' with no guard at all — five simultaneous GETs
+				// refunded five times.
+				//
+				// A null claim means the row was already terminal: a cancel, the fal
+				// webhook, or a poll that got here first already failed it and already
+				// paid it back. That is the normal outcome of a race, not an error —
+				// credit nothing and report the row as it now stands. Guest jobs carry
+				// user_id NULL and the helper credits them nothing.
+				await claimJobAndRefund({
+					job: table.rotationJob,
+					jobId: job.id,
+					errorMessage: falStatus.error || 'Job failed on fal.ai',
+					claimableWhen: NOT_TERMINAL,
+				});
 
 				const failedJob = await db.query.rotationJob.findFirst({
 					where: eq(table.rotationJob.id, params.id),
@@ -108,7 +116,18 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 							rotationNW: falStatus.output.nw || null,
 							completedAt: new Date(),
 						})
-						.where(eq(table.rotationJob.id, job.id));
+						// Not `NOT_TERMINAL`: a row that is 'completed' with no result
+						// URLs is exactly what this branch exists to repair, so
+						// 'completed' has to stay writable here. 'failed' does not — that
+						// is the state a cancel or the claim above writes after refunding,
+						// and handing over the asset afterwards would give the user both
+						// the credits and the generation.
+						.where(
+							and(
+								eq(table.rotationJob.id, job.id),
+								ne(table.rotationJob.status, 'failed'),
+							),
+						);
 
 					const completedJob = await db.query.rotationJob.findFirst({
 						where: eq(table.rotationJob.id, params.id),

@@ -1,8 +1,9 @@
 import type { Config } from '@sveltejs/adapter-vercel';
 import { error, json } from '@sveltejs/kit';
 import { put } from '@vercel/blob';
-import { and, eq, or, sql } from 'drizzle-orm';
+import { and, eq, notInArray, or } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
+import { claimJobAndRefund, NOT_TERMINAL } from '$lib/server/credits';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { getSpinJobStatus } from '$lib/server/fal';
@@ -44,6 +45,17 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		error(404, 'Job not found');
 	}
 
+	// Every write below is guarded on the job not already being terminal, so the
+	// row this returns can differ from the one the write intended to produce —
+	// that is the point. It reports what the job actually is now.
+	const readJob = async () => {
+		const fresh = await db.query.spinJob.findFirst({
+			where: eq(table.spinJob.id, params.id),
+		});
+		if (!fresh) error(404, 'Job not found');
+		return fresh;
+	};
+
 	// Check fal.ai status if we have a request ID and job is not final
 	const needsFalCheck =
 		job.falRequestId &&
@@ -72,6 +84,9 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 				const newProgress =
 					falStatus.status === 'IN_QUEUE' ? 5 : Math.max(10, falProgress);
 
+				// Guarded: without it a poll that started before a cancel landed would
+				// drag the job back out of 'failed' into 'processing', which re-arms
+				// the refund for the next poll to claim a second time.
 				await db
 					.update(table.spinJob)
 					.set({
@@ -79,124 +94,126 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 						currentStage: newStage,
 						progress: newProgress,
 					})
-					.where(eq(table.spinJob.id, job.id));
+					.where(
+						and(
+							eq(table.spinJob.id, job.id),
+							notInArray(table.spinJob.status, ['completed', 'failed']),
+						),
+					);
 
-				const refreshedJob = await db.query.spinJob.findFirst({
-					where: eq(table.spinJob.id, params.id),
-				});
-				if (!refreshedJob) error(404, 'Job not found');
-				job = refreshedJob;
+				job = await readJob();
 			} else if (
 				falStatus.status === 'FAILED' ||
 				falStatus.status === 'CANCELLED'
 			) {
-				// Refund tokens if user job
-				if (job.userId && job.status !== 'failed') {
-					const regularTokens = job.tokenCost - job.bonusTokenCost;
-					await db
-						.update(table.user)
-						.set({
-							tokens: sql`${table.user.tokens} + ${regularTokens}`,
-							bonusTokens: sql`${table.user.bonusTokens} + ${job.bonusTokenCost}`,
-						})
-						.where(eq(table.user.id, job.userId));
-				}
-
-				await db
-					.update(table.spinJob)
-					.set({
-						status: 'failed',
-						errorMessage: falStatus.error || 'Job failed on fal.ai',
-					})
-					.where(eq(table.spinJob.id, job.id));
-
-				const failedJob = await db.query.spinJob.findFirst({
-					where: eq(table.spinJob.id, params.id),
+				// The refund hangs off the '-> failed' transition, not off `job`, which
+				// is a copy read before the fal.ai round trip. Five concurrent polls
+				// all held that copy and all passed a `status !== 'failed'` check, so
+				// all five paid out; now only the poll that wins the transition credits
+				// anything.
+				//
+				// A null claim means the job was already terminal — the cancel endpoint
+				// or the fal webhook failed-and-refunded it, or another poll got here
+				// first. Nothing was written and nothing was credited, and that is the
+				// correct outcome, not an error: just report the row as it stands.
+				await claimJobAndRefund({
+					job: table.spinJob,
+					jobId: job.id,
+					errorMessage: falStatus.error || 'Job failed on fal.ai',
+					claimableWhen: NOT_TERMINAL,
 				});
-				if (!failedJob) error(404, 'Job not found');
-				job = failedJob;
+
+				job = await readJob();
 			} else if (falStatus.status === 'COMPLETED' && falStatus.output) {
-				// fal.ai completed - now create the video
-				await db
+				// fal.ai completed - claim the job for video creation. The guard is what
+				// stops a poll that overlapped a cancel from handing over a video the
+				// user was already refunded for, and `returning()` says whether this
+				// request won: if it did not, the job is terminal, there is nobody to
+				// deliver to, and a minute of ffmpeg plus a blob upload is skipped.
+				const [claimedForVideo] = await db
 					.update(table.spinJob)
 					.set({
 						status: 'processing',
 						currentStage: 'Creating video...',
 						progress: 50,
 					})
-					.where(eq(table.spinJob.id, job.id));
+					.where(
+						and(
+							eq(table.spinJob.id, job.id),
+							notInArray(table.spinJob.status, ['completed', 'failed']),
+						),
+					)
+					.returning();
 
-				try {
-					// Determine if watermark should be added (guest users get watermark)
-					const addWatermark = !job.userId;
+				if (!claimedForVideo) {
+					job = await readJob();
+				} else {
+					try {
+						// Determine if watermark should be added (guest users get watermark)
+						const addWatermark = !job.userId;
 
-					// Create video with ffmpeg
-					const videoBuffer = await createSpinVideo({
-						inputImageUrl: job.inputImageUrl as string,
-						frames: falStatus.output.frames,
-						addWatermark,
-					});
+						// Create video with ffmpeg
+						const videoBuffer = await createSpinVideo({
+							inputImageUrl: job.inputImageUrl as string,
+							frames: falStatus.output.frames,
+							addWatermark,
+						});
 
-					// Upload video to Vercel Blob
-					if (!env.BLOB_READ_WRITE_TOKEN) {
-						throw new Error('Blob storage not configured');
-					}
+						// Upload video to Vercel Blob
+						if (!env.BLOB_READ_WRITE_TOKEN) {
+							throw new Error('Blob storage not configured');
+						}
 
-					const videoBlob = await put(
-						`spins/${job.userId || `guest-${job.guestSessionId}`}/video-${job.id}.mp4`,
-						videoBuffer,
-						{
-							access: 'public',
-							contentType: 'video/mp4',
-							token: env.BLOB_READ_WRITE_TOKEN,
-						},
-					);
+						const videoBlob = await put(
+							`spins/${job.userId || `guest-${job.guestSessionId}`}/video-${job.id}.mp4`,
+							videoBuffer,
+							{
+								access: 'public',
+								contentType: 'video/mp4',
+								token: env.BLOB_READ_WRITE_TOKEN,
+							},
+						);
 
-					// Update job with video URL
-					await db
-						.update(table.spinJob)
-						.set({
-							status: 'completed',
-							progress: 100,
-							currentStage: 'Completed',
-							videoUrl: videoBlob.url,
-							completedAt: new Date(),
-						})
-						.where(eq(table.spinJob.id, job.id));
-
-					const completedJob = await db.query.spinJob.findFirst({
-						where: eq(table.spinJob.id, params.id),
-					});
-					if (!completedJob) error(404, 'Job not found');
-					job = completedJob;
-				} catch (videoError) {
-					console.error('Video creation failed:', videoError);
-
-					// Refund tokens if user job
-					if (job.userId) {
-						const regularTokens = job.tokenCost - job.bonusTokenCost;
+						// Update job with video URL. Guarded for the same reason as the
+						// claim above: ffmpeg takes tens of seconds, and a cancel that
+						// landed in the meantime already refunded this job.
 						await db
-							.update(table.user)
+							.update(table.spinJob)
 							.set({
-								tokens: sql`${table.user.tokens} + ${regularTokens}`,
-								bonusTokens: sql`${table.user.bonusTokens} + ${job.bonusTokenCost}`,
+								status: 'completed',
+								progress: 100,
+								currentStage: 'Completed',
+								videoUrl: videoBlob.url,
+								completedAt: new Date(),
 							})
-							.where(eq(table.user.id, job.userId));
-					}
+							.where(
+								and(
+									eq(table.spinJob.id, job.id),
+									notInArray(table.spinJob.status, ['completed', 'failed']),
+								),
+							);
 
-					await db
-						.update(table.spinJob)
-						.set({
-							status: 'failed',
+						job = await readJob();
+					} catch (videoError) {
+						console.error('Video creation failed:', videoError);
+
+						// This block used to credit the user unconditionally — no status
+						// check at all, stale or otherwise — around tens of seconds of
+						// local work, so every request that entered it paid out again.
+						// The claim makes the refund a property of the '-> failed'
+						// transition, so it happens once however many polls fail here,
+						// and not at all if the cancel endpoint or the webhook already
+						// settled the job. A null claim credited nothing and is not an
+						// error condition.
+						await claimJobAndRefund({
+							job: table.spinJob,
+							jobId: job.id,
 							errorMessage: 'Failed to create video',
-						})
-						.where(eq(table.spinJob.id, job.id));
+							claimableWhen: NOT_TERMINAL,
+						});
 
-					const errorJob = await db.query.spinJob.findFirst({
-						where: eq(table.spinJob.id, params.id),
-					});
-					if (!errorJob) error(404, 'Job not found');
-					job = errorJob;
+						job = await readJob();
+					}
 				}
 			}
 		} catch (e) {

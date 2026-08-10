@@ -1,11 +1,16 @@
 import { error, json } from '@sveltejs/kit';
 import { put } from '@vercel/blob';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import sharp from 'sharp';
 import { env } from '$env/dynamic/private';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import { PRICING } from '$lib/pricing';
+import {
+	chargeCredits,
+	claimJobAndRefund,
+	NOT_TERMINAL,
+} from '$lib/server/credits';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { submitSpinJob } from '$lib/server/fal';
@@ -68,8 +73,18 @@ export const POST: RequestHandler = async ({
 	if (!locals.user) {
 		let guestSession = locals.guestSession;
 		if (!guestSession) {
-			const ipAddress = getClientAddress();
-			guestSession = await guestAuth.createGuestSession(ipAddress);
+			// The address allowance and the insert are one statement. Checking
+			// first and minting afterwards leaves a window in which simultaneous
+			// cookie-less requests all read zero and all mint a session, which is
+			// the same read-check-write defect being cleared out elsewhere.
+			const minted = await guestAuth.createGuestSessionForAddress({
+				ipAddress: getClientAddress(),
+				cap: GUEST_CONFIG.maxGenerations,
+			});
+			if (!minted) {
+				error(429, 'Free generation limit reached. Sign up to continue.');
+			}
+			guestSession = minted;
 		}
 
 		// Check generation limit
@@ -151,27 +166,25 @@ export const POST: RequestHandler = async ({
 		);
 	}
 
-	// Authenticated user flow
-	const total = locals.user.tokens + locals.user.bonusTokens;
+	// Authenticated user flow.
+	//
+	// The charge is the affordability check. Testing locals.user.tokens first
+	// would not help: it is a snapshot the auth hook loaded before the request
+	// began, so every concurrent request holds the same stale copy and they all
+	// pass. Here the balance predicate lives in the WHERE of the write, so only
+	// one of them can succeed. Guests never reach this line — they pay nothing.
+	const charge = await chargeCredits({
+		userId: locals.user.id,
+		cost: TOKEN_COST,
+	});
 
-	if (total < TOKEN_COST) {
-		error(
-			402,
-			`Not enough tokens. Required: ${TOKEN_COST}, available: ${total}`,
-		);
+	if (!charge) {
+		error(402, `Not enough tokens. Required: ${TOKEN_COST}`);
 	}
 
-	// Deduct tokens before generation
-	const bonusDeduct = Math.min(locals.user.bonusTokens, TOKEN_COST);
-	const regularDeduct = TOKEN_COST - bonusDeduct;
-
-	await db
-		.update(table.user)
-		.set({
-			bonusTokens: sql`${table.user.bonusTokens} - ${bonusDeduct}`,
-			tokens: sql`${table.user.tokens} - ${regularDeduct}`,
-		})
-		.where(eq(table.user.id, locals.user.id));
+	// Taken from what was actually charged, not from snapshot arithmetic: the
+	// job row records the split so a later refund restores the right buckets.
+	const bonusDeduct = charge.bonusCharged;
 
 	// Upload image to Vercel Blob
 	const blob = await put(
@@ -215,22 +228,14 @@ export const POST: RequestHandler = async ({
 	} catch (err) {
 		console.error('fal.ai submission failed:', err);
 
-		// Refund tokens
-		await db
-			.update(table.user)
-			.set({
-				bonusTokens: sql`${table.user.bonusTokens} + ${bonusDeduct}`,
-				tokens: sql`${table.user.tokens} + ${regularDeduct}`,
-			})
-			.where(eq(table.user.id, locals.user.id));
-
-		await db
-			.update(table.spinJob)
-			.set({
-				status: 'failed',
-				errorMessage: 'Failed to submit job for processing',
-			})
-			.where(eq(table.spinJob.id, jobId));
+		// Marks the job failed and credits its cost back in one statement, so the
+		// refund can only happen for a job this call actually claimed.
+		await claimJobAndRefund({
+			job: table.spinJob,
+			jobId,
+			errorMessage: 'Failed to submit job for processing',
+			claimableWhen: NOT_TERMINAL,
+		});
 
 		error(
 			500,
@@ -238,14 +243,14 @@ export const POST: RequestHandler = async ({
 		);
 	}
 
-	const tokensRemaining = locals.user.tokens - regularDeduct;
-	const bonusRemaining = locals.user.bonusTokens - bonusDeduct;
-
+	// Reported from what the charge actually left behind. Deriving these from
+	// locals.user would repeat the snapshot's arithmetic and could tell a client
+	// it still has credit while the row says otherwise.
 	return json({
 		id: job.id,
 		job,
 		isGuest: false,
-		tokensRemaining,
-		bonusTokensRemaining: bonusRemaining,
+		tokensRemaining: charge.tokensAfter,
+		bonusTokensRemaining: charge.bonusTokensAfter,
 	});
 };

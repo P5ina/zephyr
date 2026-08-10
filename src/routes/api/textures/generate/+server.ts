@@ -1,7 +1,12 @@
 import { error, json } from '@sveltejs/kit';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { PRICING } from '$lib/pricing';
+import {
+	chargeCredits,
+	claimJobAndRefund,
+	NOT_TERMINAL,
+} from '$lib/server/credits';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { submitTextureJob } from '$lib/server/runpod';
@@ -28,25 +33,22 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		error(400, 'Prompt must be 2000 characters or less');
 	}
 
-	const total = locals.user.tokens + locals.user.bonusTokens;
-	if (total < TOKEN_COST) {
-		error(
-			402,
-			`Not enough tokens. Required: ${TOKEN_COST}, available: ${total}`,
-		);
+	// The charge is the affordability check. Testing locals.user.tokens first
+	// would not help: it is a snapshot the auth hook loaded before the request
+	// began, so every concurrent request holds the same stale copy and they all
+	// pass. Here the balance predicate lives in the WHERE of the write, so only
+	// one of them can succeed.
+	const charge = await chargeCredits({
+		userId: locals.user.id,
+		cost: TOKEN_COST,
+	});
+
+	if (!charge) {
+		error(402, `Not enough tokens. Required: ${TOKEN_COST}`);
 	}
 
-	// Deduct tokens
-	const bonusDeduct = Math.min(locals.user.bonusTokens, TOKEN_COST);
-	const regularDeduct = TOKEN_COST - bonusDeduct;
-
-	await db
-		.update(table.user)
-		.set({
-			bonusTokens: sql`${table.user.bonusTokens} - ${bonusDeduct}`,
-			tokens: sql`${table.user.tokens} - ${regularDeduct}`,
-		})
-		.where(eq(table.user.id, locals.user.id));
+	// Recorded on the job row so a later refund restores the right buckets.
+	const bonusDeduct = charge.bonusCharged;
 
 	// Create texture generation record with 'pending' status - worker will pick it up
 	const textureId = nanoid();
@@ -80,21 +82,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		// RunPod submission failed - refund tokens and mark as failed
 		console.error('RunPod submission failed:', err);
 
-		await db
-			.update(table.user)
-			.set({
-				bonusTokens: sql`${table.user.bonusTokens} + ${bonusDeduct}`,
-				tokens: sql`${table.user.tokens} + ${regularDeduct}`,
-			})
-			.where(eq(table.user.id, locals.user.id));
-
-		await db
-			.update(table.textureGeneration)
-			.set({
-				status: 'failed',
-				errorMessage: 'Failed to submit job for processing',
-			})
-			.where(eq(table.textureGeneration.id, textureId));
+		await claimJobAndRefund({
+			job: table.textureGeneration,
+			jobId: textureId,
+			errorMessage: 'Failed to submit job for processing',
+			claimableWhen: NOT_TERMINAL,
+		});
 
 		error(
 			500,
@@ -102,10 +95,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		);
 	}
 
+	// Reported from what the charge actually left behind. Deriving these from
+	// locals.user would repeat the snapshot's arithmetic and could tell a client
+	// it still has credit while the row says otherwise.
 	return json({
 		id: texture.id,
 		status: 'pending',
-		tokensRemaining: locals.user.tokens - regularDeduct,
-		bonusTokensRemaining: locals.user.bonusTokens - bonusDeduct,
+		tokensRemaining: charge.tokensAfter,
+		bonusTokensRemaining: charge.bonusTokensAfter,
 	});
 };

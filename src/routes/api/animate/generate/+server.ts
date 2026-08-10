@@ -1,5 +1,5 @@
 import { error, json } from '@sveltejs/kit';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import {
 	ANIMATION_TYPES,
@@ -12,6 +12,11 @@ import {
 	getReferenceVideoUrl,
 } from '$lib/animation-config';
 import { getAnimationGenerationTokenCost } from '$lib/pricing';
+import {
+	chargeCredits,
+	claimJobAndRefund,
+	NOT_TERMINAL,
+} from '$lib/server/credits';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { submitAnimateJob } from '$lib/server/fal';
@@ -74,25 +79,23 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		directionCount,
 	);
 
-	const total = locals.user.tokens + locals.user.bonusTokens;
-	if (total < TOKEN_COST) {
-		error(
-			402,
-			`Not enough tokens. Required: ${TOKEN_COST}, available: ${total}`,
-		);
+	// The charge is the affordability check. Testing locals.user.tokens first
+	// would not help: it is a snapshot the auth hook loaded before the request
+	// began, so every concurrent request holds the same stale copy and they all
+	// pass. Here the balance predicate lives in the WHERE of the write, so only
+	// one of them can succeed.
+	const charge = await chargeCredits({
+		userId: locals.user.id,
+		cost: TOKEN_COST,
+	});
+
+	if (!charge) {
+		error(402, `Not enough tokens. Required: ${TOKEN_COST}`);
 	}
 
-	// Deduct tokens
-	const bonusDeduct = Math.min(locals.user.bonusTokens, TOKEN_COST);
-	const regularDeduct = TOKEN_COST - bonusDeduct;
-
-	await db
-		.update(table.user)
-		.set({
-			bonusTokens: sql`${table.user.bonusTokens} - ${bonusDeduct}`,
-			tokens: sql`${table.user.tokens} - ${regularDeduct}`,
-		})
-		.where(eq(table.user.id, locals.user.id));
+	// The split comes from the charge, not from the snapshot: the job row records
+	// it, and a later refund pays each bucket back from that record.
+	const bonusDeduct = charge.bonusCharged;
 
 	// Use the first uploaded image as the "primary" input image for display
 	const firstDirection = directions.find((d) => directionImageUrls[d]);
@@ -156,28 +159,26 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	} catch (err) {
 		console.error('fal.ai animation submission failed:', err);
 
-		// Refund tokens
-		await db
-			.update(table.user)
-			.set({
-				bonusTokens: sql`${table.user.bonusTokens} + ${bonusDeduct}`,
-				tokens: sql`${table.user.tokens} + ${regularDeduct}`,
-			})
-			.where(eq(table.user.id, locals.user.id));
-
-		await db
-			.update(table.animationJob)
-			.set({
-				status: 'failed',
-				errorMessage: 'Failed to submit animation jobs',
-			})
-			.where(eq(table.animationJob.id, jobId));
+		// One statement marks the job failed and credits both buckets back from
+		// what the row records. Fanning out means a partial failure can race the
+		// webhook that is already handling a sibling direction, so the refund has
+		// to be a claim: whoever moves the row out of its claimable state is the
+		// only one who pays it back.
+		await claimJobAndRefund({
+			job: table.animationJob,
+			jobId,
+			errorMessage: 'Failed to submit animation jobs',
+			claimableWhen: NOT_TERMINAL,
+		});
 
 		error(500, 'Failed to submit animation jobs. Tokens have been refunded.');
 	}
 
-	const tokensRemaining = locals.user.tokens - regularDeduct;
-	const bonusRemaining = locals.user.bonusTokens - bonusDeduct;
+	// Reported from what the charge actually left behind. Deriving these from
+	// locals.user would repeat the snapshot's arithmetic and could tell a client
+	// it still has credit while the row says otherwise.
+	const tokensRemaining = charge.tokensAfter;
+	const bonusRemaining = charge.bonusTokensAfter;
 
 	const posthog = getPostHogClient();
 	posthog.capture({

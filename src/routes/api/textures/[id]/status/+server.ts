@@ -1,5 +1,6 @@
 import { error, json } from '@sveltejs/kit';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
+import { claimJobAndRefund, NOT_TERMINAL } from '$lib/server/credits';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { getJobStatus } from '$lib/server/runpod';
@@ -52,24 +53,19 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 				runpodStatus.status === 'FAILED' ||
 				runpodStatus.status === 'CANCELLED'
 			) {
-				if (texture.status !== 'failed') {
-					const regularTokens = texture.tokenCost - texture.bonusTokenCost;
-					await db
-						.update(table.user)
-						.set({
-							tokens: sql`${table.user.tokens} + ${regularTokens}`,
-							bonusTokens: sql`${table.user.bonusTokens} + ${texture.bonusTokenCost}`,
-						})
-						.where(eq(table.user.id, texture.userId));
-				}
-
-				await db
-					.update(table.textureGeneration)
-					.set({
-						status: 'failed',
-						errorMessage: runpodStatus.error || 'Job failed on worker',
-					})
-					.where(eq(table.textureGeneration.id, texture.id));
+				// `texture` was read before the RunPod round trip and cannot gate the
+				// refund: every concurrent poll holds the same pre-fetch copy, and a
+				// Cancel that lands mid-flight settles the row without this one
+				// noticing. The claim below makes the `-> failed` transition itself
+				// the gate, so N pollers plus a cancel credit the cost exactly once.
+				// A null claim means the row was already terminal — someone else
+				// paid it back, so credit nothing and carry on reporting status.
+				await claimJobAndRefund({
+					job: table.textureGeneration,
+					jobId: texture.id,
+					errorMessage: runpodStatus.error || 'Job failed on worker',
+					claimableWhen: NOT_TERMINAL,
+				});
 
 				const failedTexture = await db.query.textureGeneration.findFirst({
 					where: eq(table.textureGeneration.id, params.id),

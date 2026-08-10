@@ -1,5 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import { and, eq, sql } from 'drizzle-orm';
+import { claimJobAndRefund } from '$lib/server/credits';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { cancelConceptArtJob, cancelRestyleJob } from '$lib/server/fal';
@@ -45,28 +46,31 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 		}
 	}
 
-	await db
-		.update(table.conceptArtGeneration)
-		.set({
-			status: 'failed',
-			errorMessage: 'Cancelled by user',
-		})
-		.where(eq(table.conceptArtGeneration.id, gen.id));
+	// The checks above are for reporting a useful error. They cannot gate the
+	// refund: they ran against a row read before the fal.ai round trip, and a
+	// concurrent request would pass them too. The claim below re-states them as
+	// the WHERE of the write, so exactly one caller can ever win.
+	//
+	// A restyle mid-flight through phase two already holds control_image_url,
+	// but that never made a generation uncancellable — only a completed row with
+	// an image_url does — so the predicate deliberately ignores it.
+	const claim = await claimJobAndRefund({
+		job: table.conceptArtGeneration,
+		jobId: gen.id,
+		errorMessage: 'Cancelled by user',
+		claimableWhen: sql`user_id = ${locals.user.id}
+			AND status <> 'failed'
+			AND NOT (status = 'completed' AND image_url IS NOT NULL)`,
+	});
 
-	// Refund tokens
-	const regularTokens = gen.tokenCost - gen.bonusTokenCost;
-	await db
-		.update(table.user)
-		.set({
-			tokens: sql`${table.user.tokens} + ${regularTokens}`,
-			bonusTokens: sql`${table.user.bonusTokens} + ${gen.bonusTokenCost}`,
-		})
-		.where(eq(table.user.id, gen.userId));
+	if (!claim) {
+		error(400, 'Cannot cancel a generation that already finished');
+	}
 
 	return json({
 		success: true,
-		tokensRefunded: gen.tokenCost,
-		regularTokensRefunded: regularTokens,
-		bonusTokensRefunded: gen.bonusTokenCost,
+		tokensRefunded: claim.tokenCost,
+		regularTokensRefunded: claim.regularTokens,
+		bonusTokensRefunded: claim.bonusTokenCost,
 	});
 };

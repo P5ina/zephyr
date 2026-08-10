@@ -1,5 +1,6 @@
 import { error, json } from '@sveltejs/kit';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, ne, notInArray } from 'drizzle-orm';
+import { claimJobAndRefund, NOT_TERMINAL } from '$lib/server/credits';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import {
@@ -115,13 +116,25 @@ async function handlePreprocessorPhase(
 
 	if (falStatus.status === 'IN_PROGRESS' || falStatus.status === 'IN_QUEUE') {
 		if (gen.status !== 'processing') {
+			// Terminal-guarded: `gen.status` is the pre-round-trip copy, so without
+			// it a poll that overlaps a cancel would drag the refunded row back to
+			// 'processing' — which re-arms NOT_TERMINAL and lets the next poll refund
+			// the same job a second time.
 			await db
 				.update(table.conceptArtGeneration)
 				.set({
 					status: 'processing',
 					currentStage: 'Extracting structure...',
 				})
-				.where(eq(table.conceptArtGeneration.id, gen.id));
+				.where(
+					and(
+						eq(table.conceptArtGeneration.id, gen.id),
+						notInArray(table.conceptArtGeneration.status, [
+							'completed',
+							'failed',
+						]),
+					),
+				);
 		}
 	} else if (
 		falStatus.status === 'FAILED' ||
@@ -145,6 +158,10 @@ async function handlePreprocessorPhase(
 				seed: gen.seed ?? undefined,
 			});
 
+			// Same guard: a job that was cancelled or failed while the preprocessor
+			// was running must not have a fresh fal request id written onto it, or
+			// the poller would start tracking phase two of a job the user has
+			// already been paid back for.
 			await db
 				.update(table.conceptArtGeneration)
 				.set({
@@ -152,7 +169,15 @@ async function handlePreprocessorPhase(
 					falRequestId: genResponse.requestId,
 					currentStage: 'Generating...',
 				})
-				.where(eq(table.conceptArtGeneration.id, gen.id));
+				.where(
+					and(
+						eq(table.conceptArtGeneration.id, gen.id),
+						notInArray(table.conceptArtGeneration.status, [
+							'completed',
+							'failed',
+						]),
+					),
+				);
 		} catch (e) {
 			console.error(`Failed to submit ${gen.mode} generation:`, e);
 			await refundAndFail(gen, 'Failed to submit generation job');
@@ -185,7 +210,15 @@ async function handleGenerationStatus(
 					currentStage:
 						falStatus.status === 'IN_QUEUE' ? 'Queued...' : 'Processing...',
 				})
-				.where(eq(table.conceptArtGeneration.id, gen.id));
+				.where(
+					and(
+						eq(table.conceptArtGeneration.id, gen.id),
+						notInArray(table.conceptArtGeneration.status, [
+							'completed',
+							'failed',
+						]),
+					),
+				);
 		}
 	} else if (
 		falStatus.status === 'FAILED' ||
@@ -194,6 +227,12 @@ async function handleGenerationStatus(
 		await refundAndFail(gen, falStatus.error || 'Job failed on fal.ai');
 	} else if (falStatus.status === 'COMPLETED' && falStatus.output) {
 		if (falStatus.output.imageUrl && !gen.imageUrl) {
+			// `image_url IS NULL` is the real version of the `!gen.imageUrl` read
+			// above, so concurrent polls cannot overwrite an image that has already
+			// landed, and a row stuck at completed-with-no-image (which is what
+			// `needsFalCheck` polls for) is still repairable. `status <> 'failed'`
+			// stops a job that was cancelled and refunded mid-round-trip from being
+			// handed the asset anyway.
 			await db
 				.update(table.conceptArtGeneration)
 				.set({
@@ -208,31 +247,49 @@ async function handleGenerationStatus(
 							: null,
 					completedAt: new Date(),
 				})
-				.where(eq(table.conceptArtGeneration.id, gen.id));
+				.where(
+					and(
+						eq(table.conceptArtGeneration.id, gen.id),
+						isNull(table.conceptArtGeneration.imageUrl),
+						ne(table.conceptArtGeneration.status, 'failed'),
+					),
+				);
 		}
 	}
 }
 
+/**
+ * Fails the generation and credits its cost back in a single statement.
+ *
+ * `gen` is a copy read at the top of the request, before a fal.ai round trip
+ * that takes as long as fal.ai takes, so nothing about it can gate the money:
+ * every one of the poll loop's in-flight requests holds the same pre-failure
+ * copy, and the cancel endpoint and the fal webhook race it too. The refund
+ * therefore hangs off winning the `-> failed` transition, not off a status read
+ * — five concurrent polls of one job produce exactly one refund, and a poll
+ * that overlaps a cancel credits nothing on top of the cancel's own claim.
+ *
+ * A null claim means the row was already terminal: someone else has paid this
+ * job back (or delivered it). That is the normal outcome of a race, not an
+ * error, so it is logged and swallowed — the handler re-reads the row
+ * afterwards and reports whatever the winner wrote.
+ */
 async function refundAndFail(
 	gen: typeof table.conceptArtGeneration.$inferSelect,
 	errorMessage: string,
 ) {
-	if (gen.status !== 'failed') {
-		const regularTokens = gen.tokenCost - gen.bonusTokenCost;
-		await db
-			.update(table.user)
-			.set({
-				tokens: sql`${table.user.tokens} + ${regularTokens}`,
-				bonusTokens: sql`${table.user.bonusTokens} + ${gen.bonusTokenCost}`,
-			})
-			.where(eq(table.user.id, gen.userId));
+	const claim = await claimJobAndRefund({
+		job: table.conceptArtGeneration,
+		jobId: gen.id,
+		errorMessage,
+		claimableWhen: NOT_TERMINAL,
+	});
+
+	if (!claim) {
+		console.log(
+			`[concept-art/status] ${gen.id} was already terminal — no refund`,
+		);
 	}
 
-	await db
-		.update(table.conceptArtGeneration)
-		.set({
-			status: 'failed',
-			errorMessage,
-		})
-		.where(eq(table.conceptArtGeneration.id, gen.id));
+	return claim;
 }

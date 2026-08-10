@@ -1,10 +1,15 @@
 import { error, json } from '@sveltejs/kit';
 import { put } from '@vercel/blob';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { env } from '$env/dynamic/private';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import { PRICING } from '$lib/pricing';
+import {
+	chargeCredits,
+	claimJobAndRefund,
+	NOT_TERMINAL,
+} from '$lib/server/credits';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { submitRotationJob } from '$lib/server/fal';
@@ -79,8 +84,18 @@ export const POST: RequestHandler = async ({
 	if (!locals.user) {
 		let guestSession = locals.guestSession;
 		if (!guestSession) {
-			const ipAddress = getClientAddress();
-			guestSession = await guestAuth.createGuestSession(ipAddress);
+			// The address allowance and the insert are one statement. Checking
+			// first and minting afterwards leaves a window in which simultaneous
+			// cookie-less requests all read zero and all mint a session, which is
+			// the same read-check-write defect being cleared out elsewhere.
+			const minted = await guestAuth.createGuestSessionForAddress({
+				ipAddress: getClientAddress(),
+				cap: GUEST_CONFIG.maxRotationGenerations,
+			});
+			if (!minted) {
+				error(429, 'Free rotation limit reached. Sign up to continue.');
+			}
+			guestSession = minted;
 		}
 
 		if (!(await guestAuth.canGuestRotate(guestSession.id))) {
@@ -162,24 +177,24 @@ export const POST: RequestHandler = async ({
 		locals.user.id,
 	);
 
-	const total = locals.user.tokens + locals.user.bonusTokens;
-	if (total < TOKEN_COST) {
-		error(
-			402,
-			`Not enough tokens. Required: ${TOKEN_COST}, available: ${total}`,
-		);
+	// The charge is the affordability check. Testing locals.user.tokens first
+	// would not help: it is a snapshot the auth hook loaded before the request
+	// began, so every concurrent request holds the same stale copy and they all
+	// pass. Here the balance predicate lives in the WHERE of the write, so only
+	// one of them can succeed.
+	const charge = await chargeCredits({
+		userId: locals.user.id,
+		cost: TOKEN_COST,
+	});
+
+	if (!charge) {
+		error(402, `Not enough tokens. Required: ${TOKEN_COST}`);
 	}
 
-	const bonusDeduct = Math.min(locals.user.bonusTokens, TOKEN_COST);
-	const regularDeduct = TOKEN_COST - bonusDeduct;
-
-	await db
-		.update(table.user)
-		.set({
-			bonusTokens: sql`${table.user.bonusTokens} - ${bonusDeduct}`,
-			tokens: sql`${table.user.tokens} - ${regularDeduct}`,
-		})
-		.where(eq(table.user.id, locals.user.id));
+	// Taken from what the charge actually spent, not from the snapshot: the job
+	// row records the split so a later refund returns each part to the bucket it
+	// came from.
+	const bonusDeduct = charge.bonusCharged;
 
 	const jobId = nanoid();
 	const [job] = await db
@@ -212,21 +227,15 @@ export const POST: RequestHandler = async ({
 	} catch (err) {
 		console.error('fal.ai submission failed:', err);
 
-		await db
-			.update(table.user)
-			.set({
-				bonusTokens: sql`${table.user.bonusTokens} + ${bonusDeduct}`,
-				tokens: sql`${table.user.tokens} + ${regularDeduct}`,
-			})
-			.where(eq(table.user.id, locals.user.id));
-
-		await db
-			.update(table.rotationJobNew)
-			.set({
-				status: 'failed',
-				errorMessage: 'Failed to submit job for processing',
-			})
-			.where(eq(table.rotationJobNew.id, jobId));
+		// Marking failed and crediting the cost back are one statement, so a job
+		// the webhook already finished is not refunded and no job is refunded
+		// twice.
+		await claimJobAndRefund({
+			job: table.rotationJobNew,
+			jobId,
+			errorMessage: 'Failed to submit job for processing',
+			claimableWhen: NOT_TERMINAL,
+		});
 
 		error(
 			500,
@@ -234,12 +243,15 @@ export const POST: RequestHandler = async ({
 		);
 	}
 
+	// Reported from what the charge actually left behind. Deriving these from
+	// locals.user would repeat the snapshot's arithmetic and could tell a client
+	// it still has credit while the row says otherwise.
 	return json({
 		id: job.id,
 		job,
 		status: 'pending',
 		isGuest: false,
-		tokensRemaining: locals.user.tokens - regularDeduct,
-		bonusTokensRemaining: locals.user.bonusTokens - bonusDeduct,
+		tokensRemaining: charge.tokensAfter,
+		bonusTokensRemaining: charge.bonusTokensAfter,
 	});
 };
