@@ -23,6 +23,13 @@ jobs:
       # you want CI builds to match production byte for byte.
       PUBLIC_POSTHOG_PROJECT_TOKEN: ${{ vars.PUBLIC_POSTHOG_PROJECT_TOKEN || 'phc_ci_placeholder' }}
       PUBLIC_POSTHOG_HOST: ${{ vars.PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com' }}
+      # Not used to connect to anything. After bundling, SvelteKit runs a
+      # postbuild "analyse" pass that imports the server modules to read each
+      # route's config, and src/lib/server/db/index.ts throws at module scope
+      # when DATABASE_URL is absent. So the build needs the variable to exist,
+      # not to be valid. The real fix is to construct the client lazily instead
+      # of throwing on import — until then, a syntactically valid placeholder.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
     steps:
       - uses: actions/checkout@v4
