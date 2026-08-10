@@ -1,5 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import { and, eq, sql } from 'drizzle-orm';
+import { claimJobAndRefund } from '$lib/server/credits';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { cancelJob } from '$lib/server/runpod';
@@ -41,28 +42,28 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 		}
 	}
 
-	await db
-		.update(table.textureGeneration)
-		.set({
-			status: 'failed',
-			errorMessage: 'Cancelled by user',
-		})
-		.where(eq(table.textureGeneration.id, texture.id));
+	// The checks above are for reporting a useful error. They cannot gate the
+	// refund: they ran against a row read before the RunPod round trip, and a
+	// concurrent request would pass them too. The claim below re-states them as
+	// the WHERE of the write, so exactly one caller can ever win.
+	const claim = await claimJobAndRefund({
+		job: table.textureGeneration,
+		jobId: texture.id,
+		errorMessage: 'Cancelled by user',
+		claimableWhen: sql`user_id = ${locals.user.id}
+			AND status <> 'failed'
+			AND NOT (status = 'completed'
+			         AND (basecolor_url IS NOT NULL OR normal_url IS NOT NULL))`,
+	});
 
-	// Refund both regular and bonus tokens correctly
-	const regularTokens = texture.tokenCost - texture.bonusTokenCost;
-	await db
-		.update(table.user)
-		.set({
-			tokens: sql`${table.user.tokens} + ${regularTokens}`,
-			bonusTokens: sql`${table.user.bonusTokens} + ${texture.bonusTokenCost}`,
-		})
-		.where(eq(table.user.id, texture.userId));
+	if (!claim) {
+		error(400, 'Cannot cancel a generation that already finished');
+	}
 
 	return json({
 		success: true,
-		tokensRefunded: texture.tokenCost,
-		regularTokensRefunded: regularTokens,
-		bonusTokensRefunded: texture.bonusTokenCost,
+		tokensRefunded: claim.tokenCost,
+		regularTokensRefunded: claim.regularTokens,
+		bonusTokensRefunded: claim.bonusTokenCost,
 	});
 };

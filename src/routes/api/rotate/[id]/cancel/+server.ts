@@ -1,27 +1,38 @@
 import { error, json } from '@sveltejs/kit';
-import { and, eq, type SQL, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
+import { claimJobAndRefund } from '$lib/server/credits';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import { cancelRotation8DirJob } from '$lib/server/fal';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ params, locals }) => {
-	let ownershipCondition: SQL | undefined;
 	const isGuest = !locals.user;
 
-	if (locals.user) {
-		ownershipCondition = eq(table.rotationJob.userId, locals.user.id);
-	} else if (locals.guestSession) {
-		ownershipCondition = eq(
-			table.rotationJob.guestSessionId,
-			locals.guestSession.id,
-		);
-	} else {
+	// Both forms of the same ownership rule: the drizzle condition for the read
+	// that produces the 404, and the raw-SQL predicate that has to be restated
+	// inside the claim so a concurrent caller cannot pass it.
+	const owner = locals.user
+		? {
+				condition: eq(table.rotationJob.userId, locals.user.id),
+				claimable: sql`user_id = ${locals.user.id}`,
+			}
+		: locals.guestSession
+			? {
+					condition: eq(
+						table.rotationJob.guestSessionId,
+						locals.guestSession.id,
+					),
+					claimable: sql`guest_session_id = ${locals.guestSession.id}`,
+				}
+			: null;
+
+	if (!owner) {
 		error(401, 'Unauthorized');
 	}
 
 	const rotation = await db.query.rotationJob.findFirst({
-		where: and(eq(table.rotationJob.id, params.id), ownershipCondition),
+		where: and(eq(table.rotationJob.id, params.id), owner.condition),
 	});
 
 	if (!rotation) {
@@ -48,30 +59,31 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 		}
 	}
 
-	await db
-		.update(table.rotationJob)
-		.set({
-			status: 'failed',
-			errorMessage: 'Cancelled by user',
-		})
-		.where(eq(table.rotationJob.id, rotation.id));
+	// The checks above are for reporting a useful error. They cannot gate the
+	// refund: they ran against a row read before the fal.ai round trip, and a
+	// concurrent request would pass them too. The claim below re-states them as
+	// the WHERE of the write, so exactly one caller can ever win.
+	const claim = await claimJobAndRefund({
+		job: table.rotationJob,
+		jobId: rotation.id,
+		errorMessage: 'Cancelled by user',
+		claimableWhen: sql`${owner.claimable}
+			AND status <> 'failed'
+			AND NOT (status = 'completed'
+			         AND (rotation_n IS NOT NULL OR rotation_s IS NOT NULL))`,
+	});
+
+	if (!claim) {
+		error(400, 'Cannot cancel a generation that already finished');
+	}
 
 	// Only refund tokens for authenticated users (guests have tokenCost: 0)
-	if (!isGuest && rotation.userId) {
-		const regularTokens = rotation.tokenCost - rotation.bonusTokenCost;
-		await db
-			.update(table.user)
-			.set({
-				tokens: sql`${table.user.tokens} + ${regularTokens}`,
-				bonusTokens: sql`${table.user.bonusTokens} + ${rotation.bonusTokenCost}`,
-			})
-			.where(eq(table.user.id, rotation.userId));
-
+	if (!isGuest && claim.userId) {
 		return json({
 			success: true,
-			tokensRefunded: rotation.tokenCost,
-			regularTokensRefunded: regularTokens,
-			bonusTokensRefunded: rotation.bonusTokenCost,
+			tokensRefunded: claim.tokenCost,
+			regularTokensRefunded: claim.regularTokens,
+			bonusTokensRefunded: claim.bonusTokenCost,
 		});
 	}
 

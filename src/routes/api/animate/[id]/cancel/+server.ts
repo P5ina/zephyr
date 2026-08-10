@@ -1,5 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
+import { claimJobAndRefund } from '$lib/server/credits';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import {
@@ -25,56 +26,54 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 		error(400, 'Job already finished');
 	}
 
-	// Cancel all fal.ai jobs
-	if (job.falRequestIds) {
-		const requestIds = job.falRequestIds as Record<string, string>;
-		for (const requestId of Object.values(requestIds)) {
-			try {
-				await cancelAnimateJob(requestId);
-			} catch (e) {
-				console.error('Failed to cancel fal.ai animation job:', e);
+	// Best effort: one upstream fal.ai job per direction, plus the background
+	// removal jobs. None of it may keep the claim below from running, so every
+	// failure is logged and swallowed here rather than propagated.
+	try {
+		if (job.falRequestIds) {
+			const requestIds = job.falRequestIds as Record<string, string>;
+			for (const requestId of Object.values(requestIds)) {
+				try {
+					await cancelAnimateJob(requestId);
+				} catch (e) {
+					console.error('Failed to cancel fal.ai animation job:', e);
+				}
 			}
 		}
-	}
-	if (job.bgRemovalRequestIds) {
-		const requestIds = job.bgRemovalRequestIds as Record<string, string>;
-		for (const requestId of Object.values(requestIds)) {
-			try {
-				await cancelVideoBackgroundRemovalJob(requestId);
-			} catch (e) {
-				console.error('Failed to cancel fal.ai bg removal job:', e);
+		if (job.bgRemovalRequestIds) {
+			const requestIds = job.bgRemovalRequestIds as Record<string, string>;
+			for (const requestId of Object.values(requestIds)) {
+				try {
+					await cancelVideoBackgroundRemovalJob(requestId);
+				} catch (e) {
+					console.error('Failed to cancel fal.ai bg removal job:', e);
+				}
 			}
 		}
+	} catch (e) {
+		console.error('Failed to cancel upstream fal.ai jobs:', e);
 	}
 
-	// Refund tokens
-	let regularTokensRefunded = 0;
-	let bonusTokensRefunded = 0;
+	// The status check above is for reporting a useful error. It cannot gate the
+	// refund: it ran against a row read before the fal.ai round trips, and a
+	// concurrent request would pass it too. The claim below re-states it — plus
+	// the ownership predicate — as the WHERE of the write, so exactly one caller
+	// can ever win and credit the balance.
+	const claim = await claimJobAndRefund({
+		job: table.animationJob,
+		jobId: job.id,
+		errorMessage: 'Cancelled by user',
+		claimableWhen: sql`user_id = ${locals.user.id}
+			AND status NOT IN ('completed', 'failed')`,
+	});
 
-	if (job.userId && job.tokenCost > 0) {
-		regularTokensRefunded = job.tokenCost - job.bonusTokenCost;
-		bonusTokensRefunded = job.bonusTokenCost;
-
-		await db
-			.update(table.user)
-			.set({
-				tokens: sql`${table.user.tokens} + ${regularTokensRefunded}`,
-				bonusTokens: sql`${table.user.bonusTokens} + ${bonusTokensRefunded}`,
-			})
-			.where(eq(table.user.id, job.userId));
+	if (!claim) {
+		error(400, 'Job already finished');
 	}
-
-	await db
-		.update(table.animationJob)
-		.set({
-			status: 'failed',
-			errorMessage: 'Cancelled by user',
-		})
-		.where(eq(table.animationJob.id, job.id));
 
 	return json({
 		success: true,
-		regularTokensRefunded,
-		bonusTokensRefunded,
+		regularTokensRefunded: claim.regularTokens,
+		bonusTokensRefunded: claim.bonusTokenCost,
 	});
 };
