@@ -15,11 +15,13 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
 		"test:e2e": "playwright test",
-		"test": "npm run test:e2e",
+		"test": "npm run test:unit -- --run && npm run test:e2e",
 		"lint": "prettier --check . && eslint .",
-		"format": "prettier --write ."
+		"format": "prettier --write .",
+		"test:unit": "vitest"
 	},
 	"devDependencies": {
+		"@electric-sql/pglite": "^0.5.4",
 		"@eslint/js": "^10.0.1",
 		"@oslojs/crypto": "^1.0.1",
 		"@oslojs/encoding": "^1.1.0",
@@ -47,7 +49,8 @@
 		"tsx": "^4.21.0",
 		"typescript": "^5.9.3",
 		"typescript-eslint": "^8.60.1",
-		"vite": "^7.2.6"
+		"vite": "^7.2.6",
+		"vitest": "^4.1.8"
 	},
 	"dependencies": {
 		"@fal-ai/client": "^1.9.1",
