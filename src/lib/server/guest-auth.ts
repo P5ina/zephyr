@@ -66,6 +66,40 @@ export function canGuestGenerate(session: table.GuestSession): boolean {
 	return session.generationsUsed < GUEST_CONFIG.maxGenerations;
 }
 
+/**
+ * Whether this address may start another free generation.
+ *
+ * The per-session counter alone enforces nothing: a caller that sends no
+ * cookie gets a brand-new session with generationsUsed = 0, and 0 < the cap is
+ * always true, so the quota only ever binds on callers who volunteer their
+ * cookie. Summing what the address has already spent is what makes the cap
+ * real — the ip_address column has been written on every session since the
+ * beginning and read by nothing.
+ *
+ * Expired sessions are excluded so the cap refills on the same schedule a
+ * cookie-carrying guest already gets, rather than banning an address forever.
+ * Addresses are shared behind NAT and trivially changed, so this raises the
+ * cost of abuse rather than preventing it; a rate limit at the edge is the
+ * durable answer.
+ */
+export async function canGuestGenerateFromIp(
+	ipAddress: string,
+): Promise<boolean> {
+	const [row] = await db
+		.select({
+			used: sql<number>`coalesce(sum(${table.guestSession.generationsUsed}), 0)`,
+		})
+		.from(table.guestSession)
+		.where(
+			and(
+				eq(table.guestSession.ipAddress, ipAddress),
+				gt(table.guestSession.expiresAt, new Date()),
+			),
+		);
+
+	return Number(row?.used ?? 0) < GUEST_CONFIG.maxGenerations;
+}
+
 export async function countGuestRotations(
 	guestSessionId: string,
 ): Promise<number> {
