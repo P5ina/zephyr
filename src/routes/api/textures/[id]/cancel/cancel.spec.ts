@@ -79,14 +79,12 @@ describe('POST /api/textures/[id]/cancel', () => {
 
 	beforeEach(async () => {
 		await ctx.reset();
-		await ctx.db
-			.insert(table.user)
-			.values({
-				id: USER_ID,
-				email: 'u@example.com',
-				tokens: 0,
-				bonusTokens: 0,
-			});
+		await ctx.db.insert(table.user).values({
+			id: USER_ID,
+			email: 'u@example.com',
+			tokens: 0,
+			bonusTokens: 0,
+		});
 		await ctx.db.insert(table.textureGeneration).values({
 			id: TEXTURE_ID,
 			userId: USER_ID,
