@@ -92,8 +92,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			// Composition image: uploaded to Blob client-side (URL), with a
 			// legacy fallback for a raw file in the multipart body.
 			const compositionUrlField = formData.get('compositionImageUrl') as
-				| string
-				| null;
+				string | null;
 			const compositionFile = formData.get('compositionImage') as File | null;
 			if (compositionUrlField) {
 				compositionImageUrl = compositionUrlField;
@@ -119,8 +118,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 			// Control strength (0-100)
 			const controlStrengthField = formData.get('controlStrength') as
-				| string
-				| null;
+				string | null;
 			if (controlStrengthField) {
 				const parsed = parseInt(controlStrengthField, 10);
 				if (!Number.isNaN(parsed) && parsed >= 0 && parsed <= 100) {

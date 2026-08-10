@@ -1,17 +1,17 @@
 <script lang="ts">
-const title = 'GenSprite — Reddit Ad (Rotation)';
+	const title = 'GenSprite — Reddit Ad (Rotation)';
 
-const directions = [
-	{ dir: 'NW', row: 1, col: 1, src: '/showcase/rotation/sprite_nw.png' },
-	{ dir: 'N', row: 1, col: 2, src: '/showcase/rotation/sprite_n.png' },
-	{ dir: 'NE', row: 1, col: 3, src: '/showcase/rotation/sprite_ne.png' },
-	{ dir: 'W', row: 2, col: 1, src: '/showcase/rotation/sprite_w.png' },
-	{ dir: '', row: 2, col: 2, src: '/showcase/rotation/sprite_s.png' },
-	{ dir: 'E', row: 2, col: 3, src: '/showcase/rotation/sprite_e.png' },
-	{ dir: 'SW', row: 3, col: 1, src: '/showcase/rotation/sprite_sw.png' },
-	{ dir: 'S', row: 3, col: 2, src: '/showcase/rotation/sprite_s.png' },
-	{ dir: 'SE', row: 3, col: 3, src: '/showcase/rotation/sprite_se.png' },
-];
+	const directions = [
+		{ dir: 'NW', row: 1, col: 1, src: '/showcase/rotation/sprite_nw.png' },
+		{ dir: 'N', row: 1, col: 2, src: '/showcase/rotation/sprite_n.png' },
+		{ dir: 'NE', row: 1, col: 3, src: '/showcase/rotation/sprite_ne.png' },
+		{ dir: 'W', row: 2, col: 1, src: '/showcase/rotation/sprite_w.png' },
+		{ dir: '', row: 2, col: 2, src: '/showcase/rotation/sprite_s.png' },
+		{ dir: 'E', row: 2, col: 3, src: '/showcase/rotation/sprite_e.png' },
+		{ dir: 'SW', row: 3, col: 1, src: '/showcase/rotation/sprite_sw.png' },
+		{ dir: 'S', row: 3, col: 2, src: '/showcase/rotation/sprite_s.png' },
+		{ dir: 'SE', row: 3, col: 3, src: '/showcase/rotation/sprite_se.png' },
+	];
 </script>
 
 <svelte:head>
@@ -50,11 +50,13 @@ const directions = [
 				One Sprite,<br />
 				<span class="headline-glow">8 Directions</span>
 			</h1>
-			<p class="sub">Upload any sprite &mdash; get all 8 directions in seconds.</p>
+			<p class="sub">
+				Upload any sprite &mdash; get all 8 directions in seconds.
+			</p>
 
 			<!-- Rotation compass -->
 			<div class="compass">
-				{#each directions as cell}
+				{#each directions as cell (`${cell.row}-${cell.col}`)}
 					<div
 						class="compass-cell"
 						class:compass-center={cell.dir === ''}
@@ -64,7 +66,11 @@ const directions = [
 							<img src={cell.src} alt="Input sprite" class="compass-input" />
 							<span class="compass-badge">Input</span>
 						{:else}
-							<img src={cell.src} alt="{cell.dir} rotation" class="compass-dir-img" />
+							<img
+								src={cell.src}
+								alt="{cell.dir} rotation"
+								class="compass-dir-img"
+							/>
 							<span class="compass-dir-label">{cell.dir}</span>
 						{/if}
 					</div>
@@ -76,11 +82,16 @@ const directions = [
 				<div class="cta-btn">
 					Try Free — No Signup Required
 					<svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
-						<path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+						<path
+							fill-rule="evenodd"
+							d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+							clip-rule="evenodd"
+						/>
 					</svg>
 				</div>
 				<div class="cta-sub">
-					Sprites &middot; PBR Textures &middot; 8-Dir Rotation &middot; Concept Art
+					Sprites &middot; PBR Textures &middot; 8-Dir Rotation &middot; Concept
+					Art
 				</div>
 			</div>
 		</div>
@@ -139,7 +150,11 @@ const directions = [
 	.vignette {
 		position: absolute;
 		inset: 0;
-		background: radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.4) 100%);
+		background: radial-gradient(
+			ellipse at center,
+			transparent 30%,
+			rgba(0, 0, 0, 0.4) 100%
+		);
 	}
 
 	/* ===== Content ===== */
@@ -173,7 +188,8 @@ const directions = [
 	}
 
 	.logo-mark {
-		width: 40px; height: 40px;
+		width: 40px;
+		height: 40px;
 		border-radius: 9px;
 		object-fit: contain;
 	}
@@ -200,7 +216,8 @@ const directions = [
 	}
 
 	.badge-dot {
-		width: 7px; height: 7px;
+		width: 7px;
+		height: 7px;
 		border-radius: 50%;
 		background: #4ade80;
 		box-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
@@ -219,7 +236,13 @@ const directions = [
 	}
 
 	.headline-glow {
-		background: linear-gradient(135deg, #fb923c 0%, #f97316 40%, #f59e0b 70%, #fbbf24 100%);
+		background: linear-gradient(
+			135deg,
+			#fb923c 0%,
+			#f97316 40%,
+			#f59e0b 70%,
+			#fbbf24 100%
+		);
 		background-size: 200% auto;
 		-webkit-background-clip: text;
 		background-clip: text;

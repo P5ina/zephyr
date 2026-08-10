@@ -61,14 +61,11 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 		error(400, 'Can only regenerate views on completed jobs');
 	}
 
-	// Get the source image URL
-	let sourceImageUrl: string | null = null;
-	if (sourceDirection === 'input') {
-		sourceImageUrl = job.inputImageUrl;
-	} else {
-		sourceImageUrl =
-			job[DIRECTION_COLUMNS[sourceDirection as RotationDirection8Dir]];
-	}
+	// Original input image, or the rotated image for that direction
+	const sourceImageUrl =
+		sourceDirection === 'input'
+			? job.inputImageUrl
+			: job[DIRECTION_COLUMNS[sourceDirection as RotationDirection8Dir]];
 
 	if (!sourceImageUrl) {
 		error(400, `Source image for ${sourceDirection} not available`);

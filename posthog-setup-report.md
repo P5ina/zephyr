@@ -4,30 +4,30 @@ The wizard has completed a deep integration of PostHog analytics into GenSprite.
 
 ## Files created or modified
 
-| File | Change |
-|------|--------|
-| `src/hooks.client.ts` | **Created** — PostHog client init (`/ingest` proxy, `capture_exceptions: true`) + `handleError` for automatic client-side error capture |
-| `src/hooks.server.ts` | **Modified** — Added `/ingest` reverse proxy handle and `handleError` for server-side error capture via `posthog-node` |
-| `src/lib/server/posthog.ts` | **Created** — Singleton `getPostHogClient()` for server-side PostHog usage |
-| `svelte.config.js` | **Modified** — Added `paths.relative: false` (required for session replay with SSR) |
-| `src/routes/app/+layout.svelte` | **Modified** — Calls `posthog.identify()` with user ID, email, and username when a logged-in user is present |
+| File                            | Change                                                                                                                                  |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/hooks.client.ts`           | **Created** — PostHog client init (`/ingest` proxy, `capture_exceptions: true`) + `handleError` for automatic client-side error capture |
+| `src/hooks.server.ts`           | **Modified** — Added `/ingest` reverse proxy handle and `handleError` for server-side error capture via `posthog-node`                  |
+| `src/lib/server/posthog.ts`     | **Created** — Singleton `getPostHogClient()` for server-side PostHog usage                                                              |
+| `svelte.config.js`              | **Modified** — Added `paths.relative: false` (required for session replay with SSR)                                                     |
+| `src/routes/app/+layout.svelte` | **Modified** — Calls `posthog.identify()` with user ID, email, and username when a logged-in user is present                            |
 
 ## Events added
 
-| Event | Description | File |
-|-------|-------------|------|
-| `user_signed_up` | New user account created | `src/routes/login/github/callback/+server.ts` |
-| `user_signed_up` | New user account created | `src/routes/login/google/callback/+server.ts` |
-| `user_signed_up` | New user account created | `src/routes/login/magic/verify/+server.ts` |
-| `promo_code_applied` | Promo code bonus granted on signup | `src/routes/login/github/callback/+server.ts` |
-| `promo_code_applied` | Promo code bonus granted on signup | `src/routes/login/google/callback/+server.ts` |
-| `promo_code_applied` | Promo code bonus granted on signup | `src/routes/login/magic/verify/+server.ts` |
-| `rotation_started` | 8-direction sprite rotation job submitted (guest + auth) | `src/routes/api/rotate/generate/+server.ts` |
-| `sprite_generation_started` | Sprite/texture asset generation job submitted (guest + auth) | `src/routes/api/assets/generate/+server.ts` |
-| `concept_art_generation_started` | Concept art generation job submitted | `src/routes/api/concept-art/generate/+server.ts` |
-| `animation_started` | Sprite animation job submitted | `src/routes/api/animate/generate/+server.ts` |
-| `checkout_started` | User initiated Stripe checkout for a token pack | `src/routes/app/billing/+page.svelte` |
-| `tokens_purchased` | Stripe webhook confirmed a completed token purchase | `src/routes/api/billing/webhook/+server.ts` |
+| Event                            | Description                                                  | File                                             |
+| -------------------------------- | ------------------------------------------------------------ | ------------------------------------------------ |
+| `user_signed_up`                 | New user account created                                     | `src/routes/login/github/callback/+server.ts`    |
+| `user_signed_up`                 | New user account created                                     | `src/routes/login/google/callback/+server.ts`    |
+| `user_signed_up`                 | New user account created                                     | `src/routes/login/magic/verify/+server.ts`       |
+| `promo_code_applied`             | Promo code bonus granted on signup                           | `src/routes/login/github/callback/+server.ts`    |
+| `promo_code_applied`             | Promo code bonus granted on signup                           | `src/routes/login/google/callback/+server.ts`    |
+| `promo_code_applied`             | Promo code bonus granted on signup                           | `src/routes/login/magic/verify/+server.ts`       |
+| `rotation_started`               | 8-direction sprite rotation job submitted (guest + auth)     | `src/routes/api/rotate/generate/+server.ts`      |
+| `sprite_generation_started`      | Sprite/texture asset generation job submitted (guest + auth) | `src/routes/api/assets/generate/+server.ts`      |
+| `concept_art_generation_started` | Concept art generation job submitted                         | `src/routes/api/concept-art/generate/+server.ts` |
+| `animation_started`              | Sprite animation job submitted                               | `src/routes/api/animate/generate/+server.ts`     |
+| `checkout_started`               | User initiated Stripe checkout for a token pack              | `src/routes/app/billing/+page.svelte`            |
+| `tokens_purchased`               | Stripe webhook confirmed a completed token purchase          | `src/routes/api/billing/webhook/+server.ts`      |
 
 ## Next steps
 

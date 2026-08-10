@@ -1,77 +1,76 @@
 <script lang="ts">
-import {
-	Coins,
-	Film,
-	Layers,
-	Palette,
-	Rotate3d,
-	RotateCw,
-	Sparkles,
-} from 'lucide-svelte';
-import posthog from 'posthog-js';
-import type { Snippet } from 'svelte';
-import { browser } from '$app/environment';
-import Header from '$lib/components/Header.svelte';
-import { GUEST_CONFIG } from '$lib/guest-config';
-import { tokenState } from '$lib/token-state.svelte';
-import type { LayoutData } from './$types';
+	import {
+		Film,
+		Layers,
+		Palette,
+		Rotate3d,
+		RotateCw,
+		Sparkles,
+	} from 'lucide-svelte';
+	import posthog from 'posthog-js';
+	import type { Snippet } from 'svelte';
+	import { browser } from '$app/environment';
+	import Header from '$lib/components/Header.svelte';
+	import { GUEST_CONFIG } from '$lib/guest-config';
+	import { tokenState } from '$lib/token-state.svelte';
+	import type { LayoutData } from './$types';
 
-let { data, children }: { data: LayoutData; children: Snippet } = $props();
+	let { data, children }: { data: LayoutData; children: Snippet } = $props();
 
-// Initialize shared token state from server data
-tokenState.init(
-	data.user?.tokens ?? 0,
-	data.user?.bonusTokens ?? 0,
-	data.guestSession?.generationsUsed ?? 0,
-);
+	// Initialize shared token state from server data
+	tokenState.init(
+		data.user?.tokens ?? 0,
+		data.user?.bonusTokens ?? 0,
+		data.guestSession?.generationsUsed ?? 0,
+	);
 
-// Identify user in PostHog when logged in
-$effect(() => {
-	if (browser && data.user) {
-		posthog.identify(data.user.id, {
-			email: data.user.email,
-			username: data.user.username,
-		});
-	}
-});
+	// Identify user in PostHog when logged in
+	$effect(() => {
+		if (browser && data.user) {
+			posthog.identify(data.user.id, {
+				email: data.user.email,
+				username: data.user.username,
+			});
+		}
+	});
 
-const guestGenerationsRemaining = $derived(
-	GUEST_CONFIG.maxGenerations - tokenState.guestGenerationsUsed,
-);
+	const guestGenerationsRemaining = $derived(
+		GUEST_CONFIG.maxGenerations - tokenState.guestGenerationsUsed,
+	);
 
-const tabs = [
-	{
-		href: '/app/rotate',
-		label: '8-Dir Rotation',
-		icon: RotateCw,
-		guestAllowed: true,
-	},
-	{
-		href: '/app',
-		label: 'Generate Sprite',
-		icon: Sparkles,
-		guestAllowed: true,
-	},
-	{
-		href: '/app/textures',
-		label: 'Textures',
-		icon: Layers,
-		guestAllowed: false,
-	},
-	{
-		href: '/app/concept-art',
-		label: 'Concept Art',
-		icon: Palette,
-		guestAllowed: false,
-	},
-	{
-		href: '/app/rotate-new',
-		label: 'Rotate 4',
-		icon: Rotate3d,
-		guestAllowed: true,
-	},
-	{ href: '/app/animate', label: 'Animate', icon: Film, guestAllowed: false },
-];
+	const tabs = [
+		{
+			href: '/app/rotate',
+			label: '8-Dir Rotation',
+			icon: RotateCw,
+			guestAllowed: true,
+		},
+		{
+			href: '/app',
+			label: 'Generate Sprite',
+			icon: Sparkles,
+			guestAllowed: true,
+		},
+		{
+			href: '/app/textures',
+			label: 'Textures',
+			icon: Layers,
+			guestAllowed: false,
+		},
+		{
+			href: '/app/concept-art',
+			label: 'Concept Art',
+			icon: Palette,
+			guestAllowed: false,
+		},
+		{
+			href: '/app/rotate-new',
+			label: 'Rotate 4',
+			icon: Rotate3d,
+			guestAllowed: true,
+		},
+		{ href: '/app/animate', label: 'Animate', icon: Film, guestAllowed: false },
+	];
 </script>
 
 <div class="app-shell">
@@ -90,10 +89,13 @@ const tabs = [
 </div>
 
 <style>
-	.app-shell { min-height: 100vh; }
+	.app-shell {
+		min-height: 100vh;
+	}
 
 	.app-main {
-		max-width: 80rem; margin: 0 auto;
+		max-width: 80rem;
+		margin: 0 auto;
 		padding: 1.5rem 1rem;
 	}
 

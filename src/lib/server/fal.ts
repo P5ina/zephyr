@@ -95,10 +95,7 @@ export async function getSpriteJobStatus(requestId: string): Promise<{
 
 		return {
 			status: status.status as
-				| 'IN_QUEUE'
-				| 'IN_PROGRESS'
-				| 'FAILED'
-				| 'CANCELLED',
+				'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
 		};
 	} catch (error) {
 		console.error('[fal.ai] Error checking sprite status:', error);
@@ -191,10 +188,7 @@ export async function getRotationJobStatus(requestId: string): Promise<{
 
 		return {
 			status: status.status as
-				| 'IN_QUEUE'
-				| 'IN_PROGRESS'
-				| 'FAILED'
-				| 'CANCELLED',
+				'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
 		};
 	} catch (error) {
 		console.error('[fal.ai] Error checking status:', error);
@@ -336,10 +330,7 @@ export async function getRotation8DirJobStatus(requestId: string): Promise<{
 
 		return {
 			status: status.status as
-				| 'IN_QUEUE'
-				| 'IN_PROGRESS'
-				| 'FAILED'
-				| 'CANCELLED',
+				'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
 		};
 	} catch (error) {
 		console.error('[fal.ai] Error checking 8-dir rotation status:', error);
@@ -388,14 +379,7 @@ export const DIRECTION_ANGLES_8DIR = {
 
 export type SourceDirection8Dir = keyof typeof DIRECTION_ANGLES_8DIR;
 export type RotationDirection8Dir =
-	| 'n'
-	| 'ne'
-	| 'e'
-	| 'se'
-	| 's'
-	| 'sw'
-	| 'w'
-	| 'nw';
+	'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw';
 
 export function calculateHorizontalAngle8Dir(
 	sourceDirection: SourceDirection8Dir,
@@ -480,10 +464,7 @@ export async function getSingleViewRotationStatus(requestId: string): Promise<{
 
 		return {
 			status: status.status as
-				| 'IN_QUEUE'
-				| 'IN_PROGRESS'
-				| 'FAILED'
-				| 'CANCELLED',
+				'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
 		};
 	} catch (error) {
 		console.error('[fal.ai] Error checking single view status:', error);
@@ -564,10 +545,7 @@ export async function getSpinJobStatus(requestId: string): Promise<{
 
 		return {
 			status: status.status as
-				| 'IN_QUEUE'
-				| 'IN_PROGRESS'
-				| 'FAILED'
-				| 'CANCELLED',
+				'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
 		};
 	} catch (error) {
 		console.error('[fal.ai] Error checking spin status:', error);
@@ -710,10 +688,7 @@ export async function getConceptArtJobStatus(
 
 		return {
 			status: status.status as
-				| 'IN_QUEUE'
-				| 'IN_PROGRESS'
-				| 'FAILED'
-				| 'CANCELLED',
+				'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
 		};
 	} catch (error) {
 		console.error('[fal.ai] Error checking concept art status:', error);
@@ -805,10 +780,7 @@ export async function getPreprocessorJobStatus(
 
 		return {
 			status: status.status as
-				| 'IN_QUEUE'
-				| 'IN_PROGRESS'
-				| 'FAILED'
-				| 'CANCELLED',
+				'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
 		};
 	} catch (error) {
 		console.error('[fal.ai] Error checking preprocessor status:', error);
@@ -913,10 +885,7 @@ export async function getRestyleJobStatus(
 
 		return {
 			status: status.status as
-				| 'IN_QUEUE'
-				| 'IN_PROGRESS'
-				| 'FAILED'
-				| 'CANCELLED',
+				'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
 		};
 	} catch (error: unknown) {
 		const body = (error as { body?: unknown })?.body;
@@ -1017,10 +986,7 @@ export async function getAnimateJobStatus(requestId: string): Promise<{
 
 		return {
 			status: status.status as
-				| 'IN_QUEUE'
-				| 'IN_PROGRESS'
-				| 'FAILED'
-				| 'CANCELLED',
+				'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
 		};
 	} catch (error) {
 		const body = (error as { body?: unknown })?.body;
@@ -1102,10 +1068,7 @@ export async function getVideoBackgroundRemovalJobStatus(
 
 		return {
 			status: status.status as
-				| 'IN_QUEUE'
-				| 'IN_PROGRESS'
-				| 'FAILED'
-				| 'CANCELLED',
+				'IN_QUEUE' | 'IN_PROGRESS' | 'FAILED' | 'CANCELLED',
 		};
 	} catch (error) {
 		const body = (error as { body?: unknown })?.body;

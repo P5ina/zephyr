@@ -1,5 +1,5 @@
 <script lang="ts">
-const title = 'GenSprite — Reddit Ad';
+	const title = 'GenSprite — Reddit Ad';
 </script>
 
 <svelte:head>
@@ -43,17 +43,25 @@ const title = 'GenSprite — Reddit Ad';
 				<!-- Prompt -->
 				<div class="prompt-card">
 					<div class="prompt-label">Prompt</div>
-					<div class="prompt-text">"medieval knight with silver armor and blue cape"</div>
+					<div class="prompt-text">
+						"medieval knight with silver armor and blue cape"
+					</div>
 				</div>
 
 				<!-- Arrow -->
 				<div class="flow-arrow">
 					<svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-						<path d="M8 24h28M28 16l8 8-8 8" stroke="url(#arrow-grad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+						<path
+							d="M8 24h28M28 16l8 8-8 8"
+							stroke="url(#arrow-grad)"
+							stroke-width="3"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
 						<defs>
 							<linearGradient id="arrow-grad" x1="8" y1="24" x2="36" y2="24">
-								<stop stop-color="#fbbf24"/>
-								<stop offset="1" stop-color="#f97316"/>
+								<stop stop-color="#fbbf24" />
+								<stop offset="1" stop-color="#f97316" />
 							</linearGradient>
 						</defs>
 					</svg>
@@ -71,11 +79,16 @@ const title = 'GenSprite — Reddit Ad';
 				<div class="cta-btn">
 					Try Free — No Signup Required
 					<svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
-						<path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+						<path
+							fill-rule="evenodd"
+							d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+							clip-rule="evenodd"
+						/>
 					</svg>
 				</div>
 				<div class="cta-sub">
-					Sprites &middot; PBR Textures &middot; 8-Dir Rotation &middot; Concept Art
+					Sprites &middot; PBR Textures &middot; 8-Dir Rotation &middot; Concept
+					Art
 				</div>
 			</div>
 		</div>
@@ -134,7 +147,11 @@ const title = 'GenSprite — Reddit Ad';
 	.vignette {
 		position: absolute;
 		inset: 0;
-		background: radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.4) 100%);
+		background: radial-gradient(
+			ellipse at center,
+			transparent 30%,
+			rgba(0, 0, 0, 0.4) 100%
+		);
 	}
 
 	/* ===== Content ===== */
@@ -169,7 +186,8 @@ const title = 'GenSprite — Reddit Ad';
 	}
 
 	.logo-mark {
-		width: 40px; height: 40px;
+		width: 40px;
+		height: 40px;
 		border-radius: 9px;
 		object-fit: contain;
 	}
@@ -196,7 +214,8 @@ const title = 'GenSprite — Reddit Ad';
 	}
 
 	.badge-dot {
-		width: 7px; height: 7px;
+		width: 7px;
+		height: 7px;
 		border-radius: 50%;
 		background: #4ade80;
 		box-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
@@ -215,7 +234,13 @@ const title = 'GenSprite — Reddit Ad';
 	}
 
 	.headline-glow {
-		background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 40%, #f97316 70%, #fbbf24 100%);
+		background: linear-gradient(
+			135deg,
+			#fbbf24 0%,
+			#f59e0b 40%,
+			#f97316 70%,
+			#fbbf24 100%
+		);
 		background-size: 200% auto;
 		-webkit-background-clip: text;
 		background-clip: text;
@@ -334,6 +359,8 @@ const title = 'GenSprite — Reddit Ad';
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.badge-dot { animation: none !important; }
+		.badge-dot {
+			animation: none !important;
+		}
 	}
 </style>

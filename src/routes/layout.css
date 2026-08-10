@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
 	--panel-bg: rgba(24, 24, 27, 0.5);
@@ -19,5 +19,5 @@
 html,
 body {
 	background-color: #09090b;
-	font-family: "DM Sans", system-ui, sans-serif;
+	font-family: 'DM Sans', system-ui, sans-serif;
 }

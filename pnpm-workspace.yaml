@@ -3,6 +3,3 @@ allowBuilds:
   esbuild: true
   ffmpeg-static: true
   sharp: true
-onlyBuiltDependencies:
-  - ffmpeg-static
-  - esbuild
