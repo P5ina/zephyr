@@ -2,7 +2,6 @@ import { error, json } from '@sveltejs/kit';
 import { put } from '@vercel/blob';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { getPostHogClient } from '$lib/server/posthog';
 import { env } from '$env/dynamic/private';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import { PRICING } from '$lib/pricing';
@@ -11,6 +10,7 @@ import * as table from '$lib/server/db/schema';
 import { submitRotation8DirJob } from '$lib/server/fal';
 import { buildFalWebhookUrl } from '$lib/server/fal-webhook';
 import * as guestAuth from '$lib/server/guest-auth';
+import { getPostHogClient } from '$lib/server/posthog';
 import type { RequestHandler } from './$types';
 
 const TOKEN_COST = PRICING.tokenCosts.rotation;

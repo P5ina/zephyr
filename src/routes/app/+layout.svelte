@@ -8,9 +8,9 @@ import {
 	RotateCw,
 	Sparkles,
 } from 'lucide-svelte';
-import { browser } from '$app/environment';
 import posthog from 'posthog-js';
 import type { Snippet } from 'svelte';
+import { browser } from '$app/environment';
 import Header from '$lib/components/Header.svelte';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import { tokenState } from '$lib/token-state.svelte';

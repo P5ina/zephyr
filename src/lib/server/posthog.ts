@@ -1,5 +1,8 @@
 import { PostHog } from 'posthog-node';
-import { PUBLIC_POSTHOG_HOST, PUBLIC_POSTHOG_PROJECT_TOKEN } from '$env/static/public';
+import {
+	PUBLIC_POSTHOG_HOST,
+	PUBLIC_POSTHOG_PROJECT_TOKEN,
+} from '$env/static/public';
 
 let posthogClient: PostHog | null = null;
 

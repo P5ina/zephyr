@@ -11,9 +11,9 @@ import {
 	Sparkles,
 	Zap,
 } from 'lucide-svelte';
+import CodeBlock from '$lib/components/CodeBlock.svelte';
 import Footer from '$lib/components/Footer.svelte';
 import Header from '$lib/components/Header.svelte';
-import CodeBlock from '$lib/components/CodeBlock.svelte';
 import { PRICING } from '$lib/pricing';
 import type { PageData } from './$types';
 

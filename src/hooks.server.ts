@@ -1,5 +1,5 @@
-import { sequence } from '@sveltejs/kit/hooks';
 import type { Handle, HandleServerError } from '@sveltejs/kit';
+import { sequence } from '@sveltejs/kit/hooks';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import * as auth from '$lib/server/auth';
 import * as guestAuth from '$lib/server/guest-auth';
@@ -10,8 +10,11 @@ const handleIngest: Handle = async ({ event, resolve }) => {
 
 	if (pathname.startsWith('/ingest')) {
 		const useAssetHost =
-			pathname.startsWith('/ingest/static/') || pathname.startsWith('/ingest/array/');
-		const hostname = useAssetHost ? 'us-assets.i.posthog.com' : 'us.i.posthog.com';
+			pathname.startsWith('/ingest/static/') ||
+			pathname.startsWith('/ingest/array/');
+		const hostname = useAssetHost
+			? 'us-assets.i.posthog.com'
+			: 'us.i.posthog.com';
 
 		const url = new URL(event.request.url);
 		url.protocol = 'https:';
@@ -23,7 +26,8 @@ const handleIngest: Handle = async ({ event, resolve }) => {
 		headers.set('host', hostname);
 		headers.set('accept-encoding', '');
 
-		const clientIp = event.request.headers.get('x-forwarded-for') || event.getClientAddress();
+		const clientIp =
+			event.request.headers.get('x-forwarded-for') || event.getClientAddress();
 		if (clientIp) {
 			headers.set('x-forwarded-for', clientIp);
 		}
@@ -88,7 +92,11 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 
 export const handle: Handle = sequence(handleIngest, handleAuth);
 
-export const handleError: HandleServerError = async ({ error, status, message }) => {
+export const handleError: HandleServerError = async ({
+	error,
+	status,
+	message,
+}) => {
 	const posthog = getPostHogClient();
 
 	posthog.capture({

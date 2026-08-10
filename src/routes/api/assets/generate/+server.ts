@@ -1,7 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { getPostHogClient } from '$lib/server/posthog';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import { PRICING } from '$lib/pricing';
 import { db } from '$lib/server/db';
@@ -9,6 +8,7 @@ import * as table from '$lib/server/db/schema';
 import { submitSpriteJob } from '$lib/server/fal';
 import { buildFalWebhookUrl } from '$lib/server/fal-webhook';
 import * as guestAuth from '$lib/server/guest-auth';
+import { getPostHogClient } from '$lib/server/posthog';
 import type { RequestHandler } from './$types';
 
 const TOKEN_COSTS: Record<string, number> = {

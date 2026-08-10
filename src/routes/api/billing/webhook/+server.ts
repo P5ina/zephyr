@@ -1,10 +1,10 @@
 import { json } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 import type Stripe from 'stripe';
-import { getPostHogClient } from '$lib/server/posthog';
 import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
+import { getPostHogClient } from '$lib/server/posthog';
 import { getStripe } from '$lib/server/stripe';
 import type { RequestHandler } from './$types';
 

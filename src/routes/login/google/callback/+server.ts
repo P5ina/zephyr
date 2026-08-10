@@ -1,7 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import { track } from '@vercel/analytics/server';
 import { decodeIdToken } from 'arctic';
-import { getPostHogClient } from '$lib/server/posthog';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { GUEST_CONFIG } from '$lib/guest-config';
@@ -11,6 +10,7 @@ import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import * as guestAuth from '$lib/server/guest-auth';
 import { google } from '$lib/server/oauth';
+import { getPostHogClient } from '$lib/server/posthog';
 import type { RequestHandler } from './$types';
 
 interface GoogleIdTokenClaims {

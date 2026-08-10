@@ -1,7 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { getPostHogClient } from '$lib/server/posthog';
 import { GUEST_CONFIG } from '$lib/guest-config';
 import { PROMO_COOKIE_NAME, validatePromoCode } from '$lib/promo-codes';
 import * as auth from '$lib/server/auth';
@@ -9,6 +8,7 @@ import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import * as guestAuth from '$lib/server/guest-auth';
 import { markTokenUsed, validateMagicLinkToken } from '$lib/server/magic-link';
+import { getPostHogClient } from '$lib/server/posthog';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url, cookies }) => {

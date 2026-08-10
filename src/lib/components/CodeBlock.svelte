@@ -2,10 +2,10 @@
 import { Check, Clipboard } from 'lucide-svelte';
 import { createHighlighterCoreSync } from 'shiki/core';
 import { createJavaScriptRegexEngine } from 'shiki/engine/javascript';
-import langBash from 'shiki/langs/shellscript.mjs';
-import langPython from 'shiki/langs/python.mjs';
-import langTs from 'shiki/langs/typescript.mjs';
 import langJson from 'shiki/langs/json.mjs';
+import langPython from 'shiki/langs/python.mjs';
+import langBash from 'shiki/langs/shellscript.mjs';
+import langTs from 'shiki/langs/typescript.mjs';
 import vitesseDark from 'shiki/themes/vitesse-dark.mjs';
 
 const shiki = createHighlighterCoreSync({
@@ -25,13 +25,21 @@ interface Props {
 	onLangChange?: (lang: MultiLang) => void;
 }
 
-let { code, lang = 'json', label, selectedLang, onLangChange }: Props = $props();
+let {
+	code,
+	lang = 'json',
+	label,
+	selectedLang,
+	onLangChange,
+}: Props = $props();
 
 let copied = $state(false);
 
 const isMultiLang = $derived(typeof code === 'object');
 const activeLang = $derived(isMultiLang ? (selectedLang ?? 'bash') : lang);
-const activeCode = $derived(isMultiLang ? (code as Record<string, string>)[activeLang] : (code as string));
+const activeCode = $derived(
+	isMultiLang ? (code as Record<string, string>)[activeLang] : (code as string),
+);
 
 const highlighted = $derived(
 	shiki.codeToHtml(activeCode, {
@@ -43,7 +51,9 @@ const highlighted = $derived(
 function copyCode() {
 	navigator.clipboard.writeText(activeCode);
 	copied = true;
-	setTimeout(() => { copied = false; }, 2000);
+	setTimeout(() => {
+		copied = false;
+	}, 2000);
 }
 </script>
 

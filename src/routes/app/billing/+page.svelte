@@ -1,6 +1,5 @@
 <script lang="ts">
 import { track } from '@vercel/analytics';
-import posthog from 'posthog-js';
 import {
 	ArrowLeft,
 	Coins,
@@ -11,6 +10,7 @@ import {
 	RotateCw,
 	Sparkles,
 } from 'lucide-svelte';
+import posthog from 'posthog-js';
 import { PRICING } from '$lib/pricing';
 import type { PageData } from './$types';
 
