@@ -1,0 +1,1 @@
+ALTER TABLE "animation_job" ALTER COLUMN "direction_videos" SET DATA TYPE jsonb;

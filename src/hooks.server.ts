@@ -94,16 +94,31 @@ export const handle: Handle = sequence(handleIngest, handleAuth);
 
 export const handleError: HandleServerError = async ({
 	error,
+	event,
 	status,
 	message,
 }) => {
+	// Only server faults. Reporting 4xx buried the real failures: of ~5.5k
+	// captured "errors" in two months, the overwhelming majority were bots
+	// probing /wp-admin, /.env and /.git/config, and 213 genuine 500s from the
+	// animation webhook sat invisible among them.
+	if (status < 500) {
+		return { message, status };
+	}
+
 	const posthog = getPostHogClient();
 
 	posthog.capture({
-		distinctId: 'server',
+		distinctId: event.locals.user?.id ?? 'server',
 		event: 'server_error',
 		properties: {
 			error: error instanceof Error ? error.message : String(error),
+			stack: error instanceof Error ? error.stack : undefined,
+			// Without these an error says what broke but never where, so two
+			// unrelated failures with the same message are indistinguishable.
+			route: event.route.id,
+			path: event.url.pathname,
+			method: event.request.method,
 			status,
 			message,
 		},

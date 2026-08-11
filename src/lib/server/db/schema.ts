@@ -3,6 +3,7 @@ import {
 	boolean,
 	integer,
 	json,
+	jsonb,
 	pgTable,
 	text,
 	timestamp,
@@ -445,7 +446,11 @@ export const animationJob = pgTable('animation_job', {
 
 	// Tracking - per-direction fal request IDs and completed video URLs
 	falRequestIds: json('fal_request_ids').$type<Record<string, string>>(),
-	directionVideos: json('direction_videos').$type<Record<string, string>>(),
+	// jsonb, not json: the fal webhook merges each direction's video into this
+	// column with `COALESCE(...) || ...`, and those operators exist only for
+	// jsonb. Declared as json, every merge failed with "COALESCE could not
+	// convert type jsonb to json".
+	directionVideos: jsonb('direction_videos').$type<Record<string, string>>(),
 
 	// Background removal tracking
 	bgRemovalRequestIds: json('bg_removal_request_ids').$type<
