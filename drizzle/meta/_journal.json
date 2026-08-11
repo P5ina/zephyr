@@ -281,6 +281,13 @@
       "when": 1773034524551,
       "tag": "0039_groovy_solo",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1786460937637,
+      "tag": "0040_animation_direction_videos_jsonb",
+      "breakpoints": true
     }
   ]
 }
