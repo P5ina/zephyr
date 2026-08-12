@@ -44,7 +44,16 @@ export async function submitSpriteJob(params: {
 			prompt: params.prompt,
 			width: params.width ?? 512,
 			height: params.height ?? 512,
-			seed: params.seed,
+			// Always an integer, never absent.
+			//
+			// The workflow declares `seed` with an empty string as its default and
+			// hands that straight to the generator, which parses it as an integer
+			// and rejects the request with a 422. Omitting the seed therefore
+			// fails every generation, and almost nobody sets one.
+			//
+			// Picking the number here also makes the result repeatable, which
+			// leaving it to the generator never was.
+			seed: params.seed ?? Math.floor(Math.random() * 4_294_967_296),
 		},
 		webhookUrl: params.webhookUrl,
 	});
