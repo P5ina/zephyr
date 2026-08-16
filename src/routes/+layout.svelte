@@ -41,8 +41,28 @@
 		rel="stylesheet"
 	/>
 </svelte:head>
+<div class="maintenance-banner" role="status">
+	<strong>Scheduled maintenance:</strong> Gensprite is moving to a new home
+	today. Everything you have made carries over, but please hold off on new
+	generations for the next hour &mdash; they may be lost in the move.
+</div>
+
 {#key page.url.pathname}
 	<div in:fade={{ duration: 150, delay: 150 }} out:fade={{ duration: 150 }}>
 		{@render children()}
 	</div>
 {/key}
+
+<style>
+	.maintenance-banner {
+		position: sticky;
+		top: 0;
+		z-index: 1000;
+		padding: 0.6rem 1rem;
+		background: #eab308;
+		color: #1c1917;
+		font-family: 'DM Sans', sans-serif;
+		font-size: 0.9rem;
+		text-align: center;
+	}
+</style>
